@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit Website Content — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav">
+      <a href="/dashboard.html">← Back to Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<div id="loginNotice" class="page-shell" style="display:none;">
+  <div class="notice"><strong>Please log in</strong> Go to the <a href="/dashboard.html">dashboard</a> and log in first, then come back to this page.</div>
+</div>
+
+<div id="editorBox" class="page-shell" style="max-width:720px; display:none;">
+  <h1>Edit Website Content</h1>
+
+  <h2>Homepage</h2>
+  <div class="form-row"><label>Hero headline</label><input id="heroTitle"></div>
+  <div class="form-row"><label>Hero subtitle</label><textarea id="heroSubtitle"></textarea></div>
+  <div class="form-row"><label>About section text</label><textarea id="aboutText"></textarea></div>
+  <button class="btn btn-primary" onclick="saveHomepage()">Save Homepage Text</button>
+  <p id="homepageMsg" style="color:#1c7a4b;"></p>
+
+  <h2 style="margin-top:40px;">Health Info / Blog Posts</h2>
+  <div id="postsList"></div>
+
+  <h3>Add a new post</h3>
+  <div class="form-row"><label>Title</label><input id="newPostTitle"></div>
+  <div class="form-row"><label>Body</label><textarea id="newPostBody"></textarea></div>
+  <button class="btn btn-primary" onclick="addPost()">Add Post</button>
+</div>
+
+<script src="/js/content-editor.js"></script>
+</body>
+</html>

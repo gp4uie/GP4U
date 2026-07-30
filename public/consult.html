@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Consultation — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="video-room">
+  <div class="video-stage">
+    <p id="status" style="color:#9fb3b8;">Setting up your camera and microphone…</p>
+    <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+    <video id="localVideo" autoplay playsinline muted></video>
+  </div>
+  <div class="video-controls">
+    <button class="round-btn" id="micBtn" title="Mute/unmute">🎤</button>
+    <button class="round-btn" id="camBtn" title="Camera on/off">📷</button>
+    <button class="round-btn end" id="endBtn" title="End call">📞</button>
+  </div>
+</div>
+
+<script src="/js/peerjs.min.js"></script>
+<script src="/js/consult.js"></script>
+</body>
+</html>

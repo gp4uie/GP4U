@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking Confirmation — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav"><a href="/index.html">Home</a></nav>
+  </div>
+</header>
+
+<div class="page-shell">
+  <div id="loading"><p>Confirming your payment…</p></div>
+  <div id="content" style="display:none;">
+    <div class="notice" id="demoNotice" style="display:none;">
+      <strong>Demo mode</strong>
+      No Stripe key is configured yet, so this booking was auto-confirmed without a real payment. See the README to connect real Stripe payments.
+    </div>
+    <h1>✅ Booking confirmed</h1>
+    <div class="card" id="bookingDetails"></div>
+
+    <div class="notice" id="emailNotice">
+      We've also emailed you this link — if that doesn't arrive (e.g. email isn't set up on this
+      server yet), just bookmark this page instead.
+    </div>
+
+    <div id="passwordBox" class="card" style="display:none; margin-bottom:24px;">
+      <h3 style="margin-top:0;">Save time next visit</h3>
+      <p style="color:var(--ink-500); font-size:0.9rem;">Set a password so you can log in and see all your bookings, instead of needing this link each time.</p>
+      <div class="form-row"><label>Password</label><input type="password" id="newPassword" placeholder="At least 8 characters"></div>
+      <button class="btn btn-primary" onclick="setPassword()">Set Password</button>
+      <p id="passwordMsg" style="color:#c0392b;"></p>
+    </div>
+
+    <h2 style="margin-top:32px;">Your video consultation</h2>
+    <p>Your appointment link will be active from 10 minutes before your slot.</p>
+    <a id="joinLink" class="btn btn-primary">Join Video Consultation</a>
+
+    <h2 style="margin-top:32px;">Prescriptions</h2>
+    <div id="prescriptionList"><p style="color:var(--ink-500);">None issued yet — your GP will add one here after your consultation if needed.</p></div>
+
+    <h2 style="margin-top:32px;">Sick Certs &amp; Referral Letters</h2>
+    <div id="documentList"><p style="color:var(--ink-500);">Nothing issued yet.</p></div>
+
+    <h2 style="margin-top:32px;">Your Attachments</h2>
+    <div id="attachmentList"><p style="color:var(--ink-500);">None uploaded.</p></div>
+
+    <h2 style="margin-top:32px;">Message your GP</h2>
+    <div class="message-thread" id="messageThread"></div>
+    <div id="messageComposer">
+      <div class="form-row">
+        <textarea id="messageInput" placeholder="Write a message about your booking…"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="sendMessage()">Send Message</button>
+    </div>
+    <div id="messageClosedNotice" class="notice" style="display:none;">
+      <strong>This consultation is now closed</strong>
+      Your GP has marked it complete, so new messages can no longer be sent here. If you need
+      further care, please <a href="/book.html">book a new consultation</a>.
+    </div>
+
+    <p style="margin-top:30px; color:var(--ink-500); font-size:0.85rem;">
+      Keep this page's link safe — it's how you access your booking. Bookmark it or save the link from your browser's address bar.
+    </p>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const bookingId = params.get('id');
+const token = params.get('token');
+const docTypeLabels = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
+
+async function confirmAndLoad() {
+  await fetch(`/api/bookings/${bookingId}/confirm-payment`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.demo) document.getElementById('demoNotice').style.display = 'block'; });
+  await loadBooking();
+  await loadAccountStatus();
+}
+
+async function loadAccountStatus() {
+  const res = await fetch(`/api/bookings/${bookingId}/account-status?token=${token}`);
+  const data = await res.json();
+  document.getElementById('passwordBox').style.display = data.hasPassword ? 'none' : 'block';
+}
+
+async function setPassword() {
+  const password = document.getElementById('newPassword').value;
+  const res = await fetch('/api/patient/set-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId, token, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) { document.getElementById('passwordMsg').textContent = data.error; return; }
+  document.getElementById('passwordBox').innerHTML = '<p>Password set! You can now <a href="/patient-login.html">log in</a> anytime to see all your bookings.</p>';
+}
+
+async function loadBooking() {
+  const res = await fetch(`/api/bookings/${bookingId}?token=${token}`);
+  const data = await res.json();
+  if (!res.ok) {
+    document.getElementById('loading').innerHTML = `<p style="color:#c0392b;">${data.error}</p>`;
+    return;
+  }
+  const b = data.booking;
+  const start = new Date(b.slot_start);
+  document.getElementById('bookingDetails').innerHTML = `
+    <p><strong>Reference:</strong> ${b.id}</p>
+    <p><strong>Service:</strong> ${b.service_type.replace('_',' ')}</p>
+    <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}</p>
+    <p><strong>Status:</strong> ${b.status}</p>
+  `;
+  document.getElementById('joinLink').href = `/consult.html?id=${bookingId}&token=${token}&role=patient`;
+
+  const isCompleted = b.status === 'completed';
+  document.getElementById('messageComposer').style.display = isCompleted ? 'none' : 'block';
+  document.getElementById('messageClosedNotice').style.display = isCompleted ? 'block' : 'none';
+
+  if (data.attachments.length) {
+    document.getElementById('attachmentList').innerHTML = data.attachments.map(a => `
+      <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;margin:0 8px 8px 0;display:inline-block;" target="_blank"
+         href="/api/bookings/${bookingId}/attachments/${a.id}?token=${token}">${a.original_name}</a>
+    `).join('');
+  }
+
+  if (data.prescriptions.length) {
+    document.getElementById('prescriptionList').innerHTML = data.prescriptions.map(p => `
+      <div class="card" style="margin-bottom:10px;">
+        <p><strong>${p.medication}</strong> — ${p.dose}</p>
+        <p>${p.instructions}</p>
+        <p style="color:var(--ink-500);font-size:0.85rem;">Quantity: ${p.quantity} • Issued ${new Date(p.issued_at).toLocaleString('en-IE')}</p>
+        <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${bookingId}&token=${token}">View / Print</a>
+      </div>
+    `).join('');
+  }
+
+  if (data.documents.length) {
+    document.getElementById('documentList').innerHTML = data.documents.map(d => `
+      <div class="card" style="margin-bottom:10px;">
+        <p><strong>${docTypeLabels[d.doc_type] || d.doc_type}</strong></p>
+        <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')}</p>
+        <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}&bookingId=${bookingId}&token=${token}">View / Print</a>
+      </div>
+    `).join('');
+  }
+
+  renderMessages(data.messages);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+}
+
+function renderMessages(messages) {
+  const thread = document.getElementById('messageThread');
+  thread.innerHTML = messages.length
+    ? messages.map(m => `<div class="msg ${m.sender}">${m.body}<small>${m.sender === 'doctor' ? 'GP' : 'You'} • ${new Date(m.created_at).toLocaleString('en-IE')}</small></div>`).join('')
+    : '<p style="color:var(--ink-500);">No messages yet.</p>';
+}
+
+async function sendMessage() {
+  const input = document.getElementById('messageInput');
+  if (!input.value.trim()) return;
+  const res = await fetch(`/api/bookings/${bookingId}/messages?token=${token}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body: input.value, token }),
+  });
+  if (res.ok) input.value = '';
+  loadBooking();
+}
+
+confirmAndLoad();
+</script>
+</body>
+</html>

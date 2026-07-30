@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health Info — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav">
+      <a href="/index.html#services">Services</a>
+      <a href="/blog.html">Health Info</a>
+      <a href="/book.html" class="btn btn-primary">Book a GP</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wide-shell">
+  <h1>Health Info</h1>
+  <p style="color:var(--ink-500); max-width:600px;">General guidance from our GPs. This is not a substitute for a personal consultation — book an appointment if you have concerns about your own health.</p>
+
+  <div class="grid" style="margin-top:30px;" id="postsGrid"></div>
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-legal">
+    GP4U — Not for use in a medical emergency. Call 112/999 or attend your nearest Emergency Department.
+  </div>
+</footer>
+
+<script>
+fetch('/api/content').then(r => r.json()).then(content => {
+  document.getElementById('postsGrid').innerHTML = content.posts.map(p => `
+    <div class="card">
+      <h3>${p.title}</h3>
+      <p style="color:var(--ink-700); font-size:0.95rem;">${p.body}</p>
+    </div>
+  `).join('');
+});
+</script>
+</body>
+</html>

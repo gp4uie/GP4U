@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Login — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav"><a href="/index.html">Home</a></nav>
+  </div>
+</header>
+
+<div class="page-shell" style="max-width:380px;">
+  <h1>Patient Login</h1>
+  <p style="color:var(--ink-500);">Log in to see all your bookings in one place. If you haven't set a
+  password yet, use the link from your booking confirmation email instead — it'll offer to set one up.</p>
+  <div class="form-row"><label>Email</label><input type="email" id="emailInput"></div>
+  <div class="form-row"><label>Password</label><input type="password" id="passwordInput"></div>
+  <button class="btn btn-primary btn-block" onclick="login()">Log In</button>
+  <p id="loginError" style="color:#c0392b;"></p>
+</div>
+
+<script>
+async function login() {
+  const email = document.getElementById('emailInput').value;
+  const password = document.getElementById('passwordInput').value;
+  const res = await fetch('/api/patient/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    window.location.href = '/patient-portal.html';
+  } else {
+    document.getElementById('loginError').textContent = data.error;
+  }
+}
+</script>
+</body>
+</html>

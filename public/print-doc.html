@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  body { background: white; }
+  .letter { max-width: 680px; margin: 40px auto; padding: 30px; }
+  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; }
+  .letterhead h1 { color: var(--teal-900); margin: 0; }
+  .letterhead p { margin: 2px 0; color: var(--ink-500); font-size: 0.9rem; }
+  .field { margin-bottom: 10px; }
+  .field label { font-weight: 700; display:block; font-size:0.82rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.03em; }
+  .sig { margin-top: 50px; }
+  .body-text { white-space: pre-wrap; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="letter" id="letter">Loading…</div>
+<div class="no-print" style="text-align:center; margin-bottom:30px;">
+  <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const docId = params.get('docId');
+const bookingId = params.get('bookingId');
+const token = params.get('token');
+const url = (bookingId && token)
+  ? `/api/bookings/${bookingId}/documents/${docId}?token=${token}`
+  : `/api/doctor/documents/${docId}`;
+
+function renderSickCert(f, b, practice, doc) {
+  return `
+    <div class="letterhead"><h1>${practice.name}</h1><p>${practice.address || ''}</p><p>${practice.phone || ''}</p></div>
+    <h2>Medical Certificate</h2>
+    <p class="body-text">This is to certify that ${b.patient_name} (DOB ${b.patient_dob}) of ${b.patient_address || 'the address on file'}
+was examined by me and is ${f.fitForWork} from ${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')} inclusive,
+due to: ${f.diagnosis}.</p>
+    <div class="sig"><p>${doc.doctor_name}<br>IMC Reg No: ${doc.doctor_reg_number}<br>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p></div>
+  `;
+}
+
+function renderReferral(f, b, practice, doc, isAE) {
+  const toLine = isAE
+    ? `Emergency Department, ${f.hospitalName}`
+    : `${f.specialty}${f.consultantOrDept ? ' — ' + f.consultantOrDept : ''}`;
+  return `
+    <div class="letterhead"><h1>${practice.name}</h1><p>${practice.address || ''}</p><p>${practice.phone || ''}</p></div>
+    <p>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p>
+    <p><strong>To:</strong> ${toLine}<br><strong>Urgency:</strong> ${f.urgency}</p>
+    <p><strong>Re:</strong> ${b.patient_name}, DOB ${b.patient_dob}<br>${b.patient_address || ''}<br>${b.patient_phone}</p>
+    <h3>Clinical Summary</h3>
+    <p class="body-text">${f.clinicalSummary}</p>
+    <h3>Reason for Referral</h3>
+    <p class="body-text">${f.reasonForReferral}</p>
+    <div class="sig"><p>Yours sincerely,<br><br>${doc.doctor_name}<br>IMC Reg No: ${doc.doctor_reg_number}</p></div>
+  `;
+}
+
+fetch(url).then(r => r.json()).then(data => {
+  if (data.error) { document.getElementById('letter').textContent = data.error; return; }
+  const { document: doc, booking: b, practice } = data;
+  const f = doc.fields;
+  let html;
+  if (doc.doc_type === 'sick_cert') html = renderSickCert(f, b, practice, doc);
+  else html = renderReferral(f, b, practice, doc, doc.doc_type === 'referral_ae');
+  document.getElementById('letter').innerHTML = html;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GP4U — See a GP online, today</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav">
+      <a href="/index.html#services">Services</a>
+      <a href="/index.html#how-it-works">How it works</a>
+      <a href="/blog.html">Health Info</a>
+      <a href="/index.html#about">About</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/patient-login.html" class="doctor-link">Patient Login</a>
+      <a href="/dashboard.html" class="doctor-link">Doctor Login</a>
+      <a href="/book.html" class="btn btn-primary">Book a GP</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-text">
+      <h1 id="heroTitle">See a GP online, from anywhere in Ireland.</h1>
+      <p id="heroSubtitle">GP4U connects you with Irish-registered GPs for video and audio consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.</p>
+      <a href="/book.html" class="btn btn-primary">Book a Consultation</a>
+      <div class="hero-badges">
+        <span class="hero-badge">🇮🇪 Irish Medical Council&nbsp;registered GPs</span>
+        <span class="hero-badge">🔒 Encrypted video &amp; data</span>
+        <span class="hero-badge">💳 Secure card payment</span>
+      </div>
+    </div>
+    <div class="hero-card">
+      <h3>Same-day appointments</h3>
+      <p style="color:#3c5460">Choose a consultation type, answer a few quick questions about why you're getting in touch, pick a time that suits, and pay securely online. You'll get a private video link for your appointment.</p>
+      <a href="/book.html" class="btn btn-secondary btn-block">Get Started →</a>
+    </div>
+  </div>
+</section>
+
+<section id="services">
+  <div class="container">
+    <h2 class="section-title">Our Services</h2>
+    <p class="section-sub">Pick the type of consultation that fits what you need — prices are shown upfront, no surprises.</p>
+    <div class="grid" id="servicesGrid"></div>
+  </div>
+</section>
+
+<section id="how-it-works" style="background:white; border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="container">
+    <h2 class="section-title">How it works</h2>
+    <div class="steps" style="max-width:640px;margin:0 auto;">
+      <div class="step"><div class="step-num">1</div><div><strong>Choose a service</strong><p>Audio, video, travel health, women's health, repeat prescription or a sick cert.</p></div></div>
+      <div class="step"><div class="step-num">2</div><div><strong>Tell us what's going on</strong><p>A short, private questionnaire so your GP is prepared before you speak.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div><strong>Pick a time &amp; pay securely</strong><p>Choose a slot that suits you and pay by card — processed securely by Stripe.</p></div></div>
+      <div class="step"><div class="step-num">4</div><div><strong>Have your consultation</strong><p>Join your private video appointment right from your confirmation page.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="container" style="max-width:720px">
+    <h2 class="section-title">About GP4U</h2>
+    <p id="aboutText" style="text-align:center;color:var(--ink-700)">
+      GP4U is a telemedicine service built by a practising Irish GP, aimed at making everyday GP care more
+      convenient — without losing the personal, careful approach of a good family doctor. Every consultation
+      is carried out by a GP registered with the Irish Medical Council.
+    </p>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <h4>GP4U</h4>
+        <ul>
+          <li><a href="/index.html#services">Services</a></li>
+          <li><a href="/book.html">Book a consultation</a></li>
+          <li><a href="/blog.html">Health info</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
+          <li><a href="/privacy.html#terms">Terms of Use</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li>gp4u.ie@gmail.com</li>
+          <li>www.gp4u.ie</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-legal">
+      GP4U is a prototype telemedicine platform. Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+      This service does not replace in-person examination where one is clinically necessary.
+    </div>
+  </div>
+</footer>
+
+<script>
+fetch('/api/content').then(r => r.json()).then(content => {
+  document.getElementById('heroTitle').textContent = content.hero_title;
+  document.getElementById('heroSubtitle').textContent = content.hero_subtitle;
+  document.getElementById('aboutText').textContent = content.about_text;
+});
+
+fetch('/api/services').then(r => r.json()).then(services => {
+  const icons = { general: '🩺', audio: '📞', video: '🎥', travel: '✈️', womens: '🌷', repeat_rx: '💊', sick_cert: '📄' };
+  const grid = document.getElementById('servicesGrid');
+  grid.innerHTML = Object.entries(services).map(([key, s]) => `
+    <div class="card service-card">
+      <div class="service-icon">${icons[key] || '🩺'}</div>
+      <h3>${s.label}</h3>
+      <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
+      <p style="color:var(--ink-500);font-size:0.85rem;margin-bottom:14px;">${s.durationMins} minute appointment</p>
+      <a href="/book.html?service=${key}" class="btn btn-secondary btn-block">Book</a>
+    </div>
+  `).join('');
+});
+</script>
+</body>
+</html>

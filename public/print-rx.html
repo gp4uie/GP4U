@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prescription — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  body { background: white; }
+  .letter { max-width: 680px; margin: 40px auto; padding: 30px; }
+  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; }
+  .letterhead h1 { color: var(--teal-900); margin: 0; }
+  .letterhead p { margin: 2px 0; color: var(--ink-500); font-size: 0.9rem; }
+  .field { margin-bottom: 10px; }
+  .field label { font-weight: 700; display:block; font-size:0.82rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.03em; }
+  .sig { margin-top: 50px; }
+</style>
+</head>
+<body>
+<div class="letter" id="letter">Loading…</div>
+<div class="no-print" style="text-align:center; margin-bottom:30px;">
+  <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const rxId = params.get('rxId');
+const bookingId = params.get('bookingId');
+const token = params.get('token');
+const url = (bookingId && token)
+  ? `/api/bookings/${bookingId}/prescriptions/${rxId}?token=${token}`
+  : `/api/doctor/prescriptions/${rxId}`;
+
+fetch(url).then(r => r.json()).then(data => {
+  if (data.error) { document.getElementById('letter').textContent = data.error; return; }
+  const { prescription: p, booking: b, practice } = data;
+  document.getElementById('letter').innerHTML = `
+    <div class="letterhead">
+      <h1>${practice.name}</h1>
+      <p>${practice.address || ''}</p>
+      <p>${practice.phone || ''}</p>
+    </div>
+    <h2>Prescription</h2>
+    <div class="field"><label>Patient</label>${b.patient_name} — DOB ${b.patient_dob}</div>
+    <div class="field"><label>Address</label>${b.patient_address || '—'}</div>
+    <div class="field"><label>Date</label>${new Date(p.issued_at).toLocaleDateString('en-IE')}</div>
+    <hr>
+    <div class="field"><label>Medication</label>${p.medication}</div>
+    <div class="field"><label>Dose</label>${p.dose}</div>
+    <div class="field"><label>Quantity</label>${p.quantity}</div>
+    <div class="field"><label>Instructions</label>${p.instructions}</div>
+    <div class="sig">
+      <p>${p.doctor_name}<br>IMC Reg No: ${p.doctor_reg_number}</p>
+    </div>
+  `;
+});
+</script>
+</body>
+</html>

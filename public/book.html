@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a Consultation — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav">
+      <a href="/index.html#services">Services</a>
+      <a href="/blog.html">Health Info</a>
+      <a href="/dashboard.html" class="doctor-link">Doctor Login</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page-shell">
+  <h1>Book your consultation</h1>
+  <div class="wizard-steps">
+    <span id="tab1" class="active">1. Service</span>
+    <span id="tab2">2. About you</span>
+    <span id="tab3">3. Date &amp; time</span>
+    <span id="tab4">4. Review &amp; pay</span>
+  </div>
+
+  <div id="cancelledNotice" class="notice" style="display:none;">
+    <strong>Payment cancelled</strong>
+    No charge was made. You can pick a service and try again below.
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="step1">
+    <div class="grid" id="serviceChoices"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" style="display:none;">
+    <div class="notice">
+      <strong>Please answer honestly and completely</strong>
+      This helps your GP prepare properly for your appointment. If this is a medical emergency, do not use this form — call 112/999.
+    </div>
+    <p style="color:var(--ink-500); font-size:0.85rem;"><span style="color:#c0392b;">*</span> Required fields — the form won't continue until these are filled in.</p>
+    <form id="intakeForm">
+      <div class="form-grid">
+        <div class="form-row"><label>Full name <span style="color:#c0392b;">*</span></label><input required name="patientName"></div>
+        <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob"></div>
+        <div class="form-row"><label>Phone number <span style="color:#c0392b;">*</span></label><input required type="tel" name="patientPhone"></div>
+        <div class="form-row"><label>Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail"></div>
+      </div>
+      <div class="form-row"><label>Home address</label><input required name="patientAddress" placeholder="Needed for sick certs / referral letters if you need one"></div>
+      <div class="form-row"><label>Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input required name="pharmacyName" placeholder="e.g. Boots Pharmacy, Main Street"></div>
+      <div class="form-row"><label>What would you like to discuss with the GP? <span style="color:#c0392b;">*</span></label><textarea required name="reason" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
+      <div class="form-grid">
+        <div class="form-row"><label>How long have you had these symptoms?</label><input name="symptomsDuration" placeholder="e.g. 3 days"></div>
+        <div class="form-row"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
+      </div>
+      <div class="form-row"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>
+      <div class="form-row" id="extraDetailsRow" style="display:none;">
+        <label id="extraDetailsLabel">Additional details</label>
+        <input name="extraDetails" id="extraDetailsInput">
+      </div>
+      <div class="form-row">
+        <label>Attach a photo (optional — e.g. a rash or a letter)</label>
+        <input type="file" id="photoInput" accept="image/*" multiple>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="goToStep3FromForm()">Continue</button>
+    </form>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" style="display:none;">
+    <p>Choose an available appointment time (Irish time, Mon–Fri, next 10 days):</p>
+    <div id="slotContainer" class="slot-grid"><p>Loading available times…</p></div>
+    <button class="btn btn-secondary" onclick="goToStep(2)" style="margin-top:16px;">Back</button>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="step4" style="display:none;">
+    <div class="card" id="reviewCard"></div>
+    <button id="payBtn" class="btn btn-primary" style="margin-top:20px;" onclick="submitBooking()">Continue to Payment</button>
+    <button class="btn btn-secondary" onclick="goToStep(3)" style="margin-top:20px;">Back</button>
+    <p id="bookingError" style="color:#c0392b;"></p>
+  </div>
+</div>
+
+<script src="/js/book.js"></script>
+</body>
+</html>

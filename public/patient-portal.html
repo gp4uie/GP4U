@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Bookings — GP4U</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <nav class="main-nav">
+      <span id="whoami" style="color:var(--ink-500); font-size:0.85rem;"></span>
+      <a href="#" id="logoutLink">Log out</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wide-shell">
+  <div class="side-layout">
+    <div class="side-nav">
+      <button id="navBook" onclick="location.href='/book.html'">Book a New Consultation</button>
+      <button id="navPrevious" class="active" onclick="showSection('previous')">Previous Consultations <span id="unreadBadge" class="side-badge" style="display:none;">0</span></button>
+      <button id="navDocuments" onclick="showSection('documents')">Documents Issued</button>
+    </div>
+    <div class="side-content">
+      <div id="section_previous">
+        <h1>Previous Consultations</h1>
+        <table class="bookings-table">
+          <thead><tr><th>When</th><th>Service</th><th>Status</th><th></th><th></th></tr></thead>
+          <tbody id="bookingsBody"></tbody>
+        </table>
+      </div>
+      <div id="section_documents" style="display:none;">
+        <h1>Documents Issued</h1>
+        <h3>Sick Certs &amp; Referral Letters</h3>
+        <div id="documentsList"><p style="color:var(--ink-500);">None yet.</p></div>
+        <h3 style="margin-top:24px;">Prescriptions</h3>
+        <div id="prescriptionsList"><p style="color:var(--ink-500);">None yet.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const docTypeLabels = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
+
+function showSection(name) {
+  ['previous', 'documents'].forEach((s) => {
+    document.getElementById('section_' + s).style.display = s === name ? 'block' : 'none';
+  });
+  document.getElementById('navPrevious').classList.toggle('active', name === 'previous');
+  document.getElementById('navDocuments').classList.toggle('active', name === 'documents');
+}
+
+async function load() {
+  const meRes = await fetch('/api/patient/me');
+  const me = await meRes.json();
+  if (!me.loggedIn) { window.location.href = '/patient-login.html'; return; }
+  document.getElementById('whoami').textContent = me.email;
+
+  const res = await fetch('/api/patient/bookings');
+  const bookings = await res.json();
+  const unreadCount = bookings.filter(b => b.hasUnread).length;
+  const badge = document.getElementById('unreadBadge');
+  if (unreadCount > 0) { badge.style.display = 'inline-block'; badge.textContent = unreadCount; }
+
+  const body = document.getElementById('bookingsBody');
+  body.innerHTML = bookings.length ? bookings.map(b => `
+    <tr>
+      <td>${new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+      <td>${b.service_type.replace('_', ' ')}</td>
+      <td><span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></td>
+      <td>${b.hasUnread ? '<span class="side-badge">New</span>' : ''}</td>
+      <td><a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" href="/confirmation.html?id=${b.id}&token=${b.token}">View</a></td>
+    </tr>
+  `).join('') : '<tr><td colspan="5" style="color:var(--ink-500);">No bookings yet.</td></tr>';
+
+  const docsRes = await fetch('/api/patient/documents');
+  const docsData = await docsRes.json();
+  document.getElementById('documentsList').innerHTML = docsData.documents.length
+    ? docsData.documents.map(d => `
+        <div class="card" style="margin-bottom:10px;">
+          <p><strong>${docTypeLabels[d.doc_type] || d.doc_type}</strong></p>
+          <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')} • ${d.service_type.replace('_', ' ')} consultation</p>
+          <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}&bookingId=${d.booking_id}&token=${d.token}">View / Print</a>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500);">None yet.</p>';
+
+  document.getElementById('prescriptionsList').innerHTML = docsData.prescriptions.length
+    ? docsData.prescriptions.map(p => `
+        <div class="card" style="margin-bottom:10px;">
+          <p><strong>${p.medication}</strong></p>
+          <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(p.created_at).toLocaleString('en-IE')} • ${p.service_type.replace('_', ' ')} consultation</p>
+          <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${p.booking_id}&token=${p.token}">View / Print</a>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500);">None yet.</p>';
+}
+
+document.getElementById('logoutLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await fetch('/api/patient/logout', { method: 'POST' });
+  window.location.href = '/index.html';
+});
+
+load();
+</script>
+</body>
+</html>
