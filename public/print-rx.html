@@ -9,7 +9,8 @@
 <style>
   body { background: white; }
   .letter { max-width: 680px; margin: 40px auto; padding: 30px; }
-  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; }
+  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+  .letterhead img { width: 40px; height: 40px; flex-shrink: 0; }
   .letterhead h1 { color: var(--teal-900); margin: 0; }
   .letterhead p { margin: 2px 0; color: var(--ink-500); font-size: 0.9rem; }
   .field { margin-bottom: 10px; }
@@ -37,9 +38,12 @@ fetch(url).then(r => r.json()).then(data => {
   const { prescription: p, booking: b, practice } = data;
   document.getElementById('letter').innerHTML = `
     <div class="letterhead">
-      <h1>${practice.name}</h1>
-      <p>${practice.address || ''}</p>
-      <p>${practice.phone || ''}</p>
+      <img src="/img/gp4u-icon.svg" alt="">
+      <div>
+        <h1>${practice.name}</h1>
+        <p>${practice.address || ''}</p>
+        <p>${practice.phone || ''}</p>
+      </div>
     </div>
     <h2>Prescription</h2>
     <div class="field"><label>Patient</label>${b.patient_name} — DOB ${b.patient_dob}</div>

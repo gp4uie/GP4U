@@ -28,11 +28,22 @@
 <div id="loginBox" class="page-shell" style="max-width:380px;">
   <h1>Doctor Login</h1>
   <div class="form-row">
+    <label>Email</label>
+    <input type="email" id="emailInput">
+  </div>
+  <div class="form-row">
     <label>Password</label>
     <input type="password" id="passwordInput">
   </div>
   <button class="btn btn-primary btn-block" onclick="login()">Log In</button>
   <p id="loginError" style="color:#c0392b;"></p>
+  <p><a href="#" id="forgotLink">Forgot your password?</a></p>
+
+  <div id="forgotBox" style="display:none;">
+    <div class="form-row"><label>Email</label><input type="email" id="forgotEmailInput"></div>
+    <button class="btn btn-secondary btn-block" onclick="submitForgot()">Send Reset Link</button>
+    <p id="forgotMsg"></p>
+  </div>
 </div>
 
 <div id="dashboardBox" class="wide-shell" style="display:none;">
@@ -41,6 +52,7 @@
     <button class="tab-btn active" id="tabBtn_schedule" onclick="showTab('schedule')">Schedule</button>
     <button class="tab-btn" id="tabBtn_search" onclick="showTab('search')">Search Patients</button>
     <button class="tab-btn" id="tabBtn_recent" onclick="showTab('recent')">Recent Cases</button>
+    <button class="tab-btn" id="tabBtn_doctors" onclick="showTab('doctors')">Doctors</button>
   </div>
 
   <div id="tab_schedule">
@@ -69,6 +81,27 @@
       <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>Status</th></tr></thead>
       <tbody id="recentBody"></tbody>
     </table>
+  </div>
+
+  <div id="tab_doctors" style="display:none;">
+    <h1>Doctors</h1>
+    <p style="color:var(--ink-500);">Every doctor listed here can log in and issue prescriptions, sick certs and referral letters — each document is stamped with their own name and IMC registration number.</p>
+    <table class="bookings-table">
+      <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th></th></tr></thead>
+      <tbody id="doctorsBody"></tbody>
+    </table>
+
+    <h3 style="margin-top:28px;">Add a Doctor</h3>
+    <div class="form-grid">
+      <div class="form-row"><label>Full name</label><input id="newDoctorName" placeholder="e.g. Dr. Mary O'Brien"></div>
+      <div class="form-row"><label>IMC Reg No</label><input id="newDoctorReg" placeholder="e.g. IMC-123456"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Login email</label><input type="email" id="newDoctorEmail"></div>
+      <div class="form-row"><label>Password</label><input type="password" id="newDoctorPassword"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addDoctor()">Add Doctor</button>
+    <p id="doctorFormMsg" style="color:#c0392b;"></p>
   </div>
 
   <div id="detailPanel" style="display:none; margin-top:36px;">

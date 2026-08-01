@@ -38,12 +38,14 @@ Open the `.env` file in this folder in any text editor (Notepad is fine) and upd
 
 - `PRACTICE_NAME` — shown across the site
 - `PRACTICE_ADDRESS` / `PRACTICE_PHONE` — shown on the letterhead of prescriptions, sick certs and referral letters
-- `DOCTOR_NAME` — your name, shown on the dashboard and on prescriptions
-- `DOCTOR_REG_NUMBER` — your Irish Medical Council registration number
-- `DOCTOR_PASSWORD` — the password you'll use to log into `/dashboard.html`
+- `DOCTOR_NAME` / `DOCTOR_REG_NUMBER` / `DOCTOR_LOGIN_EMAIL` / `DOCTOR_PASSWORD` — used **once**, to create your own doctor login the very first time the app connects to a brand-new database. After that first login exists, these four are ignored — manage doctors (including yourself) from the dashboard's **Doctors** tab instead: add a colleague with their own name, IMC number, email and password, or remove one.
 - `DOCTOR_EMAIL` — where you get emailed for new bookings/messages (needs `SMTP_*` set too, see Section 3.5)
 
 Restart the server (`Ctrl+C` then `npm start` again) after changing `.env`.
+
+Forgotten your dashboard password? Click "Forgot your password?" on the login screen — it emails you
+a reset link (needs `SMTP_*` configured, see Section 3.5). Patients have the same option on
+`/patient-login.html`.
 
 ## 3. Turning on real payments (Stripe)
 

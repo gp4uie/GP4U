@@ -9,7 +9,8 @@
 <style>
   body { background: white; }
   .letter { max-width: 680px; margin: 40px auto; padding: 30px; }
-  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; }
+  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+  .letterhead img { width: 40px; height: 40px; flex-shrink: 0; }
   .letterhead h1 { color: var(--teal-900); margin: 0; }
   .letterhead p { margin: 2px 0; color: var(--ink-500); font-size: 0.9rem; }
   .field { margin-bottom: 10px; }
@@ -35,7 +36,7 @@ const url = (bookingId && token)
 
 function renderSickCert(f, b, practice, doc) {
   return `
-    <div class="letterhead"><h1>${practice.name}</h1><p>${practice.address || ''}</p><p>${practice.phone || ''}</p></div>
+    <div class="letterhead"><img src="/img/gp4u-icon.svg" alt=""><div><h1>${practice.name}</h1><p>${practice.address || ''}</p><p>${practice.phone || ''}</p></div></div>
     <h2>Medical Certificate</h2>
     <p class="body-text">This is to certify that ${b.patient_name} (DOB ${b.patient_dob}) of ${b.patient_address || 'the address on file'}
 was examined by me and is ${f.fitForWork} from ${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')} inclusive,
@@ -49,7 +50,7 @@ function renderReferral(f, b, practice, doc, isAE) {
     ? `Emergency Department, ${f.hospitalName}`
     : `${f.specialty}${f.consultantOrDept ? ' — ' + f.consultantOrDept : ''}`;
   return `
-    <div class="letterhead"><h1>${practice.name}</h1><p>${practice.address || ''}</p><p>${practice.phone || ''}</p></div>
+    <div class="letterhead"><img src="/img/gp4u-icon.svg" alt=""><div><h1>${practice.name}</h1><p>${practice.address || ''}</p><p>${practice.phone || ''}</p></div></div>
     <p>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p>
     <p><strong>To:</strong> ${toLine}<br><strong>Urgency:</strong> ${f.urgency}</p>
     <p><strong>Re:</strong> ${b.patient_name}, DOB ${b.patient_dob}<br>${b.patient_address || ''}<br>${b.patient_phone}</p>

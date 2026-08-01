@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -138,6 +139,7 @@ async function initSchema() {
 
   // One row per patient email. Created/kept up to date automatically whenever that email
   // makes a booking. password_hash is NULL until the patient chooses to set one.
+  // reset_token/reset_token_expires back the "forgot password" email flow (see routes/patient.js).
   await pool.query(`
     CREATE TABLE IF NOT EXISTS patients (
       email VARCHAR(255) PRIMARY KEY,
@@ -146,6 +148,24 @@ async function initSchema() {
       dob VARCHAR(20),
       phone VARCHAR(64),
       address TEXT,
+      reset_token VARCHAR(128) NULL,
+      reset_token_expires DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Real per-doctor accounts (replacing the old single shared DOCTOR_PASSWORD). Every
+  // prescription/document/clinical note is stamped with the name+reg number of whichever
+  // doctor issued it (see routes/doctor.js), so multiple doctors can share the same site.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS doctors (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      reg_number VARCHAR(64) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      reset_token VARCHAR(128) NULL,
+      reset_token_expires DATETIME NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -220,6 +240,22 @@ async function initSchema() {
     await run('INSERT INTO blog_posts (title, body) VALUES (?, ?)', [
       'Repeat prescriptions: what to have ready',
       "Have your current medication names, doses, and your regular pharmacy's name and address to hand. This helps your GP issue an accurate repeat prescription without delay.",
+    ]);
+  }
+
+  // Seed the very first doctor account once, from .env, so there's a way to log in before any
+  // doctor has been added through the dashboard. DOCTOR_LOGIN_EMAIL/DOCTOR_PASSWORD are only read
+  // here — once this row exists, doctors are managed from the dashboard's Doctors tab instead.
+  const doctorCountRow = await get('SELECT COUNT(*) AS n FROM doctors');
+  if (doctorCountRow.n === 0 && process.env.DOCTOR_LOGIN_EMAIL && process.env.DOCTOR_PASSWORD) {
+    const hash = bcrypt.hashSync(process.env.DOCTOR_PASSWORD, 10);
+    await run(`
+      INSERT INTO doctors (name, reg_number, email, password_hash) VALUES (?, ?, ?, ?)
+    `, [
+      process.env.DOCTOR_NAME || 'Dr.',
+      process.env.DOCTOR_REG_NUMBER || '',
+      process.env.DOCTOR_LOGIN_EMAIL.toLowerCase().trim(),
+      hash,
     ]);
   }
 }

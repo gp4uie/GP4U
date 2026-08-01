@@ -1,4 +1,6 @@
+const crypto = require('crypto');
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
 const { DOCUMENT_TYPES } = require('../documentTypes');
@@ -6,18 +8,33 @@ const { MEDICATIONS } = require('../medications');
 
 const router = express.Router();
 
-function requireDoctor(req, res, next) {
-  if (!req.session || !req.session.doctor) return res.status(401).json({ error: 'Not logged in' });
+// Also guards against a session referencing a doctor account that's since been removed
+// (e.g. an admin deleted a colleague while they were still logged in elsewhere).
+async function requireDoctor(req, res, next) {
+  if (!req.session || !req.session.doctorId) return res.status(401).json({ error: 'Not logged in' });
+  const doctor = await db.get('SELECT id FROM doctors WHERE id = ?', [req.session.doctorId]);
+  if (!doctor) {
+    req.session = null;
+    return res.status(401).json({ error: 'Not logged in' });
+  }
   next();
 }
 
-router.post('/login', (req, res) => {
-  const { password } = req.body;
-  if (password && password === process.env.DOCTOR_PASSWORD) {
-    req.session.doctor = true;
-    return res.json({ ok: true });
+// Every route below that stamps a doctor's name/reg number on a record calls this to get the
+// currently logged-in doctor, rather than a single site-wide env var — see server/db.js for the
+// `doctors` table this reads from.
+async function getCurrentDoctor(req) {
+  return db.get('SELECT * FROM doctors WHERE id = ?', [req.session.doctorId]);
+}
+
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  const doctor = email && await db.get('SELECT * FROM doctors WHERE email = ?', [email.toLowerCase().trim()]);
+  if (!doctor || !bcrypt.compareSync(password || '', doctor.password_hash)) {
+    return res.status(401).json({ error: 'Incorrect email or password' });
   }
-  res.status(401).json({ error: 'Incorrect password' });
+  req.session.doctorId = doctor.id;
+  res.json({ ok: true });
 });
 
 router.post('/logout', (req, res) => {
@@ -25,13 +42,91 @@ router.post('/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
+  if (!req.session || !req.session.doctorId) return res.json({ loggedIn: false });
+  const doctor = await getCurrentDoctor(req);
+  if (!doctor) {
+    req.session = null;
+    return res.json({ loggedIn: false });
+  }
   res.json({
-    loggedIn: !!(req.session && req.session.doctor),
-    doctorName: process.env.DOCTOR_NAME,
+    loggedIn: true,
+    doctorName: doctor.name,
+    doctorRegNumber: doctor.reg_number,
     practiceName: process.env.PRACTICE_NAME,
     mailerConfigured: mailer.isConfigured(),
   });
+});
+
+// --- Forgot / reset password ---
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const doctor = email && await db.get('SELECT * FROM doctors WHERE email = ?', [email.toLowerCase().trim()]);
+  // Always respond the same way whether or not the email matches, so this can't be used to
+  // find out which addresses have an account.
+  if (doctor) {
+    const token = crypto.randomBytes(32).toString('hex');
+    await db.run(
+      'UPDATE doctors SET reset_token = ?, reset_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?',
+      [token, doctor.id]
+    );
+    try {
+      await mailer.sendMail({
+        to: doctor.email,
+        subject: `Reset your ${process.env.PRACTICE_NAME || 'GP4U'} doctor login`,
+        html: `<p>Click below to set a new password. This link expires in 1 hour.</p>
+          <p><a href="${process.env.BASE_URL}/reset-password.html?type=doctor&token=${token}">Reset password</a></p>`,
+      });
+    } catch (err) {
+      // Mailer not configured — nothing more we can do automatically; an admin will need to
+      // reset the password directly via the environment variables instead.
+    }
+  }
+  res.json({ ok: true, message: 'If that email has a doctor account, a reset link has been sent.' });
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  const doctor = token && await db.get(
+    'SELECT * FROM doctors WHERE reset_token = ? AND reset_token_expires > NOW()',
+    [token]
+  );
+  if (!doctor) return res.status(400).json({ error: 'This reset link is invalid or has expired' });
+  const hash = bcrypt.hashSync(password, 10);
+  await db.run('UPDATE doctors SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?', [hash, doctor.id]);
+  res.json({ ok: true });
+});
+
+// --- Manage doctors (add/remove colleagues) ---
+router.get('/doctors', requireDoctor, async (req, res) => {
+  const doctors = await db.all('SELECT id, name, reg_number, email, created_at FROM doctors ORDER BY created_at ASC');
+  res.json(doctors);
+});
+
+router.post('/doctors', requireDoctor, async (req, res) => {
+  const { name, regNumber, email, password } = req.body;
+  if (!name || !regNumber || !email || !password) {
+    return res.status(400).json({ error: 'Name, registration number, email and password are all required' });
+  }
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const existing = await db.get('SELECT id FROM doctors WHERE email = ?', [email.toLowerCase().trim()]);
+  if (existing) return res.status(409).json({ error: 'A doctor with that email already exists' });
+  const hash = bcrypt.hashSync(password, 10);
+  const info = await db.run(
+    'INSERT INTO doctors (name, reg_number, email, password_hash) VALUES (?, ?, ?, ?)',
+    [name.trim(), regNumber.trim(), email.toLowerCase().trim(), hash]
+  );
+  res.json({ ok: true, id: info.lastInsertRowid });
+});
+
+router.delete('/doctors/:id', requireDoctor, async (req, res) => {
+  const countRow = await db.get('SELECT COUNT(*) AS n FROM doctors');
+  if (countRow.n <= 1) return res.status(400).json({ error: 'Cannot remove the only remaining doctor account' });
+  await db.run('DELETE FROM doctors WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
 });
 
 // Starter medication list for the prescription search/autocomplete — see server/medications.js
@@ -155,9 +250,10 @@ router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
 router.post('/bookings/:id/notes', requireDoctor, async (req, res) => {
   const { noteText } = req.body;
   if (!noteText || !noteText.trim()) return res.status(400).json({ error: 'Note cannot be empty' });
+  const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
     INSERT INTO clinical_notes (booking_id, note_text, doctor_name) VALUES (?, ?, ?)
-  `, [req.params.id, noteText.trim(), process.env.DOCTOR_NAME]);
+  `, [req.params.id, noteText.trim(), doctor.name]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -167,10 +263,11 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
   if (!medication || !dose || !instructions || !quantity) {
     return res.status(400).json({ error: 'All prescription fields are required' });
   }
+  const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
     INSERT INTO prescriptions (booking_id, medication, dose, instructions, quantity, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?,?,?)
-  `, [req.params.id, medication, dose, instructions, quantity, process.env.DOCTOR_NAME, process.env.DOCTOR_REG_NUMBER]);
+  `, [req.params.id, medication, dose, instructions, quantity, doctor.name, doctor.reg_number]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -216,10 +313,11 @@ router.post('/bookings/:id/documents', requireDoctor, async (req, res) => {
   const { docType, fields } = req.body;
   if (!DOCUMENT_TYPES[docType]) return res.status(400).json({ error: 'Unknown document type' });
   if (!fields || typeof fields !== 'object') return res.status(400).json({ error: 'Missing document fields' });
+  const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
     INSERT INTO documents (booking_id, doc_type, fields, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?)
-  `, [req.params.id, docType, JSON.stringify(fields), process.env.DOCTOR_NAME, process.env.DOCTOR_REG_NUMBER]);
+  `, [req.params.id, docType, JSON.stringify(fields), doctor.name, doctor.reg_number]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 

@@ -1,6 +1,8 @@
+const crypto = require('crypto');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
+const mailer = require('../mailer');
 const { getPatient } = require('../patients');
 
 const router = express.Router();
@@ -95,6 +97,49 @@ router.post('/set-password', async (req, res) => {
     return res.status(500).json({ error: 'No patient record found for this email — please make a new booking first.' });
   }
   req.session.patientEmail = booking.patient_email;
+  res.json({ ok: true });
+});
+
+// "Forgot password" for patients who don't have their booking confirmation link handy — an
+// alternative entry point to /set-password above, which is tied to a specific booking's token.
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const patient = email && await getPatient(email.toLowerCase().trim());
+  // Always respond the same way whether or not the email matches, so this can't be used to
+  // find out which addresses have an account.
+  if (patient) {
+    const token = crypto.randomBytes(32).toString('hex');
+    await db.run(
+      'UPDATE patients SET reset_token = ?, reset_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?',
+      [token, patient.email]
+    );
+    try {
+      await mailer.sendMail({
+        to: patient.email,
+        subject: `Reset your ${process.env.PRACTICE_NAME || 'GP4U'} password`,
+        html: `<p>Click below to set a new password. This link expires in 1 hour.</p>
+          <p><a href="${process.env.BASE_URL}/reset-password.html?type=patient&token=${token}">Reset password</a></p>`,
+      });
+    } catch (err) {
+      // Mailer not configured — the patient can still use their booking confirmation link instead.
+    }
+  }
+  res.json({ ok: true, message: 'If that email has an account, a reset link has been sent.' });
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  const patient = token && await db.get(
+    'SELECT * FROM patients WHERE reset_token = ? AND reset_token_expires > NOW()',
+    [token]
+  );
+  if (!patient) return res.status(400).json({ error: 'This reset link is invalid or has expired' });
+  const hash = bcrypt.hashSync(password, 10);
+  await db.run('UPDATE patients SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?', [hash, patient.email]);
+  req.session.patientEmail = patient.email;
   res.json({ ok: true });
 });
 

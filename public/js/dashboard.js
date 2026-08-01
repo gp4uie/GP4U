@@ -25,16 +25,18 @@ async function checkSession() {
 }
 
 async function login() {
+  const email = document.getElementById('emailInput').value;
   const password = document.getElementById('passwordInput').value;
   const res = await fetch('/api/doctor/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ email, password }),
   });
+  const data = await res.json();
   if (res.ok) {
     checkSession();
   } else {
-    document.getElementById('loginError').textContent = 'Incorrect password.';
+    document.getElementById('loginError').textContent = data.error || 'Incorrect email or password.';
   }
 }
 
@@ -44,15 +46,78 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
   location.reload();
 });
 
+document.getElementById('forgotLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('forgotBox').style.display = 'block';
+  e.target.style.display = 'none';
+});
+
+async function submitForgot() {
+  const email = document.getElementById('forgotEmailInput').value;
+  const res = await fetch('/api/doctor/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  document.getElementById('forgotMsg').style.color = 'var(--teal-700)';
+  document.getElementById('forgotMsg').textContent = data.message || data.error;
+}
+
 // --- Top-level tabs ---
 function showTab(tab) {
   activeTab = tab;
-  ['schedule', 'search', 'recent'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'doctors'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'recent') loadRecent();
   if (tab === 'schedule') loadSchedule();
+  if (tab === 'doctors') loadDoctors();
+}
+
+// --- Doctors (add/remove colleagues) ---
+async function loadDoctors() {
+  const res = await fetch('/api/doctor/doctors');
+  const doctors = await res.json();
+  document.getElementById('doctorsBody').innerHTML = doctors.map((d) => `
+    <tr>
+      <td>${d.name}</td>
+      <td>${d.reg_number}</td>
+      <td>${d.email}</td>
+      <td><button class="btn btn-secondary" onclick="removeDoctor(${d.id})">Remove</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="4">No doctors yet.</td></tr>';
+}
+
+async function addDoctor() {
+  const name = document.getElementById('newDoctorName').value;
+  const regNumber = document.getElementById('newDoctorReg').value;
+  const email = document.getElementById('newDoctorEmail').value;
+  const password = document.getElementById('newDoctorPassword').value;
+  const res = await fetch('/api/doctor/doctors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, regNumber, email, password }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    ['newDoctorName', 'newDoctorReg', 'newDoctorEmail', 'newDoctorPassword'].forEach((id) => document.getElementById(id).value = '');
+    document.getElementById('doctorFormMsg').style.color = 'var(--teal-700)';
+    document.getElementById('doctorFormMsg').textContent = 'Doctor added.';
+    loadDoctors();
+  } else {
+    document.getElementById('doctorFormMsg').style.color = '#c0392b';
+    document.getElementById('doctorFormMsg').textContent = data.error;
+  }
+}
+
+async function removeDoctor(id) {
+  if (!confirm('Remove this doctor? They will no longer be able to log in.')) return;
+  const res = await fetch('/api/doctor/doctors/' + id, { method: 'DELETE' });
+  const data = await res.json();
+  if (res.ok) loadDoctors();
+  else alert(data.error);
 }
 
 // --- Schedule (day view, 15-minute slots) ---
