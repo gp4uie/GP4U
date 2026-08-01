@@ -48,6 +48,18 @@ async function run(sql, params = []) {
   return { lastInsertRowid: result.insertId, changes: result.affectedRows };
 }
 
+// `CREATE TABLE IF NOT EXISTS` only helps for tables that don't exist yet — it silently does
+// nothing to add a new column to a table that's already there (e.g. this site's live `patients`
+// table, created before reset_token existed). This adds a column only if it's actually missing,
+// so it's safe to call every startup against both a brand-new database and an existing one.
+async function ensureColumn(table, column, definition) {
+  try {
+    await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+  }
+}
+
 async function initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bookings (
@@ -153,6 +165,9 @@ async function initSchema() {
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Migration for sites where `patients` already existed before reset_token was added.
+  await ensureColumn('patients', 'reset_token', 'VARCHAR(128) NULL');
+  await ensureColumn('patients', 'reset_token_expires', 'DATETIME NULL');
 
   // Real per-doctor accounts (replacing the old single shared DOCTOR_PASSWORD). Every
   // prescription/document/clinical note is stamped with the name+reg number of whichever
