@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Doctor Dashboard — GP4U</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html">GP4<span>U</span></a>
+    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
     <nav class="main-nav">
       <span id="whoami" style="color:var(--ink-500); font-size:0.85rem;"></span>
       <a href="/content-editor.html" id="contentEditorLink" style="display:none;">Edit Website Content</a>
@@ -105,10 +107,8 @@
 
         <div id="chartSection_previous" style="display:none;">
           <h3 style="margin-top:0;">Previous Consultations for this Patient</h3>
-          <table class="bookings-table">
-            <thead><tr><th>When</th><th>Service</th><th>Reason</th><th>Status</th></tr></thead>
-            <tbody id="previousConsultationsBody"></tbody>
-          </table>
+          <p style="color:var(--ink-500); font-size:0.9rem;">Every past visit's notes, prescriptions, and documents — visible here without opening each one separately.</p>
+          <div id="previousConsultationsList"></div>
         </div>
 
         <div id="chartSection_messages" style="display:none;">
@@ -134,9 +134,24 @@
             Healthmail inbox once you've connected your own Healthmail SMTP details in <code>.env</code> —
             see README. Controlled drugs must still follow HPRA/Medical Council rules.
           </div>
+          <div class="notice">
+            <strong>Medication search is a typing aid, not a formulary</strong>
+            The dropdown below is a small starter list of common medications and strengths to save
+            typing — it is not the Irish Medicines Formulary, the BNF, or the HSE reimbursement list,
+            and hasn't been clinically verified. You can still type anything else freely. Edit
+            <code>server/medications.js</code> to add, correct, or remove entries.
+          </div>
           <div class="form-grid">
-            <div class="form-row"><label>Medication</label><input id="rxMed"></div>
-            <div class="form-row"><label>Dose</label><input id="rxDose"></div>
+            <div class="form-row">
+              <label>Medication</label>
+              <input id="rxMed" list="medicationList" oninput="onMedicationChange()" placeholder="Search or type a medication">
+              <datalist id="medicationList"></datalist>
+            </div>
+            <div class="form-row">
+              <label>Dose</label>
+              <input id="rxDose" list="doseList" placeholder="Search or type a dose">
+              <datalist id="doseList"></datalist>
+            </div>
           </div>
           <div class="form-grid">
             <div class="form-row"><label>Quantity</label><input id="rxQty"></div>

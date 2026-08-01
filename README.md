@@ -9,13 +9,28 @@ no real payment) until you add real Stripe keys.
 
 ## 1. Running it on your own computer
 
-Every time you want to start the site:
+This app stores its data in a **MySQL database** (not a plain file), so a MySQL server needs to be
+running before you start the app. One-time setup:
 
-1. Open this folder (`Documents/GP4U`) in a terminal.
-2. Run: `npm start`
-3. Open your browser to: **http://localhost:4000**
+1. Install MySQL Server if you haven't already (e.g. via the MySQL installer, or `winget install
+   Oracle.MySQL` in PowerShell).
+2. Create a database and a user for the app. In a terminal:
+   ```
+   mysql -u root -e "CREATE DATABASE gp4u; CREATE USER 'gp4u_app'@'localhost' IDENTIFIED BY 'choose-a-password'; GRANT ALL PRIVILEGES ON gp4u.* TO 'gp4u_app'@'localhost';"
+   ```
+3. In `.env`, set `DB_USER` and `DB_PASSWORD` to match what you just created (`DB_HOST=localhost`,
+   `DB_NAME=gp4u`, `DB_PORT=3306` already default to the right values).
 
-Stop it any time with `Ctrl+C` in the terminal.
+Every time you want to start the site after that:
+
+1. Make sure MySQL is running (if you installed it as a Windows service, it starts automatically;
+   if not, start `mysqld` first).
+2. Open this folder (`Documents/GP4U`) in a terminal.
+3. Run: `npm start`
+4. Open your browser to: **http://localhost:4000**
+
+The first time it starts, it automatically creates all the tables it needs — nothing else to set up.
+Stop the app any time with `Ctrl+C` in the terminal (MySQL itself keeps running separately).
 
 ## 2. Editing your practice details
 
@@ -87,6 +102,9 @@ verification for your business. Only do this once you're ready to go live (see S
   - **◀ Previous Case / Next Case ▶** buttons at the top of the chart move to the next/previous
     booking in whichever list you opened it from (Schedule, Search, or Recent Cases), so you can
     work through a day's appointments without going back to the list each time.
+  - The **Prescription** tab's Medication/Dose fields have a search-as-you-type dropdown, seeded
+    from a starter list of ~60 common medications in `server/medications.js`. Read the notice on
+    that tab — it's a typing aid, not the Irish Medicines Formulary/BNF/HSE list (see Section 5).
 - **Health info / blog** (`/blog.html`) — sample articles, editable without touching code (below)
 - **Privacy & GDPR notice** (`/privacy.html`) — starting template, see Section 5
 - **Website content editor** (`/content-editor.html`, linked from the dashboard) — log in as the
@@ -138,6 +156,13 @@ insurer, and (for some items) a developer should help you close off before real 
   Controlled drugs generally cannot be prescribed via telemedicine without an in-person exam — do
   not use this feature for real prescriptions until you've confirmed your approach with your
   indemnity insurer.
+- **Medication search list** (`server/medications.js`) is a starter convenience list the developer
+  drafted from general knowledge — it is **not** the Irish Medicines Formulary, the BNF, the HSE
+  PCRS reimbursement list, or any clinically verified/maintained source, and hasn't been checked
+  against current licensing, availability, or dosing guidance. It only exists to reduce typing; you
+  still need to apply your own clinical judgement exactly as you would with free text. A real
+  formulary integration would mean either a paid IMF/BNF Ireland data licence, or building against
+  HSE PCRS's professional portal (pcrs.ie) if/when suitable access and export terms are arranged.
 - **Sick certs and referral letters** are similarly printable/emailable templates, not connected to
   any official certification or hospital referral system — confirm with your indemnity insurer and
   any receiving hospital/department what format and channel they expect for real referrals.
@@ -163,8 +188,10 @@ None of this blocks you from building and testing — it just needs sign-off bef
 
 ## 6. Known technical limitations of this prototype (fine for testing, not for scale)
 
-- **Database**: uses a simple local file (`data/gp4u.db`), fine for one GP testing this out. A real
-  launch with multiple doctors and volume would move to a hosted database.
+- **Database**: MySQL, either your own local server (for testing) or the MySQL database included
+  with Hostinger Business hosting (for the real site) — fine for one GP; a multi-doctor version with
+  real volume would eventually want a more powerful managed database, but MySQL scales a long way
+  before that's needed.
 - **Video calls**: the call itself only starts once the server confirms the patient's token (or a
   logged-in doctor session) is valid for that booking — knowing/guessing a booking ID alone isn't
   enough to join. Signalling (finding the other participant) goes through PeerJS's free public
@@ -178,9 +205,10 @@ None of this blocks you from building and testing — it just needs sign-off bef
   or email text**, not a dedicated patient ID — there's no separate "patient record" table yet,
   just bookings linked by the email address used. If two patients share a name, double-check DOB
   and phone before relying on a match.
-- **Photo attachments** are stored as plain files under `data/uploads/` and aren't scanned for
-  malware or size-limited beyond 8MB/5 photos per booking — fine for a small trial, but a real
-  launch should add virus scanning and move storage to something like S3.
+- **Photo attachments** are stored directly in the database (not on the app server's own disk,
+  which some hosts wipe on every redeploy) and aren't scanned for malware or size-limited beyond
+  8MB/5 photos per booking — fine for a small trial, but a real launch with a lot of photo volume
+  should add malware scanning and consider moving large files to dedicated object storage instead.
 - **Patient accounts have no "forgot password" flow yet** — if a patient forgets their password,
   they'd need a new booking confirmation email to set a new one (there's also no email verification
   step: whoever clicks the booking confirmation link can set the password, same trust level as a
@@ -199,3 +227,100 @@ None of this blocks you from building and testing — it just needs sign-off bef
 The dashboard and data model are built around a single doctor for now (as agreed for this first
 version). Adding more GPs — separate logins, individual calendars, and a public doctor directory —
 is a well-scoped next step once this version has been tested.
+
+## 8. SEO — getting found on Google
+
+**Nobody can guarantee a top search ranking** — it depends on things no code change controls: how
+long a site's been live, who links to it, and how competitive the search terms are. "GP" + "Ireland"
+is a competitive space. What's done here is the technical foundation, so the site isn't starting
+from zero once it's actually live.
+
+**Already in place:**
+- Unique title and meta description on the homepage, booking page, and blog, written around real
+  search terms people use ("online GP Ireland", "book GP appointment online", etc.)
+- Open Graph / Twitter card tags, so links shared on social media or WhatsApp show a proper preview
+- `schema.org` structured data (`MedicalBusiness`) on the homepage, which can help Google show richer
+  results and matters for local/medical search
+- `robots.txt` and `sitemap.xml`, so search engines know what to crawl
+- Every private/functional page (dashboard, patient portal, booking confirmation, video call,
+  printable prescriptions/documents) is marked `noindex` — these should never show up in search
+  results or get cached by Google, which matters for privacy as much as SEO, since some of these
+  pages are only "protected" by a link containing a token
+- A favicon, so the site looks finished in browser tabs and bookmarks
+
+**Still needed once the site is actually hosted on gp4u.ie (none of this works from localhost):**
+- Verify the site in [Google Search Console](https://search.google.com/search-console) and submit
+  `sitemap.xml` — this is what actually tells Google the site exists
+- Set up a **Google Business Profile** for the practice — for a local medical service, this matters
+  more for being found than almost anything else here
+- Update `PRACTICE_ADDRESS`/`PRACTICE_PHONE` in `.env` with your real details — search engines and
+  patients both use these for trust and local relevance
+- Get listed on Irish health/business directories (these create the "backlinks" that build trust
+  with Google over time)
+- Keep adding real posts to the Health Info blog via the content editor — regularly updated,
+  genuinely useful content is one of the few SEO factors actually within your control
+- Once on a real domain, confirm HTTPS is working (Section 6) — Google treats non-HTTPS sites worse
+- Double check the `https://www.gp4u.ie/` URLs baked into the meta tags and `sitemap.xml` match
+  your actual final domain before going live
+
+## 9. Deploying to Hostinger (going live on gp4u.ie)
+
+This assumes you have **Hostinger Business Web Hosting** (or a Cloud plan) and already own the
+`gp4u.ie` domain. The exact wording of each screen may differ slightly from what's below since
+Hostinger updates hPanel from time to time — if a step doesn't match what you see, their live chat
+support can tell you exactly where to click.
+
+### Step 1 — Create the MySQL database
+
+1. In hPanel, go to **Databases → MySQL Databases**.
+2. Create a new database (e.g. `gp4u`) and a new database user with a strong password. Note down
+   the **database name, username, password, and host** it shows you — you'll need all four next.
+
+### Step 2 — Deploy the app
+
+1. In hPanel, go to **Websites → Add Website → Deploy Web App**.
+2. Choose **Import Git Repository**, authorize Hostinger to access your GitHub account if asked,
+   and select your `GP4U` repository (the one at github.com/gp4uie/GP4U from Section "GitHub" —
+   ask if you need a reminder of how that was set up).
+3. When asked for framework/entry file details, set the **entry file** to `server/index.js`.
+4. Don't deploy yet — first add the environment variables (next step), since Hostinger needs a
+   redeploy afterwards anyway to pick them up.
+
+### Step 3 — Add environment variables
+
+In the app's settings in hPanel, find **Environment Variables** and add every value from your
+local `.env` file, with two important changes for the live site:
+
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — use the values from Step 1, not your local ones
+- `BASE_URL` — set to `https://www.gp4u.ie` (your real domain, once Step 5 is done)
+- Everything else (`DOCTOR_PASSWORD`, `SESSION_SECRET`, `PRACTICE_*`, `SMTP_*`, `STRIPE_*` if
+  you're using it) — same values as your local `.env`, or your real live values if different
+
+### Step 4 — Deploy and restart
+
+Click **Deploy**. Once it finishes, use the **Restart** option for the app so the new environment
+variables actually take effect (Hostinger doesn't pick these up automatically until a restart).
+Check the app's logs in hPanel if anything looks wrong — the same "could not connect to the
+database" message you'd see locally will show up there too if `DB_*` values are wrong.
+
+### Step 5 — Point your domain at it
+
+In the same website's settings, look for **Domains** and either select `gp4u.ie` if it's already
+in your Hostinger account, or follow the prompts to add it. If `gp4u.ie` is registered somewhere
+else (e.g. Blacknight, IE Domain Registry) rather than through Hostinger itself, you'll instead need
+to update that domain's DNS records (or nameservers) to point at Hostinger — hPanel will show you
+exactly what to change.
+
+### Step 6 — SSL / HTTPS
+
+Hostinger issues free SSL certificates (via Let's Encrypt) automatically for domains pointed at
+their hosting — this should turn on by itself once the domain is connected, usually within a few
+minutes to an hour. Confirm the site loads at `https://www.gp4u.ie` (not just `http://`) before
+telling anyone the site is live.
+
+### After it's live
+
+- Update `BASE_URL` to the real HTTPS domain if you hadn't already, redeploy
+- Re-read **Section 5** — going live technically is not the same as being ready for real patients
+- Submit `https://www.gp4u.ie/sitemap.xml` to Google Search Console (Section 8)
+- Every time you push new code changes to GitHub, redeploy from hPanel to update the live site

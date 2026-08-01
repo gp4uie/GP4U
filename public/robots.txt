@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /patient-login.html
+Disallow: /patient-portal.html
+Disallow: /content-editor.html
+Disallow: /confirmation.html
+Disallow: /consult.html
+Disallow: /print-rx.html
+Disallow: /print-doc.html
+Disallow: /api/
+
+Sitemap: https://www.gp4u.ie/sitemap.xml

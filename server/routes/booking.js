@@ -1,7 +1,5 @@
 const express = require('express');
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
 const multer = require('multer');
 const Stripe = require('stripe');
 const db = require('../db');
@@ -14,12 +12,10 @@ const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
 
-const UPLOADS_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
+// Photos are kept in memory only long enough to write them into the database as a BLOB —
+// never written to the app server's own disk, which some hosts wipe on every redeploy.
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOADS_DIR,
-    filename: (req, file, cb) => cb(null, `${crypto.randomBytes(16).toString('hex')}${path.extname(file.originalname)}`),
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024, files: 5 },
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
 });
@@ -32,10 +28,10 @@ function newId(prefix) {
 
 // Best-effort: a missing/broken email setup should never break the booking flow itself.
 async function notifyBookingPaid(booking) {
-  db.prepare(`
+  await db.run(`
     INSERT INTO notifications (type, booking_id, message)
     VALUES ('new_booking', ?, ?)
-  `).run(booking.id, `New booking: ${booking.patient_name} — ${SERVICES[booking.service_type].label}`);
+  `, [booking.id, `New booking: ${booking.patient_name} — ${SERVICES[booking.service_type].label}`]);
 
   const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
   try {
@@ -72,10 +68,10 @@ router.get('/services', (req, res) => {
   res.json(SERVICES);
 });
 
-router.get('/slots', (req, res) => {
+router.get('/slots', async (req, res) => {
   const { service } = req.query;
   if (!SERVICES[service]) return res.status(400).json({ error: 'Unknown service type' });
-  res.json(getAvailableSlots(service));
+  res.json(await getAvailableSlots(service));
 });
 
 // Create a pending booking + a Stripe Checkout session for it.
@@ -96,25 +92,29 @@ router.post('/bookings', async (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
 
+    const slotStartSql = db.toMySQLDateTime(slotStart);
+    const slotEndSql = db.toMySQLDateTime(slotEnd);
+
     // Re-check the slot is still free (someone else may have taken it just now).
-    const clash = db
-      .prepare("SELECT 1 FROM bookings WHERE status IN ('paid','pending_payment') AND slot_start = ?")
-      .get(slotStart);
+    const clash = await db.get(
+      "SELECT 1 AS x FROM bookings WHERE status IN ('paid','pending_payment') AND slot_start = ?",
+      [slotStartSql]
+    );
     if (clash) return res.status(409).json({ error: 'That slot was just booked by someone else. Please pick another.' });
 
     const id = newId('GP4U');
     const patientToken = crypto.randomBytes(16).toString('hex');
 
-    db.prepare(`
+    await db.run(`
       INSERT INTO bookings (id, patient_token, service_type, patient_name, patient_dob, patient_phone,
         patient_email, patient_address, pharmacy_name, reason, symptoms_duration, current_medications, allergies, extra_details,
         slot_start, slot_end, amount_cents, status)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
-    `).run(id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress || '', pharmacyName,
+    `, [id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress || '', pharmacyName,
       reason, symptomsDuration || '', currentMedications || '', allergies || '', extraDetails || '',
-      slotStart, slotEnd, service.priceCents);
+      slotStartSql, slotEndSql, service.priceCents]);
 
-    upsertPatient({ email: patientEmail, name: patientName, dob: patientDob, phone: patientPhone, address: patientAddress || '' });
+    await upsertPatient({ email: patientEmail, name: patientName, dob: patientDob, phone: patientPhone, address: patientAddress || '' });
 
     if (!stripe) {
       // No Stripe key configured yet — let the demo continue without real payment so the
@@ -139,7 +139,7 @@ router.post('/bookings', async (req, res) => {
       metadata: { bookingId: id },
     });
 
-    db.prepare('UPDATE bookings SET stripe_session_id = ? WHERE id = ?').run(session.id, id);
+    await db.run('UPDATE bookings SET stripe_session_id = ? WHERE id = ?', [session.id, id]);
 
     res.json({ bookingId: id, patientToken, checkoutUrl: session.url });
   } catch (err) {
@@ -151,21 +151,21 @@ router.post('/bookings', async (req, res) => {
 // Confirms payment status directly with Stripe (works fine on localhost, no webhook needed).
 router.post('/bookings/:id/confirm-payment', async (req, res) => {
   try {
-    const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id);
+    const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
     if (booking.status === 'paid') return res.json({ status: 'paid' });
 
     if (!stripe || !booking.stripe_session_id) {
       // Demo mode without Stripe configured: mark as paid so the flow can be tried end to end.
-      db.prepare("UPDATE bookings SET status = 'paid' WHERE id = ?").run(booking.id);
+      await db.run("UPDATE bookings SET status = 'paid' WHERE id = ?", [booking.id]);
       await notifyBookingPaid(booking);
       return res.json({ status: 'paid', demo: true });
     }
 
     const session = await stripe.checkout.sessions.retrieve(booking.stripe_session_id);
     if (session.payment_status === 'paid') {
-      db.prepare("UPDATE bookings SET status = 'paid' WHERE id = ?").run(booking.id);
+      await db.run("UPDATE bookings SET status = 'paid' WHERE id = ?", [booking.id]);
       await notifyBookingPaid(booking);
       return res.json({ status: 'paid' });
     }
@@ -176,8 +176,8 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
   }
 });
 
-function requirePatientToken(req, res, next) {
-  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id);
+async function requirePatientToken(req, res, next) {
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
   const token = req.query.token || req.body.token;
   if (!token || token !== booking.patient_token) return res.status(403).json({ error: 'Invalid access token' });
@@ -185,30 +185,35 @@ function requirePatientToken(req, res, next) {
   next();
 }
 
-router.get('/bookings/:id', requirePatientToken, (req, res) => {
-  const messages = db.prepare('SELECT sender, body, created_at FROM messages WHERE booking_id = ? ORDER BY created_at ASC').all(req.params.id);
-  const prescriptions = db.prepare('SELECT id, medication, dose, instructions, quantity, issued_at FROM prescriptions WHERE booking_id = ?').all(req.params.id);
+router.get('/bookings/:id', requirePatientToken, async (req, res) => {
+  const messages = await db.all('SELECT sender, body, created_at FROM messages WHERE booking_id = ? ORDER BY created_at ASC', [req.params.id]);
+  const prescriptions = await db.all('SELECT id, medication, dose, instructions, quantity, issued_at FROM prescriptions WHERE booking_id = ?', [req.params.id]);
   // Clinical notes are deliberately NOT included here — they stay doctor-side only.
-  const documents = db.prepare('SELECT id, doc_type, created_at FROM documents WHERE booking_id = ?').all(req.params.id);
-  const attachments = db.prepare('SELECT id, original_name, mime_type, created_at FROM attachments WHERE booking_id = ?').all(req.params.id);
+  const documents = await db.all('SELECT id, doc_type, created_at FROM documents WHERE booking_id = ?', [req.params.id]);
+  const attachments = await db.all('SELECT id, original_name, mime_type, created_at FROM attachments WHERE booking_id = ?', [req.params.id]);
   const { patient_token, ...safeBooking } = req.booking;
   // Opening the booking counts as "viewed" for the unread badge shown in the patient portal.
-  db.prepare("UPDATE bookings SET patient_last_viewed_at = datetime('now') WHERE id = ?").run(req.params.id);
+  await db.run('UPDATE bookings SET patient_last_viewed_at = NOW() WHERE id = ?', [req.params.id]);
   res.json({ booking: safeBooking, messages, prescriptions, documents, attachments });
 });
 
 // Photo attachments — uploaded right after the booking is created, before payment.
-router.post('/bookings/:id/attachments', requirePatientToken, upload.array('photos', 5), (req, res) => {
-  const insert = db.prepare('INSERT INTO attachments (booking_id, filename, original_name, mime_type) VALUES (?,?,?,?)');
-  (req.files || []).forEach((f) => insert.run(req.params.id, f.filename, f.originalname, f.mimetype));
+// Stored as a BLOB directly in the database (see note on `upload` above).
+router.post('/bookings/:id/attachments', requirePatientToken, upload.array('photos', 5), async (req, res) => {
+  for (const f of req.files || []) {
+    await db.run(
+      'INSERT INTO attachments (booking_id, original_name, mime_type, data) VALUES (?,?,?,?)',
+      [req.params.id, f.originalname, f.mimetype, f.buffer]
+    );
+  }
   res.json({ ok: true, count: (req.files || []).length });
 });
 
-router.get('/bookings/:id/attachments/:attId', requirePatientToken, (req, res) => {
-  const att = db.prepare('SELECT * FROM attachments WHERE id = ? AND booking_id = ?').get(req.params.attId, req.params.id);
+router.get('/bookings/:id/attachments/:attId', requirePatientToken, async (req, res) => {
+  const att = await db.get('SELECT * FROM attachments WHERE id = ? AND booking_id = ?', [req.params.attId, req.params.id]);
   if (!att) return res.status(404).json({ error: 'Not found' });
   res.setHeader('Content-Type', att.mime_type);
-  fs.createReadStream(path.join(UPLOADS_DIR, att.filename)).pipe(res);
+  res.send(att.data);
 });
 
 router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
@@ -217,11 +222,11 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
   }
   const { body } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
-  db.prepare("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'patient', ?)").run(req.params.id, body.trim());
-  db.prepare(`
+  await db.run("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'patient', ?)", [req.params.id, body.trim()]);
+  await db.run(`
     INSERT INTO notifications (type, booking_id, message)
     VALUES ('new_message', ?, ?)
-  `).run(req.params.id, `New message from ${req.booking.patient_name}`);
+  `, [req.params.id, `New message from ${req.booking.patient_name}`]);
 
   if (process.env.DOCTOR_EMAIL) {
     try {
@@ -237,15 +242,15 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/bookings/:id/account-status', requirePatientToken, (req, res) => {
-  const patient = db.prepare('SELECT password_hash FROM patients WHERE email = ?').get(req.booking.patient_email);
+router.get('/bookings/:id/account-status', requirePatientToken, async (req, res) => {
+  const patient = await db.get('SELECT password_hash FROM patients WHERE email = ?', [req.booking.patient_email]);
   res.json({ hasPassword: !!(patient && patient.password_hash) });
 });
 
 // Patient-side read access to a single prescription/document for printing — proven by the
 // same booking token used for the confirmation page, so no separate login is required.
-router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, (req, res) => {
-  const rx = db.prepare('SELECT * FROM prescriptions WHERE id = ? AND booking_id = ?').get(req.params.rxId, req.params.id);
+router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, async (req, res) => {
+  const rx = await db.get('SELECT * FROM prescriptions WHERE id = ? AND booking_id = ?', [req.params.rxId, req.params.id]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
   const { patient_token, ...safeBooking } = req.booking;
   res.json({
@@ -255,8 +260,8 @@ router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, (req, res) 
   });
 });
 
-router.get('/bookings/:id/documents/:docId', requirePatientToken, (req, res) => {
-  const doc = db.prepare('SELECT * FROM documents WHERE id = ? AND booking_id = ?').get(req.params.docId, req.params.id);
+router.get('/bookings/:id/documents/:docId', requirePatientToken, async (req, res) => {
+  const doc = await db.get('SELECT * FROM documents WHERE id = ? AND booking_id = ?', [req.params.docId, req.params.id]);
   if (!doc) return res.status(404).json({ error: 'Not found' });
   const { patient_token, ...safeBooking } = req.booking;
   res.json({

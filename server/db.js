@@ -1,172 +1,227 @@
-const path = require('path');
-const Database = require('better-sqlite3');
+const mysql = require('mysql2/promise');
 
-const db = new Database(path.join(__dirname, '..', 'data', 'gp4u.db'));
-db.pragma('journal_mode = WAL');
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  dateStrings: true,
+});
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS bookings (
-  id TEXT PRIMARY KEY,
-  patient_token TEXT NOT NULL,
-  service_type TEXT NOT NULL,
-  patient_name TEXT NOT NULL,
-  patient_dob TEXT NOT NULL,
-  patient_phone TEXT NOT NULL,
-  patient_email TEXT NOT NULL,
-  reason TEXT NOT NULL,
-  symptoms_duration TEXT,
-  current_medications TEXT,
-  allergies TEXT,
-  extra_details TEXT,
-  slot_start TEXT NOT NULL,
-  slot_end TEXT NOT NULL,
-  amount_cents INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending_payment',
-  stripe_session_id TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+// The rest of the app (both server and browser JS) works entirely in ISO-8601 UTC datetime
+// strings, e.g. from `new Date().toISOString()`. MySQL's DATETIME columns only accept
+// 'YYYY-MM-DD HH:MM:SS' and return the same on the way out. These two helpers translate at
+// the database boundary so nowhere else in the codebase has to know MySQL's format exists —
+// callers pass and receive plain ISO strings exactly as they did with the old SQLite version.
+const MYSQL_DATETIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/;
 
-CREATE TABLE IF NOT EXISTS messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  booking_id TEXT NOT NULL,
-  sender TEXT NOT NULL,
-  body TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (booking_id) REFERENCES bookings(id)
-);
-
-CREATE TABLE IF NOT EXISTS prescriptions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  booking_id TEXT NOT NULL,
-  medication TEXT NOT NULL,
-  dose TEXT NOT NULL,
-  instructions TEXT NOT NULL,
-  quantity TEXT NOT NULL,
-  doctor_name TEXT NOT NULL,
-  doctor_reg_number TEXT NOT NULL,
-  sent_to_email TEXT,
-  sent_at TEXT,
-  issued_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (booking_id) REFERENCES bookings(id)
-);
-
--- Append-only clinical notes: real clinical records are never edited after saving,
--- only added to, so there is deliberately no update/delete on this table.
-CREATE TABLE IF NOT EXISTS clinical_notes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  booking_id TEXT NOT NULL,
-  note_text TEXT NOT NULL,
-  doctor_name TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (booking_id) REFERENCES bookings(id)
-);
-
--- Generic table for templated documents: sick certs and referral letters.
--- doc_type: 'sick_cert' | 'referral_ae' | 'referral_specialist'
--- fields: JSON text, shape depends on doc_type (see server/documentTypes.js)
-CREATE TABLE IF NOT EXISTS documents (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  booking_id TEXT NOT NULL,
-  doc_type TEXT NOT NULL,
-  fields TEXT NOT NULL,
-  doctor_name TEXT NOT NULL,
-  doctor_reg_number TEXT NOT NULL,
-  sent_to_email TEXT,
-  sent_at TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (booking_id) REFERENCES bookings(id)
-);
-
--- One row per patient email. Created/kept up to date automatically whenever that email
--- makes a booking. password_hash is NULL until the patient chooses to set one.
-CREATE TABLE IF NOT EXISTS patients (
-  email TEXT PRIMARY KEY,
-  password_hash TEXT,
-  name TEXT,
-  dob TEXT,
-  phone TEXT,
-  address TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
--- type: 'new_booking' | 'new_message'
-CREATE TABLE IF NOT EXISTS notifications (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL,
-  booking_id TEXT NOT NULL,
-  message TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  read_at TEXT,
-  FOREIGN KEY (booking_id) REFERENCES bookings(id)
-);
-
--- Simple key/value store for editable homepage text, so it can be changed from the
--- content editor instead of by hand-editing index.html.
-CREATE TABLE IF NOT EXISTS site_content (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS blog_posts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
--- Photos the patient attaches to their booking (e.g. a photo of a rash).
--- Stored on disk under data/uploads/<filename>; served only through token/session-protected routes.
-CREATE TABLE IF NOT EXISTS attachments (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  booking_id TEXT NOT NULL,
-  filename TEXT NOT NULL,
-  original_name TEXT NOT NULL,
-  mime_type TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (booking_id) REFERENCES bookings(id)
-);
-`);
-
-// Seed default homepage text and starter blog posts once, so the site looks the same
-// as before the content editor existed until someone actually edits it.
-const contentDefaults = {
-  hero_title: 'See a GP online, from anywhere in Ireland.',
-  hero_subtitle: 'GP4U connects you with Irish-registered GPs for video and audio consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.',
-  about_text: 'GP4U is a telemedicine service built by a practising Irish GP, aimed at making everyday GP care more convenient — without losing the personal, careful approach of a good family doctor. Every consultation is carried out by a GP registered with the Irish Medical Council.',
-};
-const insertDefaultContent = db.prepare('INSERT OR IGNORE INTO site_content (key, value) VALUES (?, ?)');
-for (const [key, value] of Object.entries(contentDefaults)) insertDefaultContent.run(key, value);
-
-const postCount = db.prepare('SELECT COUNT(*) AS n FROM blog_posts').get().n;
-if (postCount === 0) {
-  const insertPost = db.prepare('INSERT INTO blog_posts (title, body) VALUES (?, ?)');
-  insertPost.run(
-    'Travelling abroad? Plan your health needs early',
-    "Some vaccines need to be given weeks before travel to be effective. Book a travel health consultation at least 4–6 weeks before you fly so there's time to complete any course of vaccinations and get antimalarial advice if needed."
-  );
-  insertPost.run(
-    "When a sick cert is — and isn't — the right option",
-    'A short-term illness like a cold or flu can often be certified after a brief online consultation. But if symptoms are severe, unusual, or ongoing beyond a few days, an in-person examination is safer — your GP will advise if that\'s needed.'
-  );
-  insertPost.run(
-    'Repeat prescriptions: what to have ready',
-    "Have your current medication names, doses, and your regular pharmacy's name and address to hand. This helps your GP issue an accurate repeat prescription without delay."
-  );
+function toMySQLDateTime(isoString) {
+  return isoString.slice(0, 19).replace('T', ' ');
 }
 
-// --- Lightweight migrations for columns added after the first release ---
-// (CREATE TABLE IF NOT EXISTS above only helps on a brand new database; existing
-// databases need existing tables patched with any newly added columns.)
-function ensureColumn(table, column, definition) {
-  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
-  if (!cols.some((c) => c.name === column)) {
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+function reviveDates(row) {
+  if (!row) return row;
+  const revived = {};
+  for (const [key, value] of Object.entries(row)) {
+    revived[key] = typeof value === 'string' && MYSQL_DATETIME_RE.test(value)
+      ? `${value.slice(0, 19).replace(' ', 'T')}.000Z`
+      : value;
+  }
+  return revived;
+}
+
+// Thin helpers so call sites read close to the old synchronous style, just with `await`.
+async function get(sql, params = []) {
+  const [rows] = await pool.query(sql, params);
+  return reviveDates(rows[0]);
+}
+async function all(sql, params = []) {
+  const [rows] = await pool.query(sql, params);
+  return rows.map(reviveDates);
+}
+async function run(sql, params = []) {
+  const [result] = await pool.query(sql, params);
+  return { lastInsertRowid: result.insertId, changes: result.affectedRows };
+}
+
+async function initSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id VARCHAR(32) PRIMARY KEY,
+      patient_token VARCHAR(64) NOT NULL,
+      service_type VARCHAR(32) NOT NULL,
+      patient_name VARCHAR(255) NOT NULL,
+      patient_dob VARCHAR(20) NOT NULL,
+      patient_phone VARCHAR(64) NOT NULL,
+      patient_email VARCHAR(255) NOT NULL,
+      patient_address TEXT,
+      pharmacy_name VARCHAR(255),
+      reason TEXT NOT NULL,
+      symptoms_duration VARCHAR(255),
+      current_medications TEXT,
+      allergies TEXT,
+      extra_details TEXT,
+      slot_start DATETIME NOT NULL,
+      slot_end DATETIME NOT NULL,
+      amount_cents INT NOT NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'pending_payment',
+      stripe_session_id VARCHAR(255),
+      patient_last_viewed_at DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_patient_email (patient_email),
+      INDEX idx_slot_start (slot_start),
+      INDEX idx_status (status)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      booking_id VARCHAR(32) NOT NULL,
+      sender VARCHAR(16) NOT NULL,
+      body TEXT NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS prescriptions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      booking_id VARCHAR(32) NOT NULL,
+      medication VARCHAR(255) NOT NULL,
+      dose VARCHAR(255) NOT NULL,
+      instructions TEXT NOT NULL,
+      quantity VARCHAR(255) NOT NULL,
+      doctor_name VARCHAR(255) NOT NULL,
+      doctor_reg_number VARCHAR(64) NOT NULL,
+      sent_to_email VARCHAR(255),
+      sent_at DATETIME NULL,
+      issued_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // Append-only clinical notes: real clinical records are never edited after saving,
+  // only added to, so there is deliberately no update/delete on this table.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS clinical_notes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      booking_id VARCHAR(32) NOT NULL,
+      note_text TEXT NOT NULL,
+      doctor_name VARCHAR(255) NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // Generic table for templated documents: sick certs and referral letters.
+  // doc_type: 'sick_cert' | 'referral_ae' | 'referral_specialist'
+  // fields: JSON text, shape depends on doc_type (see server/documentTypes.js)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      booking_id VARCHAR(32) NOT NULL,
+      doc_type VARCHAR(32) NOT NULL,
+      fields TEXT NOT NULL,
+      doctor_name VARCHAR(255) NOT NULL,
+      doctor_reg_number VARCHAR(64) NOT NULL,
+      sent_to_email VARCHAR(255),
+      sent_at DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // One row per patient email. Created/kept up to date automatically whenever that email
+  // makes a booking. password_hash is NULL until the patient chooses to set one.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS patients (
+      email VARCHAR(255) PRIMARY KEY,
+      password_hash VARCHAR(255),
+      name VARCHAR(255),
+      dob VARCHAR(20),
+      phone VARCHAR(64),
+      address TEXT,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // type: 'new_booking' | 'new_message'
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      type VARCHAR(32) NOT NULL,
+      booking_id VARCHAR(32) NOT NULL,
+      message TEXT NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      read_at DATETIME NULL,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // Simple key/value store for editable homepage text, so it can be changed from the
+  // content editor instead of by hand-editing index.html.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_content (
+      \`key\` VARCHAR(64) PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blog_posts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      body TEXT NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Photos the patient attaches to their booking (e.g. a photo of a rash). Stored directly in
+  // the database as a BLOB — not on the app server's own filesystem, which some hosts (including
+  // typical shared/PaaS Node hosting) wipe on every redeploy.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      booking_id VARCHAR(32) NOT NULL,
+      original_name VARCHAR(255) NOT NULL,
+      mime_type VARCHAR(100) NOT NULL,
+      data LONGBLOB NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // Seed default homepage text and starter blog posts once, so the site looks the same
+  // as before the content editor existed until someone actually edits it.
+  const contentDefaults = {
+    hero_title: 'See a GP online, from anywhere in Ireland.',
+    hero_subtitle: 'GP4U connects you with Irish-registered GPs for video and audio consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.',
+    about_text: 'GP4U is a telemedicine service built by a practising Irish GP, aimed at making everyday GP care more convenient — without losing the personal, careful approach of a good family doctor. Every consultation is carried out by a GP registered with the Irish Medical Council.',
+  };
+  for (const [key, value] of Object.entries(contentDefaults)) {
+    await pool.query('INSERT IGNORE INTO site_content (`key`, value) VALUES (?, ?)', [key, value]);
+  }
+
+  const postCountRow = await get('SELECT COUNT(*) AS n FROM blog_posts');
+  if (postCountRow.n === 0) {
+    await run('INSERT INTO blog_posts (title, body) VALUES (?, ?)', [
+      'Travelling abroad? Plan your health needs early',
+      "Some vaccines need to be given weeks before travel to be effective. Book a travel health consultation at least 4–6 weeks before you fly so there's time to complete any course of vaccinations and get antimalarial advice if needed.",
+    ]);
+    await run('INSERT INTO blog_posts (title, body) VALUES (?, ?)', [
+      "When a sick cert is — and isn't — the right option",
+      "A short-term illness like a cold or flu can often be certified after a brief online consultation. But if symptoms are severe, unusual, or ongoing beyond a few days, an in-person examination is safer — your GP will advise if that's needed.",
+    ]);
+    await run('INSERT INTO blog_posts (title, body) VALUES (?, ?)', [
+      'Repeat prescriptions: what to have ready',
+      "Have your current medication names, doses, and your regular pharmacy's name and address to hand. This helps your GP issue an accurate repeat prescription without delay.",
+    ]);
   }
 }
-ensureColumn('bookings', 'patient_address', 'TEXT');
-ensureColumn('bookings', 'pharmacy_name', 'TEXT');
-ensureColumn('bookings', 'patient_last_viewed_at', 'TEXT');
-ensureColumn('prescriptions', 'sent_to_email', 'TEXT');
-ensureColumn('prescriptions', 'sent_at', 'TEXT');
 
-module.exports = db;
+module.exports = { pool, get, all, run, initSchema, toMySQLDateTime };

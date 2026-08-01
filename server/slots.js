@@ -12,14 +12,12 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
 
 // Returns available slot start times (ISO strings) for a given service type,
 // checked against existing paid/pending bookings so the doctor is never double-booked.
-function getAvailableSlots(serviceKey) {
+async function getAvailableSlots(serviceKey) {
   const service = SERVICES[serviceKey];
   if (!service) return [];
 
   const durationMs = service.durationMins * 60 * 1000;
-  const existing = db
-    .prepare("SELECT slot_start, slot_end FROM bookings WHERE status IN ('paid', 'pending_payment')")
-    .all();
+  const existing = await db.all("SELECT slot_start, slot_end FROM bookings WHERE status IN ('paid', 'pending_payment')");
 
   const slots = [];
   const now = new Date();

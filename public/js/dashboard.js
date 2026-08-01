@@ -5,6 +5,7 @@ let activeTab = 'schedule';
 
 let currentListType = null; // 'schedule' | 'search' | 'recent'
 let scheduleIds = [], searchIds = [], recentIds = [];
+let MEDICATIONS_LIST = [];
 
 async function checkSession() {
   const res = await fetch('/api/doctor/me');
@@ -18,6 +19,7 @@ async function checkSession() {
     document.getElementById('notifWrap').style.display = 'block';
     loadSchedule();
     loadNotifications();
+    loadMedications();
     setInterval(loadNotifications, 15000);
   }
 }
@@ -251,16 +253,51 @@ function renderAttachments(attachments) {
     : '<p style="color:var(--ink-500);">None uploaded.</p>';
 }
 
+const DOC_TYPE_LABELS = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
+
 function renderPreviousConsultations(previous) {
-  const body = document.getElementById('previousConsultationsBody');
-  body.innerHTML = previous.length ? previous.map(p => `
-    <tr onclick="openBooking('${p.id}', currentListType)">
-      <td>${new Date(p.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-      <td>${p.service_type.replace('_', ' ')}</td>
-      <td>${p.reason || '—'}</td>
-      <td><span class="badge ${p.status === 'completed' ? 'badge-green' : 'badge-amber'}">${p.status}</span></td>
-    </tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No previous consultations for this patient.</td></tr>';
+  const container = document.getElementById('previousConsultationsList');
+  if (!previous.length) {
+    container.innerHTML = '<p style="color:var(--ink-500);">No previous consultations for this patient.</p>';
+    return;
+  }
+  container.innerHTML = previous.map((p) => {
+    const notesHtml = p.notes.length
+      ? p.notes.map(n => `<div style="margin-bottom:6px;"><p style="white-space:pre-wrap; margin:0;">${n.note_text}</p><p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${n.doctor_name} • ${new Date(n.created_at).toLocaleString('en-IE')}</p></div>`).join('')
+      : '<p style="color:var(--ink-500);font-size:0.85rem;">No notes recorded.</p>';
+    const rxHtml = p.prescriptions.length
+      ? p.prescriptions.map(rx => `<div style="margin-bottom:6px;"><strong>${rx.medication}</strong> — ${rx.dose}, qty ${rx.quantity} <a href="/print-rx.html?rxId=${rx.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
+      : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
+    const docsHtml = p.documents.length
+      ? p.documents.map(d => `<div style="margin-bottom:6px;">${DOC_TYPE_LABELS[d.doc_type] || d.doc_type} — ${new Date(d.created_at).toLocaleDateString('en-IE')} <a href="/print-doc.html?docId=${d.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
+      : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
+
+    return `
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <strong>${new Date(p.slot_start).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+            — ${p.service_type.replace('_', ' ')}
+            <span class="badge ${p.status === 'completed' ? 'badge-green' : 'badge-amber'}">${p.status}</span>
+          </div>
+          <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="openBooking('${p.id}', currentListType)">Open This Visit</button>
+        </div>
+        <p style="margin:10px 0 4px;"><strong>Reason:</strong> ${p.reason || '—'}</p>
+        <div style="margin-top:10px;">
+          <p style="font-weight:600; margin-bottom:4px;">Clinical Notes</p>
+          ${notesHtml}
+        </div>
+        <div style="margin-top:10px;">
+          <p style="font-weight:600; margin-bottom:4px;">Prescriptions</p>
+          ${rxHtml}
+        </div>
+        <div style="margin-top:10px;">
+          <p style="font-weight:600; margin-bottom:4px;">Documents</p>
+          ${docsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderMessages(messages) {
@@ -328,7 +365,6 @@ function renderDocuments(documents) {
 }
 
 function renderAllDocuments(prescriptions, documents) {
-  const docTypeLabels = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
   const rxCards = prescriptions.map(p => `
     <div class="card" style="margin-bottom:8px;">
       <p><strong>Prescription</strong> — ${p.medication} (${p.dose})</p>
@@ -338,7 +374,7 @@ function renderAllDocuments(prescriptions, documents) {
   `);
   const docCards = documents.map(d => `
     <div class="card" style="margin-bottom:8px;">
-      <p><strong>${docTypeLabels[d.doc_type] || d.doc_type}</strong></p>
+      <p><strong>${DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</strong></p>
       <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
       <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
     </div>
@@ -389,6 +425,21 @@ async function sendDocument(docId) {
   if (!res.ok) { alert(data.error); return; }
   alert('Sent.');
   openBooking(currentBookingId);
+}
+
+async function loadMedications() {
+  const res = await fetch('/api/doctor/medications');
+  MEDICATIONS_LIST = await res.json();
+  document.getElementById('medicationList').innerHTML = MEDICATIONS_LIST
+    .map(m => `<option value="${m.name}">`).join('');
+}
+
+function onMedicationChange() {
+  const name = document.getElementById('rxMed').value;
+  const match = MEDICATIONS_LIST.find(m => m.name === name);
+  document.getElementById('doseList').innerHTML = match
+    ? match.strengths.map(s => `<option value="${s}">`).join('')
+    : '';
 }
 
 async function issuePrescription() {

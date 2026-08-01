@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cookieSession = require('cookie-session');
 
+const db = require('./db');
 const bookingRoutes = require('./routes/booking');
 const { router: doctorRoutes } = require('./routes/doctor');
 const { router: patientRoutes } = require('./routes/patient');
@@ -32,9 +33,16 @@ app.use('/api/doctor', doctorRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api', contentRoutes);
 
-app.listen(PORT, () => {
-  console.log(`GP4U server running at http://localhost:${PORT}`);
-  if (!process.env.STRIPE_SECRET_KEY) {
-    console.log('NOTE: No Stripe key set yet — bookings will auto-confirm in demo mode. See README.md.');
-  }
-});
+db.initSchema()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`GP4U server running at http://localhost:${PORT}`);
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.log('NOTE: No Stripe key set yet — bookings will auto-confirm in demo mode. See README.md.');
+      }
+    });
+  })
+  .catch((err) => {
+    console.error('Could not connect to the database. Check DB_HOST/DB_USER/DB_PASSWORD/DB_NAME in .env:', err.message);
+    process.exit(1);
+  });
