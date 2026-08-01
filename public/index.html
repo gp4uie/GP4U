@@ -34,6 +34,7 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
     <nav class="main-nav">
       <a href="/index.html#services">Services</a>
       <a href="/index.html#how-it-works">How it works</a>
@@ -160,5 +161,6 @@ fetch('/api/services').then(r => r.json()).then(services => {
   `).join('');
 });
 </script>
+<script src="/js/nav-toggle.js"></script>
 </body>
 </html>

@@ -180,6 +180,7 @@ async function runSearch() {
     return;
   }
   resultsEl.innerHTML = `
+    <div class="table-scroll">
     <table class="bookings-table">
       <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>DOB</th><th>Phone</th><th>Status</th></tr></thead>
       <tbody>
@@ -195,6 +196,7 @@ async function runSearch() {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 }
 

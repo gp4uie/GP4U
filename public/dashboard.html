@@ -13,6 +13,7 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
     <nav class="main-nav">
       <span id="whoami" style="color:var(--ink-500); font-size:0.85rem;"></span>
       <a href="/content-editor.html" id="contentEditorLink" style="display:none;">Edit Website Content</a>
@@ -77,19 +78,23 @@
 
   <div id="tab_recent" style="display:none;">
     <h1>Recent Cases</h1>
-    <table class="bookings-table">
-      <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>Status</th></tr></thead>
-      <tbody id="recentBody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="bookings-table">
+        <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>Status</th></tr></thead>
+        <tbody id="recentBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div id="tab_doctors" style="display:none;">
     <h1>Doctors</h1>
     <p style="color:var(--ink-500);">Every doctor listed here can log in and issue prescriptions, sick certs and referral letters — each document is stamped with their own name and IMC registration number.</p>
-    <table class="bookings-table">
-      <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th></th></tr></thead>
-      <tbody id="doctorsBody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="bookings-table">
+        <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th></th></tr></thead>
+        <tbody id="doctorsBody"></tbody>
+      </table>
+    </div>
 
     <h3 style="margin-top:28px;">Add a Doctor</h3>
     <div class="form-grid">
@@ -250,5 +255,6 @@
 </div>
 
 <script src="/js/dashboard.js"></script>
+<script src="/js/nav-toggle.js"></script>
 </body>
 </html>

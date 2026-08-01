@@ -127,6 +127,39 @@ nav.main-nav a.doctor-link {
   font-weight: 500;
 }
 
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--ink-700);
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Below this width the full nav wrapped onto multiple stacked rows under the logo, pushing
+   real content off the first screen — collapse it into a toggleable dropdown instead. */
+@media (max-width: 760px) {
+  .nav-wrap { position: relative; flex-wrap: nowrap; }
+  .nav-toggle { display: block; }
+  nav.main-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    background: white;
+    padding: 20px 24px;
+    box-shadow: 0 12px 24px rgba(10, 46, 46, 0.12);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.main-nav.nav-open { display: flex; }
+}
+
 .btn {
   display: inline-block;
   padding: 12px 24px;
@@ -273,7 +306,7 @@ footer.site-footer a:hover { color: var(--teal-bright); }
   padding: 11px 14px;
   border: 1.5px solid var(--line);
   border-radius: 10px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-family: inherit;
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
@@ -334,6 +367,7 @@ footer.site-footer a:hover { color: var(--teal-bright); }
 .msg.doctor { background: #eef2f7; }
 .msg small { display: block; color: var(--ink-500); font-size: 0.72rem; margin-top: 2px; }
 
+.table-scroll { overflow-x: auto; }
 table.bookings-table { width: 100%; border-collapse: collapse; }
 table.bookings-table th, table.bookings-table td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
 table.bookings-table th { font-weight: 700; color: var(--ink-500); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -359,7 +393,7 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
 .round-btn.end:hover { background: #e85850; }
 
 /* Doctor dashboard: tabs + notifications + schedule */
-.tab-bar { display: flex; gap: 6px; border-bottom: 2px solid var(--line); margin-bottom: 26px; }
+.tab-bar { display: flex; gap: 6px; border-bottom: 2px solid var(--line); margin-bottom: 26px; flex-wrap: wrap; }
 .tab-btn {
   padding: 11px 20px; border: none; background: none; cursor: pointer;
   font-weight: 700; font-size: 0.95rem; color: var(--ink-500); font-family: inherit;

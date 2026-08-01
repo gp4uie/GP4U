@@ -13,6 +13,7 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
     <nav class="main-nav">
       <span id="whoami" style="color:var(--ink-500); font-size:0.85rem;"></span>
       <a href="#" id="logoutLink">Log out</a>
@@ -30,10 +31,12 @@
     <div class="side-content">
       <div id="section_previous">
         <h1>Previous Consultations</h1>
-        <table class="bookings-table">
-          <thead><tr><th>When</th><th>Service</th><th>Status</th><th></th><th></th></tr></thead>
-          <tbody id="bookingsBody"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="bookings-table">
+            <thead><tr><th>When</th><th>Service</th><th>Status</th><th></th><th></th></tr></thead>
+            <tbody id="bookingsBody"></tbody>
+          </table>
+        </div>
       </div>
       <div id="section_documents" style="display:none;">
         <h1>Documents Issued</h1>
@@ -111,5 +114,6 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 load();
 </script>
+<script src="/js/nav-toggle.js"></script>
 </body>
 </html>
