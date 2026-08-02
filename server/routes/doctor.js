@@ -129,41 +129,41 @@ router.delete('/doctors/:id', requireDoctor, async (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Availability: each doctor sets their own weekly working hours. server/slots.js offers a
-// booking slot to patients if at least one doctor's hours cover it — patients never pick a
-// specific doctor, whoever's free takes it. ---
+// --- Availability: each doctor sets their own weekly working hours. Any number of ranges per
+// day is allowed (split shifts). server/slots.js offers a booking slot to patients if at least
+// one doctor's hours cover it — patients never pick a specific doctor, whoever's free takes it.
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 router.get('/availability', requireDoctor, async (req, res) => {
   const rows = await db.all(
-    'SELECT day_of_week, start_time, end_time FROM doctor_availability WHERE doctor_id = ? ORDER BY day_of_week ASC',
+    'SELECT day_of_week, start_time, end_time FROM doctor_availability WHERE doctor_id = ? ORDER BY day_of_week ASC, start_time ASC',
     [req.session.doctorId]
   );
   res.json(rows.map((r) => ({ ...r, start_time: r.start_time.slice(0, 5), end_time: r.end_time.slice(0, 5) })));
 });
 
-// Body: { days: [{ dayOfWeek, startTime, endTime }, ...] } — replaces this doctor's entire
-// week in one go, since the dashboard UI edits and saves the whole week at once.
+// Body: { ranges: [{ dayOfWeek, startTime, endTime }, ...] } — replaces this doctor's entire
+// week in one go. Multiple entries with the same dayOfWeek are allowed (split shifts).
 router.put('/availability', requireDoctor, async (req, res) => {
-  const { days } = req.body;
-  if (!Array.isArray(days)) return res.status(400).json({ error: 'days must be an array' });
-  for (const d of days) {
-    if (!Number.isInteger(d.dayOfWeek) || d.dayOfWeek < 0 || d.dayOfWeek > 6) {
-      return res.status(400).json({ error: `Invalid day of week: ${d.dayOfWeek}` });
+  const { ranges } = req.body;
+  if (!Array.isArray(ranges)) return res.status(400).json({ error: 'ranges must be an array' });
+  for (const r of ranges) {
+    if (!Number.isInteger(r.dayOfWeek) || r.dayOfWeek < 0 || r.dayOfWeek > 6) {
+      return res.status(400).json({ error: `Invalid day of week: ${r.dayOfWeek}` });
     }
-    if (!TIME_RE.test(d.startTime) || !TIME_RE.test(d.endTime)) {
-      return res.status(400).json({ error: `Invalid time for ${DAY_NAMES[d.dayOfWeek]}` });
+    if (!TIME_RE.test(r.startTime) || !TIME_RE.test(r.endTime)) {
+      return res.status(400).json({ error: `Invalid time for ${DAY_NAMES[r.dayOfWeek]}` });
     }
-    if (d.startTime >= d.endTime) {
-      return res.status(400).json({ error: `${DAY_NAMES[d.dayOfWeek]}: start time must be before end time` });
+    if (r.startTime >= r.endTime) {
+      return res.status(400).json({ error: `${DAY_NAMES[r.dayOfWeek]}: start time must be before end time` });
     }
   }
   await db.run('DELETE FROM doctor_availability WHERE doctor_id = ?', [req.session.doctorId]);
-  for (const d of days) {
+  for (const r of ranges) {
     await db.run(
       'INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)',
-      [req.session.doctorId, d.dayOfWeek, d.startTime, d.endTime]
+      [req.session.doctorId, r.dayOfWeek, r.startTime, r.endTime]
     );
   }
   res.json({ ok: true });

@@ -185,10 +185,11 @@ async function initSchema() {
     )
   `);
 
-  // Each doctor's own weekly working hours — one row per day they work (day_of_week: 0=Sunday
-  // .. 6=Saturday), no row means that doctor doesn't work that day. server/slots.js offers a
-  // slot to patients if at least one doctor's hours cover it and fewer bookings exist for that
-  // slot than doctors covering it — patients never pick a specific doctor, whoever's free takes it.
+  // Each doctor's own weekly working hours — any number of rows per day (e.g. a split shift
+  // 12:00-13:00 and 19:00-23:00 on the same day), no rows means that doctor doesn't work that
+  // day. server/slots.js offers a slot to patients if at least one doctor's hours cover it and
+  // fewer bookings exist for that slot than doctors covering it — patients never pick a specific
+  // doctor, whoever's free takes it.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS doctor_availability (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -196,8 +197,49 @@ async function initSchema() {
       day_of_week TINYINT NOT NULL,
       start_time TIME NOT NULL,
       end_time TIME NOT NULL,
-      FOREIGN KEY (doctor_id) REFERENCES doctors(id),
-      UNIQUE KEY unique_doctor_day (doctor_id, day_of_week)
+      FOREIGN KEY (doctor_id) REFERENCES doctors(id)
+    )
+  `);
+  // Migration for sites created before split-shift support: the old schema only allowed one
+  // row per doctor per day, enforced by this unique key — drop it so multiple rows are allowed.
+  // MySQL won't drop it while it's the only index backing the doctor_id foreign key, so add a
+  // plain (non-unique) index on doctor_id first to take over that job.
+  try {
+    await pool.query('ALTER TABLE doctor_availability ADD INDEX idx_doctor_id (doctor_id)');
+  } catch (err) {
+    if (err.code !== 'ER_DUP_KEYNAME') throw err;
+  }
+  try {
+    await pool.query('ALTER TABLE doctor_availability DROP INDEX unique_doctor_day');
+  } catch (err) {
+    if (err.code !== 'ER_CANT_DROP_FIELD_OR_KEY') throw err;
+  }
+
+  // Separate admin accounts (distinct from doctors) for platform management: onboarding
+  // doctors, setting any doctor's schedule, and viewing/sending patient summaries. Admins have
+  // no clinical role — they never issue prescriptions/notes/documents themselves.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      reset_token VARCHAR(128) NULL,
+      reset_token_expires DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Audit trail every time an admin emails a patient's compiled summary to an external GP —
+  // the summary itself is always compiled fresh from live clinical data (see routes/admin.js),
+  // this table just records that a send happened, to whom, and when.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS patient_summary_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      patient_email VARCHAR(255) NOT NULL,
+      sent_to_email VARCHAR(255) NOT NULL,
+      sent_by_admin_name VARCHAR(255) NOT NULL,
+      sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -286,6 +328,20 @@ async function initSchema() {
       process.env.DOCTOR_NAME || 'Dr.',
       process.env.DOCTOR_REG_NUMBER || '',
       process.env.DOCTOR_LOGIN_EMAIL.toLowerCase().trim(),
+      hash,
+    ]);
+  }
+
+  // Seed the very first admin account once, from .env — same pattern as the doctor seed above.
+  // Once this row exists, admins are managed from the admin dashboard instead (once that's built).
+  const adminCountRow = await get('SELECT COUNT(*) AS n FROM admins');
+  if (adminCountRow.n === 0 && process.env.ADMIN_LOGIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
+    await run(`
+      INSERT INTO admins (name, email, password_hash) VALUES (?, ?, ?)
+    `, [
+      process.env.ADMIN_NAME || 'Admin',
+      process.env.ADMIN_LOGIN_EMAIL.toLowerCase().trim(),
       hash,
     ]);
   }

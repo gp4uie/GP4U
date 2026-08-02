@@ -112,7 +112,7 @@
 
   <div id="tab_availability" style="display:none;">
     <h1>My Availability</h1>
-    <p style="color:var(--ink-500);">Set the hours you work each week. Patients can only book a slot if at least one doctor is available then — if two doctors are both free at the same time, two patients can book that same slot.</p>
+    <p style="color:var(--ink-500);">Set the hours you work each week — add more than one time range on the same day for a split shift (e.g. 12:00-13:00 and 19:00-23:00). Patients can only book a slot if at least one doctor is available then — if two doctors are both free at the same time, two patients can book that same slot.</p>
     <div id="availabilityGrid"></div>
     <button class="btn btn-primary" onclick="saveAvailability()" style="margin-top:16px;">Save Availability</button>
     <p id="availabilityMsg" style="color:#c0392b;"></p>
@@ -263,6 +263,7 @@
   </div>
 </div>
 
+<script src="/js/availability-editor.js"></script>
 <script src="/js/dashboard.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>

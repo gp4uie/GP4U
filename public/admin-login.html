@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Login — GP4U</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="main-nav"><a href="/index.html">Home</a></nav>
+  </div>
+</header>
+
+<div class="page-shell" style="max-width:380px;">
+  <h1>Admin Login</h1>
+  <div class="form-row"><label>Email</label><input type="email" id="emailInput"></div>
+  <div class="form-row"><label>Password</label><input type="password" id="passwordInput"></div>
+  <button class="btn btn-primary btn-block" onclick="login()">Log In</button>
+  <p id="loginError" style="color:#c0392b;"></p>
+  <p><a href="#" id="forgotLink">Forgot your password?</a></p>
+
+  <div id="forgotBox" style="display:none;">
+    <div class="form-row"><label>Email</label><input type="email" id="forgotEmailInput"></div>
+    <button class="btn btn-secondary btn-block" onclick="submitForgot()">Send Reset Link</button>
+    <p id="forgotMsg"></p>
+  </div>
+</div>
+
+<script>
+async function login() {
+  const email = document.getElementById('emailInput').value;
+  const password = document.getElementById('passwordInput').value;
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    window.location.href = '/admin-dashboard.html';
+  } else {
+    document.getElementById('loginError').textContent = data.error;
+  }
+}
+
+document.getElementById('forgotLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('forgotBox').style.display = 'block';
+  e.target.style.display = 'none';
+});
+
+async function submitForgot() {
+  const email = document.getElementById('forgotEmailInput').value;
+  const res = await fetch('/api/admin/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  document.getElementById('forgotMsg').style.color = 'var(--teal-700)';
+  document.getElementById('forgotMsg').textContent = data.message || data.error;
+}
+</script>
+<script src="/js/nav-toggle.js"></script>
+</body>
+</html>

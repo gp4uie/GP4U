@@ -7,6 +7,7 @@ const db = require('./db');
 const bookingRoutes = require('./routes/booking');
 const { router: doctorRoutes } = require('./routes/doctor');
 const { router: patientRoutes } = require('./routes/patient');
+const { router: adminRoutes } = require('./routes/admin');
 const contentRoutes = require('./routes/content');
 
 const app = express();
@@ -31,6 +32,7 @@ app.get('/api/config', (req, res) => {
 app.use('/api', bookingRoutes);
 app.use('/api/doctor', doctorRoutes);
 app.use('/api/patient', patientRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api', contentRoutes);
 
 db.initSchema()

@@ -39,13 +39,14 @@ Open the `.env` file in this folder in any text editor (Notepad is fine) and upd
 - `PRACTICE_NAME` — shown across the site
 - `PRACTICE_ADDRESS` / `PRACTICE_PHONE` — shown on the letterhead of prescriptions, sick certs and referral letters
 - `DOCTOR_NAME` / `DOCTOR_REG_NUMBER` / `DOCTOR_LOGIN_EMAIL` / `DOCTOR_PASSWORD` — used **once**, to create your own doctor login the very first time the app connects to a brand-new database. After that first login exists, these four are ignored — manage doctors (including yourself) from the dashboard's **Doctors** tab instead: add a colleague with their own name, IMC number, email and password, or remove one.
+- `ADMIN_NAME` / `ADMIN_LOGIN_EMAIL` / `ADMIN_PASSWORD` — same one-time-seed pattern, but for the separate admin area at `/admin-login.html` (see Section 4 for what admin can do). Can be the same email as your doctor login, or different — they're unrelated accounts in unrelated login systems.
 - `DOCTOR_EMAIL` — where you get emailed for new bookings/messages (needs `SMTP_*` set too, see Section 3.5)
 
 Restart the server (`Ctrl+C` then `npm start` again) after changing `.env`.
 
 Forgotten your dashboard password? Click "Forgot your password?" on the login screen — it emails you
 a reset link (needs `SMTP_*` configured, see Section 3.5). Patients have the same option on
-`/patient-login.html`.
+`/patient-login.html`, and admins on `/admin-login.html`.
 
 ## 3. Turning on real payments (Stripe)
 
@@ -83,12 +84,20 @@ verification for your business. Only do this once you're ready to go live (see S
   document), and **Documents Issued** (every prescription/sick cert/referral letter across all
   their bookings in one place).
 - **Video consultations** (`/consult.html`) — built-in video call, no Zoom/Meet needed
-- **Doctor dashboard** (`/dashboard.html`) — password-protected, with three top-level tabs:
+- **Doctor dashboard** (`/dashboard.html`) — password-protected, with five top-level tabs:
   - **Schedule** — a day view with 15-minute slots; each booking block shows the patient's name
     and a preview of their reason for the visit, amber if still open, green once completed; use
     ← Prev / Next → / Today to move between days
   - **Search Patients** — find a patient's records by name, phone number, or exact date of birth
   - **Recent Cases** — the last 40 paid/completed bookings, most recent first
+  - **Doctors** — add or remove colleague doctor accounts (each with their own name, IMC number,
+    login email and password — every prescription/document they issue is stamped with their own
+    details)
+  - **Availability** — set the hours you personally work each week; add more than one time range
+    on the same day for a split shift (e.g. 12:00-13:00 and 19:00-23:00). A booking slot is only
+    ever offered to patients if at least one doctor's hours cover it, and stays bookable as long as
+    fewer patients have booked it than doctors are free then — patients never pick a specific
+    doctor, whoever's free takes the booking.
   - A **notification bell** (top right) lights up with a red count when a new booking comes in or
     a patient sends a message — click it to see recent activity and jump straight to that booking
   - Clicking any booking opens it as a **chart** in the same page (no new tab/page load), with its
@@ -107,6 +116,16 @@ verification for your business. Only do this once you're ready to go live (see S
   - The **Prescription** tab's Medication/Dose fields have a search-as-you-type dropdown, seeded
     from a starter list of ~60 common medications in `server/medications.js`. Read the notice on
     that tab — it's a typing aid, not the Irish Medicines Formulary/BNF/HSE list (see Section 5).
+- **Admin dashboard** (`/admin-login.html`, `/admin-dashboard.html`) — a separate login and role
+  from doctors, for platform management rather than clinical work:
+  - **Doctors tab** — onboard doctors and, unlike a doctor editing their own hours, set **any**
+    doctor's weekly schedule on their behalf (same split-shift support as above)
+  - **Patients tab** — search every patient who's ever booked, open one to see their full
+    consultation history (visit-by-visit reason, clinical notes, prescriptions, documents) compiled
+    in one place, and **send that summary to the patient's own GP** by email for continuity of
+    care — every send is logged with who sent it, to whom, and when
+  - Admin accounts have no clinical role themselves — they never issue prescriptions, notes, or
+    documents
 - **Health info / blog** (`/blog.html`) — sample articles, editable without touching code (below)
 - **Privacy & GDPR notice** (`/privacy.html`) — starting template, see Section 5
 - **Website content editor** (`/content-editor.html`, linked from the dashboard) — log in as the
