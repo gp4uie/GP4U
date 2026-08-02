@@ -107,6 +107,8 @@ async function initSchema() {
       booking_id VARCHAR(32) NOT NULL,
       medication VARCHAR(255) NOT NULL,
       dose VARCHAR(255) NOT NULL,
+      frequency VARCHAR(255) NOT NULL DEFAULT '',
+      duration VARCHAR(255) NOT NULL DEFAULT '',
       instructions TEXT NOT NULL,
       quantity VARCHAR(255) NOT NULL,
       doctor_name VARCHAR(255) NOT NULL,
@@ -117,6 +119,10 @@ async function initSchema() {
       FOREIGN KEY (booking_id) REFERENCES bookings(id)
     )
   `);
+  // Migration for sites where `prescriptions` already existed before frequency/duration split
+  // out of the old single "instructions" field.
+  await ensureColumn('prescriptions', 'frequency', "VARCHAR(255) NOT NULL DEFAULT ''");
+  await ensureColumn('prescriptions', 'duration', "VARCHAR(255) NOT NULL DEFAULT ''");
 
   // Append-only clinical notes: real clinical records are never edited after saving,
   // only added to, so there is deliberately no update/delete on this table.

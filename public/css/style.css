@@ -445,10 +445,29 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
   font-size: 0.72rem;
   color: var(--ink-500);
   padding: 4px 8px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(221, 230, 230, 0.5);
   border-right: 1px solid var(--line);
   display: flex;
   align-items: flex-start;
+}
+.slot-time-label.hour {
+  font-weight: 700;
+  color: var(--ink-700);
+  border-bottom-color: var(--line);
+}
+.schedule-row-line {
+  grid-column: 2;
+  border-bottom: 1px solid rgba(221, 230, 230, 0.5);
+}
+.schedule-row-line.hour { border-bottom-color: var(--line); }
+.schedule-empty {
+  grid-column: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  color: var(--ink-500);
+  font-size: 0.85rem;
+  padding-top: 24px;
 }
 .schedule-booking {
   grid-column: 2;

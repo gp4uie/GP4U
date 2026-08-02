@@ -168,9 +168,13 @@
             </div>
           </div>
           <div class="form-grid">
-            <div class="form-row"><label>Quantity</label><input id="rxQty"></div>
-            <div class="form-row"><label>Instructions</label><input id="rxInstructions"></div>
+            <div class="form-row"><label>Frequency</label><input id="rxFrequency" placeholder="e.g. Twice daily"></div>
+            <div class="form-row"><label>Duration</label><input id="rxDuration" placeholder="e.g. 7 days"></div>
           </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Quantity</label><input id="rxQty"></div>
+          </div>
+          <div class="form-row"><label>Instructions</label><textarea id="rxInstructions" placeholder="Any further instructions for the patient/pharmacist"></textarea></div>
           <button class="btn btn-primary" onclick="issuePrescription()">Issue Prescription</button>
           <div id="existingRx" style="margin-top:16px;"></div>
         </div>

@@ -5,6 +5,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { DOCUMENT_TYPES } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
+const { getDayHoursRange } = require('../slots');
 
 const router = express.Router();
 
@@ -114,7 +115,9 @@ router.get('/bookings', requireDoctor, async (req, res) => {
   res.json(bookings.map(({ patient_token, ...b }) => b));
 });
 
-// Schedule view for one day — used by the main dashboard's 15-minute-slot calendar.
+// Schedule view for one day — used by the main dashboard's 15-minute-slot calendar. Includes the
+// actual working-hours span for that day of week (see slots.js) so the calendar sizes itself to
+// real hours instead of a fixed 9-5 window — e.g. an evening shift shows in full, not cut off.
 router.get('/schedule', requireDoctor, async (req, res) => {
   const date = req.query.date; // 'YYYY-MM-DD'
   if (!date) return res.status(400).json({ error: 'date is required' });
@@ -124,7 +127,9 @@ router.get('/schedule', requireDoctor, async (req, res) => {
     WHERE status IN ('paid', 'completed') AND DATE(slot_start) = ?
     ORDER BY slot_start ASC
   `, [date]);
-  res.json(bookings);
+  const dayOfWeek = new Date(date + 'T00:00:00').getDay();
+  const hours = await getDayHoursRange(dayOfWeek);
+  res.json({ bookings, dayStartMins: hours.startMins, dayEndMins: hours.endMins });
 });
 
 // Most recently handled cases (paid or completed), newest first — the "Recent Cases" tab.
@@ -234,15 +239,15 @@ router.post('/bookings/:id/notes', requireDoctor, async (req, res) => {
 
 // --- Prescriptions ---
 router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
-  const { medication, dose, instructions, quantity } = req.body;
-  if (!medication || !dose || !instructions || !quantity) {
+  const { medication, dose, frequency, duration, instructions, quantity } = req.body;
+  if (!medication || !dose || !frequency || !duration || !instructions || !quantity) {
     return res.status(400).json({ error: 'All prescription fields are required' });
   }
   const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
-    INSERT INTO prescriptions (booking_id, medication, dose, instructions, quantity, doctor_name, doctor_reg_number)
-    VALUES (?,?,?,?,?,?,?)
-  `, [req.params.id, medication, dose, instructions, quantity, doctor.name, doctor.reg_number]);
+    INSERT INTO prescriptions (booking_id, medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `, [req.params.id, medication, dose, frequency, duration, instructions, quantity, doctor.name, doctor.reg_number]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -272,7 +277,7 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
       html: `
         <p><strong>${process.env.PRACTICE_NAME}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
         <p>Patient: ${booking.patient_name} (DOB ${booking.patient_dob})<br>Address: ${booking.patient_address || 'N/A'}</p>
-        <p><strong>${rx.medication}</strong> — ${rx.dose}<br>Quantity: ${rx.quantity}<br>Instructions: ${rx.instructions}</p>
+        <p><strong>${rx.medication}</strong> — ${rx.dose}<br>Frequency: ${rx.frequency}<br>Duration: ${rx.duration}<br>Quantity: ${rx.quantity}<br>Instructions: ${rx.instructions}</p>
         <p>Prescribed by ${rx.doctor_name} (${rx.doctor_reg_number}) on ${new Date(rx.issued_at).toLocaleString('en-IE')}</p>
       `,
     });

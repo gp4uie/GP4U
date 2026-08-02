@@ -13,6 +13,27 @@ function timeToMinutes(timeStr) {
   return h * 60 + m;
 }
 
+const DEFAULT_DAY_START_MINS = 9 * 60; // 09:00 — used only when no doctor has set any hours yet
+const DEFAULT_DAY_END_MINS = 17 * 60; // 17:00
+
+// The actual working-hours span for one day of the week (0=Sunday..6=Saturday), spanning the
+// earliest start and latest end across every doctor's availability that day — so the doctor
+// dashboard's calendar can size itself to real hours (e.g. an evening shift) instead of a fixed
+// 9-5 window. Falls back to a sensible default if nobody has set hours for that day at all.
+async function getDayHoursRange(dayOfWeek) {
+  const availability = await db.all(
+    'SELECT start_time, end_time FROM doctor_availability WHERE day_of_week = ?',
+    [dayOfWeek]
+  );
+  if (availability.length === 0) {
+    return { startMins: DEFAULT_DAY_START_MINS, endMins: DEFAULT_DAY_END_MINS };
+  }
+  return {
+    startMins: Math.min(...availability.map((a) => timeToMinutes(a.start_time))),
+    endMins: Math.max(...availability.map((a) => timeToMinutes(a.end_time))),
+  };
+}
+
 // Returns available slot start times (ISO strings) for a given service type. A slot is offered
 // only if at least one doctor's own working hours (set in the dashboard's Availability tab)
 // cover it, and fewer existing bookings overlap it than doctors covering it — so two doctors
@@ -66,4 +87,4 @@ async function getAvailableSlots(serviceKey) {
   return slots;
 }
 
-module.exports = { getAvailableSlots };
+module.exports = { getAvailableSlots, getDayHoursRange };

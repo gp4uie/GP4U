@@ -319,7 +319,7 @@ router.post('/patients/:email/send-summary', requireAdmin, async (req, res) => {
       <h3>${new Date(b.slot_start).toLocaleDateString('en-IE')} — ${b.service_type.replace('_', ' ')}</h3>
       <p>Reason: ${b.reason || 'N/A'}</p>
       ${notes.length ? `<p><strong>Clinical notes:</strong><br>${notes.map((n) => `${n.note_text} (${n.doctor_name}, ${new Date(n.created_at).toLocaleDateString('en-IE')})`).join('<br>')}</p>` : ''}
-      ${prescriptions.length ? `<p><strong>Prescriptions:</strong><br>${prescriptions.map((p) => `${p.medication} ${p.dose} — ${p.instructions}`).join('<br>')}</p>` : ''}
+      ${prescriptions.length ? `<p><strong>Prescriptions:</strong><br>${prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration} — ${p.instructions}`).join('<br>')}</p>` : ''}
       ${documents.length ? `<p><strong>Documents issued:</strong> ${documents.map((d) => d.doc_type).join(', ')}</p>` : ''}
     `);
   }

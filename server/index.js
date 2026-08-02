@@ -14,10 +14,13 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
+// Sessions last until the user explicitly logs out, not on a timer — a long maxAge rather than
+// removing it entirely, since cookie-session requires some expiry and an unbounded cookie isn't
+// meaningfully different in practice for this app's usage pattern.
 app.use(cookieSession({
   name: 'gp4u_session',
   secret: process.env.SESSION_SECRET || 'dev-only-secret-change-me',
-  maxAge: 8 * 60 * 60 * 1000,
+  maxAge: 30 * 24 * 60 * 60 * 1000,
 }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));

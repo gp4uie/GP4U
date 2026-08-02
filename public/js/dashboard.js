@@ -93,25 +93,30 @@ function goToToday() {
 async function loadSchedule() {
   document.getElementById('scheduleDateLabel').textContent = scheduleDate.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
   const res = await fetch('/api/doctor/schedule?date=' + isoDate(scheduleDate));
-  const bookings = await res.json();
-  scheduleIds = bookings.map((b) => b.id);
-  renderScheduleGrid(bookings);
+  const data = await res.json();
+  scheduleIds = data.bookings.map((b) => b.id);
+  renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins);
 }
 
-function renderScheduleGrid(bookings) {
-  const startHour = 9, endHour = 17, stepMin = 15;
-  const totalSlots = (endHour - startHour) * 60 / stepMin;
+function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
+  const stepMin = 15;
+  const totalSlots = Math.max(1, Math.ceil((dayEndMins - dayStartMins) / stepMin));
   const pad = (n) => String(n).padStart(2, '0');
   let html = '';
   for (let i = 0; i < totalSlots; i++) {
-    const minutes = i * stepMin;
-    const hh = startHour + Math.floor(minutes / 60);
+    const minutes = dayStartMins + i * stepMin;
+    const hh = Math.floor(minutes / 60);
     const mm = minutes % 60;
-    html += `<div class="slot-time-label" style="grid-row:${i + 1};">${pad(hh)}:${pad(mm)}</div>`;
+    const isHour = mm === 0;
+    html += `<div class="slot-time-label${isHour ? ' hour' : ''}" style="grid-row:${i + 1};">${isHour ? `${pad(hh)}:${pad(mm)}` : ''}</div>`;
+    html += `<div class="schedule-row-line${isHour ? ' hour' : ''}" style="grid-row:${i + 1};"></div>`;
+  }
+  if (bookings.length === 0) {
+    html += `<div class="schedule-empty" style="grid-row: 1 / span ${totalSlots};">No bookings for this day.</div>`;
   }
   bookings.forEach((b) => {
     const start = new Date(b.slot_start), end = new Date(b.slot_end);
-    const startMinFromDayStart = (start.getHours() * 60 + start.getMinutes()) - startHour * 60;
+    const startMinFromDayStart = (start.getHours() * 60 + start.getMinutes()) - dayStartMins;
     const durMin = (end - start) / 60000;
     const rowStart = Math.max(1, Math.floor(startMinFromDayStart / stepMin) + 1);
     const rowSpan = Math.max(1, Math.round(durMin / stepMin));
@@ -360,7 +365,7 @@ function renderPrescriptions(prescriptions) {
   document.getElementById('existingRx').innerHTML = prescriptions.length
     ? '<h4>Issued prescriptions</h4>' + prescriptions.map(p => `
       <div class="card" style="margin-bottom:8px;">
-        <strong>${p.medication}</strong> — ${p.dose}, qty ${p.quantity}<br>${p.instructions}
+        <strong>${p.medication}</strong> — ${p.dose}, ${p.frequency}, ${p.duration}, qty ${p.quantity}<br>${p.instructions}
         <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${p.sent_to_email}` : ''}</p>
         <div style="display:flex; gap:10px;">
           <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}">Print</a>
@@ -475,18 +480,20 @@ function onMedicationChange() {
 async function issuePrescription() {
   const medication = document.getElementById('rxMed').value;
   const dose = document.getElementById('rxDose').value;
+  const frequency = document.getElementById('rxFrequency').value;
+  const duration = document.getElementById('rxDuration').value;
   const quantity = document.getElementById('rxQty').value;
   const instructions = document.getElementById('rxInstructions').value;
-  if (!medication || !dose || !quantity || !instructions) {
+  if (!medication || !dose || !frequency || !duration || !quantity || !instructions) {
     alert('Please fill in all prescription fields.');
     return;
   }
   await fetch(`/api/doctor/bookings/${currentBookingId}/prescriptions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ medication, dose, quantity, instructions }),
+    body: JSON.stringify({ medication, dose, frequency, duration, quantity, instructions }),
   });
-  ['rxMed', 'rxDose', 'rxQty', 'rxInstructions'].forEach(id => document.getElementById(id).value = '');
+  ['rxMed', 'rxDose', 'rxFrequency', 'rxDuration', 'rxQty', 'rxInstructions'].forEach(id => document.getElementById(id).value = '');
   openBooking(currentBookingId);
 }
 
