@@ -121,7 +121,15 @@ async function loadBooking() {
     <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}</p>
     <p><strong>Status:</strong> ${b.status}</p>
   `;
-  document.getElementById('joinLink').href = `/consult.html?id=${bookingId}&token=${token}&role=patient`;
+  const joinLink = document.getElementById('joinLink');
+  const callUrl = `/consult.html?id=${bookingId}&token=${token}&role=patient`;
+  joinLink.href = callUrl;
+  // Opened as its own window rather than a same-tab navigation, so this confirmation page
+  // stays open behind it and isn't lost when the call ends.
+  joinLink.onclick = (e) => {
+    e.preventDefault();
+    window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
+  };
 
   const isCompleted = b.status === 'completed';
   document.getElementById('messageComposer').style.display = isCompleted ? 'none' : 'block';

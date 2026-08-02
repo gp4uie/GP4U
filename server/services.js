@@ -7,6 +7,7 @@ const SERVICES = {
   womens: { label: "Women's Health Consultation", durationMins: 20, priceCents: 4500 },
   repeat_rx: { label: 'Repeat Prescription', durationMins: 10, priceCents: 2500 },
   sick_cert: { label: 'Sick Certificate', durationMins: 10, priceCents: 2500 },
+  weight_loss: { label: 'Weight Loss Consultation', durationMins: 20, priceCents: 7500 },
 };
 
 module.exports = { SERVICES };

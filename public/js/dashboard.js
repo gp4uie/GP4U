@@ -328,7 +328,15 @@ async function openBooking(id, listType) {
     <p><strong>Additional details:</strong> ${b.extra_details || '—'}</p>
     <p><strong>Status:</strong> <span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></p>
   `;
-  document.getElementById('joinCallBtn').href = `/consult.html?id=${id}&role=doctor`;
+  const joinCallBtn = document.getElementById('joinCallBtn');
+  const callUrl = `/consult.html?id=${id}&role=doctor`;
+  joinCallBtn.href = callUrl;
+  // Opened as its own window rather than a same-tab navigation, so the dashboard (notes,
+  // prescriptions, etc.) stays open and usable in the original tab for the whole call.
+  joinCallBtn.onclick = (e) => {
+    e.preventDefault();
+    window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
+  };
   renderAttachments(data.attachments);
   renderPreviousConsultations(data.previousConsultations);
   renderMessages(data.messages);

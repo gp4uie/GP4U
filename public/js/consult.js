@@ -34,7 +34,10 @@ async function start() {
   }
 
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
   } catch (err) {
     setStatus('Could not access your camera/microphone. Please allow camera and microphone permissions and reload this page.');
     return;
@@ -81,8 +84,10 @@ function wireCall(call) {
     setStatus('');
   });
   call.on('close', () => {
-    setStatus('The other participant left the call.');
-    remoteVideo.style.display = 'none';
+    if (localStream) localStream.getTracks().forEach((t) => t.stop());
+    if (document.fullscreenElement) document.exitFullscreen();
+    document.getElementById('endedOverlay').querySelector('p').textContent = `The ${otherRole === 'doctor' ? 'GP' : 'patient'} left the call.`;
+    document.getElementById('endedOverlay').style.display = 'flex';
   });
 }
 
@@ -98,13 +103,20 @@ document.getElementById('camBtn').onclick = () => {
   document.getElementById('camBtn').textContent = camOn ? '📷' : '🚫';
 };
 
+document.getElementById('fullscreenBtn').onclick = () => {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+};
+
 document.getElementById('endBtn').onclick = () => {
   if (currentCall) currentCall.close();
   if (localStream) localStream.getTracks().forEach((t) => t.stop());
   if (peer) peer.destroy();
-  setStatus('Call ended. You can close this window.');
-  remoteVideo.style.display = 'none';
-  localVideo.style.display = 'none';
+  if (document.fullscreenElement) document.exitFullscreen();
+  document.getElementById('endedOverlay').style.display = 'flex';
 };
 
 start();

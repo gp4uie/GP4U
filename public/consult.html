@@ -18,8 +18,14 @@
   <div class="video-controls">
     <button class="round-btn" id="micBtn" title="Mute/unmute">🎤</button>
     <button class="round-btn" id="camBtn" title="Camera on/off">📷</button>
+    <button class="round-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
     <button class="round-btn end" id="endBtn" title="End call">📞</button>
   </div>
+</div>
+
+<div id="endedOverlay" style="display:none; position:fixed; inset:0; background:#0e1b1e; color:white; flex-direction:column; align-items:center; justify-content:center; gap:16px; z-index:10;">
+  <p style="font-size:1.1rem;">Call ended.</p>
+  <button class="btn btn-primary" onclick="window.close()">Close Window</button>
 </div>
 
 <script src="/js/peerjs.min.js"></script>

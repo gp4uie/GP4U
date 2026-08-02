@@ -30,6 +30,7 @@ const SERVICE_ICONS = {
   womens: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.5-9.5-9C1 8 2.5 4 6.5 4c2 0 3.5 1.2 4.5 2.8C12 5.2 13.5 4 15.5 4c4 0 5.5 4 4 7-2.5 4.5-7.5 9-7.5 9z" stroke="#0f6e6e" stroke-width="1.8" stroke-linejoin="round"/></svg>',
   repeat_rx: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round"/><path d="M18 3v4h-4M6 21v-4h4" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   sick_cert: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="#0f6e6e" stroke-width="2"/><path d="M8.5 12.5l2.3 2.3L15.5 10" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  weight_loss: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6l7 7 3-3 6 6M14 16h6v-6" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
 function renderServiceChoices() {
