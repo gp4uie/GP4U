@@ -67,84 +67,12 @@ async function submitForgot() {
 // --- Top-level tabs ---
 function showTab(tab) {
   activeTab = tab;
-  ['schedule', 'search', 'recent', 'doctors', 'availability'].forEach((t) => {
+  ['schedule', 'search', 'recent'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'recent') loadRecent();
   if (tab === 'schedule') loadSchedule();
-  if (tab === 'doctors') loadDoctors();
-  if (tab === 'availability') loadAvailability();
-}
-
-// --- Doctors (add/remove colleagues) ---
-async function loadDoctors() {
-  const res = await fetch('/api/doctor/doctors');
-  const doctors = await res.json();
-  document.getElementById('doctorsBody').innerHTML = doctors.map((d) => `
-    <tr>
-      <td>${d.name}</td>
-      <td>${d.reg_number}</td>
-      <td>${d.email}</td>
-      <td><button class="btn btn-secondary" onclick="removeDoctor(${d.id})">Remove</button></td>
-    </tr>
-  `).join('') || '<tr><td colspan="4">No doctors yet.</td></tr>';
-}
-
-async function addDoctor() {
-  const name = document.getElementById('newDoctorName').value;
-  const regNumber = document.getElementById('newDoctorReg').value;
-  const email = document.getElementById('newDoctorEmail').value;
-  const password = document.getElementById('newDoctorPassword').value;
-  const res = await fetch('/api/doctor/doctors', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, regNumber, email, password }),
-  });
-  const data = await res.json();
-  if (res.ok) {
-    ['newDoctorName', 'newDoctorReg', 'newDoctorEmail', 'newDoctorPassword'].forEach((id) => document.getElementById(id).value = '');
-    document.getElementById('doctorFormMsg').style.color = 'var(--teal-700)';
-    document.getElementById('doctorFormMsg').textContent = 'Doctor added.';
-    loadDoctors();
-  } else {
-    document.getElementById('doctorFormMsg').style.color = '#c0392b';
-    document.getElementById('doctorFormMsg').textContent = data.error;
-  }
-}
-
-async function removeDoctor(id) {
-  if (!confirm('Remove this doctor? They will no longer be able to log in.')) return;
-  const res = await fetch('/api/doctor/doctors/' + id, { method: 'DELETE' });
-  const data = await res.json();
-  if (res.ok) loadDoctors();
-  else alert(data.error);
-}
-
-// --- Availability (each doctor's own weekly working hours; supports split shifts via the
-// shared editor in js/availability-editor.js) ---
-async function loadAvailability() {
-  const res = await fetch('/api/doctor/availability');
-  const rows = await res.json();
-  renderAvailabilityEditor(document.getElementById('availabilityGrid'), rows);
-}
-
-async function saveAvailability() {
-  const ranges = collectAvailabilityRanges(document.getElementById('availabilityGrid'));
-  const res = await fetch('/api/doctor/availability', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ranges }),
-  });
-  const data = await res.json();
-  const msg = document.getElementById('availabilityMsg');
-  if (res.ok) {
-    msg.style.color = 'var(--teal-700)';
-    msg.textContent = 'Availability saved.';
-  } else {
-    msg.style.color = '#c0392b';
-    msg.textContent = data.error;
-  }
 }
 
 // --- Schedule (day view, 15-minute slots) ---

@@ -100,74 +100,8 @@ router.post('/reset-password', async (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Manage doctors (add/remove colleagues) ---
-router.get('/doctors', requireDoctor, async (req, res) => {
-  const doctors = await db.all('SELECT id, name, reg_number, email, created_at FROM doctors ORDER BY created_at ASC');
-  res.json(doctors);
-});
-
-router.post('/doctors', requireDoctor, async (req, res) => {
-  const { name, regNumber, email, password } = req.body;
-  if (!name || !regNumber || !email || !password) {
-    return res.status(400).json({ error: 'Name, registration number, email and password are all required' });
-  }
-  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  const existing = await db.get('SELECT id FROM doctors WHERE email = ?', [email.toLowerCase().trim()]);
-  if (existing) return res.status(409).json({ error: 'A doctor with that email already exists' });
-  const hash = bcrypt.hashSync(password, 10);
-  const info = await db.run(
-    'INSERT INTO doctors (name, reg_number, email, password_hash) VALUES (?, ?, ?, ?)',
-    [name.trim(), regNumber.trim(), email.toLowerCase().trim(), hash]
-  );
-  res.json({ ok: true, id: info.lastInsertRowid });
-});
-
-router.delete('/doctors/:id', requireDoctor, async (req, res) => {
-  const countRow = await db.get('SELECT COUNT(*) AS n FROM doctors');
-  if (countRow.n <= 1) return res.status(400).json({ error: 'Cannot remove the only remaining doctor account' });
-  await db.run('DELETE FROM doctors WHERE id = ?', [req.params.id]);
-  res.json({ ok: true });
-});
-
-// --- Availability: each doctor sets their own weekly working hours. Any number of ranges per
-// day is allowed (split shifts). server/slots.js offers a booking slot to patients if at least
-// one doctor's hours cover it — patients never pick a specific doctor, whoever's free takes it.
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-router.get('/availability', requireDoctor, async (req, res) => {
-  const rows = await db.all(
-    'SELECT day_of_week, start_time, end_time FROM doctor_availability WHERE doctor_id = ? ORDER BY day_of_week ASC, start_time ASC',
-    [req.session.doctorId]
-  );
-  res.json(rows.map((r) => ({ ...r, start_time: r.start_time.slice(0, 5), end_time: r.end_time.slice(0, 5) })));
-});
-
-// Body: { ranges: [{ dayOfWeek, startTime, endTime }, ...] } — replaces this doctor's entire
-// week in one go. Multiple entries with the same dayOfWeek are allowed (split shifts).
-router.put('/availability', requireDoctor, async (req, res) => {
-  const { ranges } = req.body;
-  if (!Array.isArray(ranges)) return res.status(400).json({ error: 'ranges must be an array' });
-  for (const r of ranges) {
-    if (!Number.isInteger(r.dayOfWeek) || r.dayOfWeek < 0 || r.dayOfWeek > 6) {
-      return res.status(400).json({ error: `Invalid day of week: ${r.dayOfWeek}` });
-    }
-    if (!TIME_RE.test(r.startTime) || !TIME_RE.test(r.endTime)) {
-      return res.status(400).json({ error: `Invalid time for ${DAY_NAMES[r.dayOfWeek]}` });
-    }
-    if (r.startTime >= r.endTime) {
-      return res.status(400).json({ error: `${DAY_NAMES[r.dayOfWeek]}: start time must be before end time` });
-    }
-  }
-  await db.run('DELETE FROM doctor_availability WHERE doctor_id = ?', [req.session.doctorId]);
-  for (const r of ranges) {
-    await db.run(
-      'INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)',
-      [req.session.doctorId, r.dayOfWeek, r.startTime, r.endTime]
-    );
-  }
-  res.json({ ok: true });
-});
+// Note: adding/removing doctors and setting any doctor's schedule is admin-only now — see
+// server/routes/admin.js. Doctors have no self-service access to either.
 
 // Starter medication list for the prescription search/autocomplete — see server/medications.js
 // for what this is (and isn't).
