@@ -155,6 +155,104 @@ router.put('/doctors/:id/availability', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Analytics: practice-level activity and revenue snapshot for the admin dashboard. Every
+// number here is computed fresh from live booking/clinical data — nothing is stored separately,
+// so it's always up to date. ---
+router.get('/analytics', requireAdmin, async (req, res) => {
+  // "Seen" = a consultation that actually happened (status completed), counted by the
+  // appointment's own slot_start date, not by name/whether it's a repeat.
+  const patientsSeenToday = await db.get(
+    "SELECT COUNT(DISTINCT patient_email) AS n FROM bookings WHERE status = 'completed' AND DATE(slot_start) = CURDATE()"
+  );
+  const patientsSeenWeek = await db.get(
+    "SELECT COUNT(DISTINCT patient_email) AS n FROM bookings WHERE status = 'completed' AND YEARWEEK(slot_start, 1) = YEARWEEK(CURDATE(), 1)"
+  );
+  const patientsSeenMonth = await db.get(
+    "SELECT COUNT(DISTINCT patient_email) AS n FROM bookings WHERE status = 'completed' AND YEAR(slot_start) = YEAR(CURDATE()) AND MONTH(slot_start) = MONTH(CURDATE())"
+  );
+
+  // Revenue is counted from the moment payment succeeds (status paid or completed), attributed
+  // to when the booking was made (created_at) rather than the future appointment date.
+  const revenueToday = await db.get(
+    "SELECT COALESCE(SUM(amount_cents), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND DATE(created_at) = CURDATE()"
+  );
+  const revenueWeek = await db.get(
+    "SELECT COALESCE(SUM(amount_cents), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)"
+  );
+  const revenueMonth = await db.get(
+    "SELECT COALESCE(SUM(amount_cents), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())"
+  );
+
+  // Per doctor: how many distinct consultations each doctor has a clinical note on — the most
+  // reliable "this doctor actually saw this patient" signal, since every real consultation should
+  // get a note but stamped doctor_name survives even if that doctor account is later removed.
+  const perDoctorTotal = await db.all(
+    'SELECT doctor_name, COUNT(DISTINCT booking_id) AS n FROM clinical_notes GROUP BY doctor_name ORDER BY n DESC'
+  );
+  const perDoctorMonth = await db.all(`
+    SELECT cn.doctor_name, COUNT(DISTINCT cn.booking_id) AS n
+    FROM clinical_notes cn
+    JOIN bookings b ON b.id = cn.booking_id
+    WHERE YEAR(b.slot_start) = YEAR(CURDATE()) AND MONTH(b.slot_start) = MONTH(CURDATE())
+    GROUP BY cn.doctor_name
+  `);
+  const monthByDoctor = {};
+  perDoctorMonth.forEach((r) => { monthByDoctor[r.doctor_name] = r.n; });
+  const perDoctor = perDoctorTotal.map((r) => ({
+    doctorName: r.doctor_name,
+    totalSeen: r.n,
+    seenThisMonth: monthByDoctor[r.doctor_name] || 0,
+  }));
+
+  // Which consultation types are actually booked, and how much revenue each brings in.
+  const serviceBreakdown = await db.all(`
+    SELECT service_type, COUNT(*) AS n, COALESCE(SUM(amount_cents), 0) AS cents
+    FROM bookings WHERE status IN ('paid', 'completed')
+    GROUP BY service_type ORDER BY n DESC
+  `);
+
+  // New vs returning this month: "new" = their very first ever booking falls in the current
+  // month; "returning" = they booked before this month and booked again this month.
+  const firstBookingByPatient = await db.all(`
+    SELECT patient_email, MIN(created_at) AS first_booking
+    FROM bookings WHERE status IN ('paid', 'completed')
+    GROUP BY patient_email
+  `);
+  const bookedThisMonth = await db.all(`
+    SELECT DISTINCT patient_email FROM bookings
+    WHERE status IN ('paid', 'completed')
+      AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())
+  `);
+  const firstBookingMap = {};
+  firstBookingByPatient.forEach((r) => { firstBookingMap[r.patient_email] = new Date(r.first_booking); });
+  const now = new Date();
+  let newThisMonth = 0;
+  let returningThisMonth = 0;
+  bookedThisMonth.forEach((r) => {
+    const first = firstBookingMap[r.patient_email];
+    const isNew = first && first.getFullYear() === now.getFullYear() && first.getMonth() === now.getMonth();
+    if (isNew) newThisMonth++; else returningThisMonth++;
+  });
+
+  // A few extra operational numbers worth having on one screen.
+  const totalPatients = await db.get('SELECT COUNT(*) AS n FROM patients');
+  const totalCompleted = await db.get("SELECT COUNT(*) AS n FROM bookings WHERE status = 'completed'");
+  const upcoming = await db.get(
+    "SELECT COUNT(*) AS n FROM bookings WHERE status = 'paid' AND slot_start > NOW()"
+  );
+
+  res.json({
+    patientsSeen: { today: patientsSeenToday.n, week: patientsSeenWeek.n, month: patientsSeenMonth.n },
+    revenueCents: { today: revenueToday.cents, week: revenueWeek.cents, month: revenueMonth.cents },
+    perDoctor,
+    serviceBreakdown,
+    newVsReturning: { newThisMonth, returningThisMonth },
+    totalPatients: totalPatients.n,
+    totalCompleted: totalCompleted.n,
+    upcoming: upcoming.n,
+  });
+});
+
 // --- Patients: every patient who has ever booked, with a compiled clinical summary that can
 // be emailed to an external GP for continuity of care. ---
 // A single search box matches partial name (first, last, or both), email, phone number, or

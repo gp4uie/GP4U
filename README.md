@@ -113,6 +113,13 @@ verification for your business. Only do this once you're ready to go live (see S
     that tab — it's a typing aid, not the Irish Medicines Formulary/BNF/HSE list (see Section 5).
 - **Admin dashboard** (`/admin-login.html`, `/admin-dashboard.html`) — a separate login and role
   from doctors, for platform management rather than clinical work:
+  - **Analytics tab** (the default landing tab) — a live snapshot computed fresh from current
+    bookings and clinical records every time it's opened, nothing stored/frozen: patients seen
+    today/this week/this month, revenue over the same three windows, consultations per doctor
+    (this month and all-time — attributed via whichever doctor added a clinical note, since
+    bookings themselves aren't assigned to a specific doctor), a breakdown by consultation type
+    with its own revenue, new-vs-returning patients this month, and total patients/consultations/
+    upcoming-appointments counts.
   - **Doctors tab** — onboard doctors and, unlike a doctor editing their own hours, set **any**
     doctor's weekly schedule on their behalf (same split-shift support as above)
   - **Patients tab** — search every patient who's ever booked, open one to see their full

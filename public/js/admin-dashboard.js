@@ -1,4 +1,4 @@
-let activeAdminTab = 'doctors';
+let activeAdminTab = 'analytics';
 let scheduleEditorDoctorId = null;
 
 async function checkAdminSession() {
@@ -9,7 +9,7 @@ async function checkAdminSession() {
     return;
   }
   document.getElementById('whoami').textContent = `${data.adminName} — ${data.practiceName}`;
-  loadDoctors();
+  loadAnalytics();
 }
 
 document.getElementById('logoutLink').addEventListener('click', async (e) => {
@@ -20,12 +20,45 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['doctors', 'patients'].forEach((t) => {
+  ['analytics', 'doctors', 'patients'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
+  if (tab === 'analytics') loadAnalytics();
   if (tab === 'doctors') loadDoctors();
   if (tab === 'patients') loadPatients();
+}
+
+function euro(cents) {
+  return '€' + (cents / 100).toFixed(2);
+}
+
+// --- Analytics ---
+async function loadAnalytics() {
+  const res = await fetch('/api/admin/analytics');
+  const data = await res.json();
+
+  document.getElementById('stat_seenToday').textContent = data.patientsSeen.today;
+  document.getElementById('stat_seenWeek').textContent = data.patientsSeen.week;
+  document.getElementById('stat_seenMonth').textContent = data.patientsSeen.month;
+
+  document.getElementById('stat_revToday').textContent = euro(data.revenueCents.today);
+  document.getElementById('stat_revWeek').textContent = euro(data.revenueCents.week);
+  document.getElementById('stat_revMonth').textContent = euro(data.revenueCents.month);
+
+  document.getElementById('stat_totalPatients').textContent = data.totalPatients;
+  document.getElementById('stat_totalCompleted').textContent = data.totalCompleted;
+  document.getElementById('stat_upcoming').textContent = data.upcoming;
+  document.getElementById('stat_newVsReturning').textContent =
+    `${data.newVsReturning.newThisMonth} new / ${data.newVsReturning.returningThisMonth} returning`;
+
+  document.getElementById('perDoctorBody').innerHTML = data.perDoctor.map((d) => `
+    <tr><td>${d.doctorName}</td><td>${d.seenThisMonth}</td><td>${d.totalSeen}</td></tr>
+  `).join('') || '<tr><td colspan="3">No consultations recorded yet.</td></tr>';
+
+  document.getElementById('serviceBreakdownBody').innerHTML = data.serviceBreakdown.map((s) => `
+    <tr><td>${s.service_type.replace('_', ' ')}</td><td>${s.n}</td><td>${euro(s.cents)}</td></tr>
+  `).join('') || '<tr><td colspan="3">No bookings yet.</td></tr>';
 }
 
 // --- Doctors ---

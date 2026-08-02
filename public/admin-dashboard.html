@@ -25,11 +25,55 @@
 <div id="dashboardBox" class="wide-shell">
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtn_doctors" onclick="showAdminTab('doctors')">Doctors</button>
+    <button class="tab-btn active" id="tabBtn_analytics" onclick="showAdminTab('analytics')">Analytics</button>
+    <button class="tab-btn" id="tabBtn_doctors" onclick="showAdminTab('doctors')">Doctors</button>
     <button class="tab-btn" id="tabBtn_patients" onclick="showAdminTab('patients')">Patients</button>
   </div>
 
-  <div id="tab_doctors">
+  <div id="tab_analytics">
+    <h1>Practice Analytics</h1>
+    <p style="color:var(--ink-500);">A live snapshot computed from current bookings and clinical records — always up to date, nothing here is a stored/frozen report.</p>
+
+    <h3 style="margin-top:24px;">Patients Seen</h3>
+    <div class="stat-grid">
+      <div class="card stat-card"><div class="stat-value" id="stat_seenToday">—</div><div class="stat-label">Today</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_seenWeek">—</div><div class="stat-label">This Week</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_seenMonth">—</div><div class="stat-label">This Month</div></div>
+    </div>
+
+    <h3 style="margin-top:28px;">Revenue</h3>
+    <div class="stat-grid">
+      <div class="card stat-card"><div class="stat-value" id="stat_revToday">—</div><div class="stat-label">Today</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_revWeek">—</div><div class="stat-label">This Week</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_revMonth">—</div><div class="stat-label">This Month</div></div>
+    </div>
+
+    <h3 style="margin-top:28px;">Other Measures</h3>
+    <div class="stat-grid">
+      <div class="card stat-card"><div class="stat-value" id="stat_totalPatients">—</div><div class="stat-label">Total Patients (ever)</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_totalCompleted">—</div><div class="stat-label">Consultations Completed (ever)</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_upcoming">—</div><div class="stat-label">Upcoming (paid, not yet seen)</div></div>
+      <div class="card stat-card"><div class="stat-value" id="stat_newVsReturning">—</div><div class="stat-label">New vs Returning (this month)</div></div>
+    </div>
+
+    <h3 style="margin-top:28px;">Consultations per Doctor</h3>
+    <div class="table-scroll">
+      <table class="bookings-table">
+        <thead><tr><th>Doctor</th><th>This Month</th><th>All Time</th></tr></thead>
+        <tbody id="perDoctorBody"></tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:28px;">By Consultation Type</h3>
+    <div class="table-scroll">
+      <table class="bookings-table">
+        <thead><tr><th>Type</th><th>Bookings</th><th>Revenue</th></tr></thead>
+        <tbody id="serviceBreakdownBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab_doctors" style="display:none;">
     <h1>Doctors</h1>
     <p style="color:var(--ink-500);">Onboard doctors and set each one's weekly working hours. A booking slot is only offered to patients if at least one doctor is available then.</p>
     <div class="table-scroll">
