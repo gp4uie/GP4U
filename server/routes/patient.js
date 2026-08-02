@@ -15,7 +15,14 @@ function requirePatient(req, res, next) {
 router.get('/me', async (req, res) => {
   if (!req.session || !req.session.patientEmail) return res.json({ loggedIn: false });
   const patient = await getPatient(req.session.patientEmail);
-  res.json({ loggedIn: true, email: req.session.patientEmail, name: patient ? patient.name : '' });
+  res.json({
+    loggedIn: true,
+    email: req.session.patientEmail,
+    name: patient ? patient.name : '',
+    dob: patient ? patient.dob : '',
+    phone: patient ? patient.phone : '',
+    address: patient ? patient.address : '',
+  });
 });
 
 router.post('/login', async (req, res) => {

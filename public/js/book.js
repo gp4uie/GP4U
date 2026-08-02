@@ -150,6 +150,21 @@ async function submitBooking() {
 
 if (qs('cancelled')) document.getElementById('cancelledNotice').style.display = 'block';
 
+// If the patient is already logged in, the header should reflect that (not "Patient Login" as
+// if they'd been logged out) and their known details should be pre-filled so they don't have to
+// retype everything for a repeat booking.
+fetch('/api/patient/me').then((r) => r.json()).then((me) => {
+  if (!me.loggedIn) return;
+  document.getElementById('patientLoginLink').style.display = 'none';
+  document.getElementById('patientPortalLink').style.display = 'inline';
+  const form = document.getElementById('intakeForm');
+  if (me.name) form.patientName.value = me.name;
+  if (me.dob) form.patientDob.value = me.dob;
+  if (me.phone) form.patientPhone.value = me.phone;
+  if (me.email) form.patientEmail.value = me.email;
+  if (me.address) form.patientAddress.value = me.address;
+});
+
 fetch('/api/services').then((r) => r.json()).then((services) => {
   SERVICES = services;
   renderServiceChoices();

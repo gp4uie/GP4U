@@ -9,10 +9,12 @@
 <style>
   body { background: white; }
   .letter { max-width: 680px; margin: 40px auto; padding: 30px; }
-  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
-  .letterhead img { width: 40px; height: 40px; flex-shrink: 0; }
-  .letterhead h1 { color: var(--teal-900); margin: 0; }
-  .letterhead p { margin: 2px 0; color: var(--ink-500); font-size: 0.9rem; }
+  .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .letterhead-brand { display: flex; align-items: center; gap: 10px; }
+  .letterhead-brand img { width: 32px; height: 32px; flex-shrink: 0; }
+  .letterhead h1 { color: var(--teal-900); margin: 0; font-size: 1.3rem; }
+  .letterhead-slogan { margin: 4px 0 0; color: var(--ink-500); font-size: 0.85rem; }
+  .letterhead-domain { margin: 0; color: var(--ink-500); font-size: 0.85rem; white-space: nowrap; }
   .field { margin-bottom: 10px; }
   .field label { font-weight: 700; display:block; font-size:0.82rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.03em; }
   .sig { margin-top: 50px; }
@@ -36,7 +38,16 @@ const url = (bookingId && token)
 
 function renderSickCert(f, b, practice, doc) {
   return `
-    <div class="letterhead"><img src="/img/gp4u-icon.svg" alt=""><div><h1>${practice.name}</h1><p>One Tap. Real Care.</p><p>www.gp4u.ie</p></div></div>
+    <div class="letterhead">
+      <div>
+        <div class="letterhead-brand">
+          <img src="/img/gp4u-icon.svg" alt="">
+          <h1>${practice.name}</h1>
+        </div>
+        <p class="letterhead-slogan">One Tap. Real Care.</p>
+      </div>
+      <p class="letterhead-domain">www.gp4u.ie</p>
+    </div>
     <h2>Medical Certificate</h2>
     <p class="body-text">This is to certify that ${b.patient_name} (DOB ${b.patient_dob}) of ${b.patient_address || 'the address on file'}
 was examined by me and is ${f.fitForWork} from ${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')} inclusive,
@@ -50,7 +61,16 @@ function renderReferral(f, b, practice, doc, isAE) {
     ? `Emergency Department, ${f.hospitalName}`
     : `${f.specialty}${f.consultantOrDept ? ' — ' + f.consultantOrDept : ''}`;
   return `
-    <div class="letterhead"><img src="/img/gp4u-icon.svg" alt=""><div><h1>${practice.name}</h1><p>One Tap. Real Care.</p><p>www.gp4u.ie</p></div></div>
+    <div class="letterhead">
+      <div>
+        <div class="letterhead-brand">
+          <img src="/img/gp4u-icon.svg" alt="">
+          <h1>${practice.name}</h1>
+        </div>
+        <p class="letterhead-slogan">One Tap. Real Care.</p>
+      </div>
+      <p class="letterhead-domain">www.gp4u.ie</p>
+    </div>
     <p>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p>
     <p><strong>To:</strong> ${toLine}<br><strong>Urgency:</strong> ${f.urgency}</p>
     <p><strong>Re:</strong> ${b.patient_name}, DOB ${b.patient_dob}<br>${b.patient_address || ''}<br>${b.patient_phone}</p>

@@ -67,9 +67,9 @@
 
   <div id="tab_search" style="display:none;">
     <h1>Find a Patient Record</h1>
-    <p style="color:var(--ink-500);">Search by patient name, phone number, or exact date of birth (YYYY-MM-DD). Matches paid or completed bookings.</p>
+    <p style="color:var(--ink-500);">Search by first name, last name, phone number, or date of birth (full or partial — e.g. just "1990"). Matches paid or completed bookings.</p>
     <div style="display:flex; gap:10px; max-width:500px;">
-      <input id="searchInput" placeholder="e.g. Mary Byrne, 0851234567, or 1990-04-12" style="flex:1; padding:10px 12px; border:1.5px solid var(--line); border-radius:8px;">
+      <input id="searchInput" placeholder="e.g. Mary, Byrne, 0851234567, or 1990-04-12" style="flex:1; padding:10px 12px; border:1.5px solid var(--line); border-radius:8px;">
       <button class="btn btn-primary" onclick="runSearch()">Search</button>
     </div>
     <div id="searchResults" style="margin-top:16px;"></div>

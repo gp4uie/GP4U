@@ -153,7 +153,8 @@ router.post('/notifications/read-all', requireDoctor, async (req, res) => {
   res.json({ ok: true });
 });
 
-// Patient record search — matches partial name, partial phone, or exact date of birth (YYYY-MM-DD).
+// Patient record search — a single box matches partial name (first, last, or both), partial
+// phone number, or partial date of birth (e.g. "1990" or "1990-05"), whichever the doctor typed.
 // Note: this matches on name/DOB/phone text, not a dedicated patient ID, since there is no separate
 // patient registration system yet. Double-check you have the right patient if names are common.
 router.get('/search', requireDoctor, async (req, res) => {
@@ -164,9 +165,9 @@ router.get('/search', requireDoctor, async (req, res) => {
     SELECT id, patient_name, patient_dob, patient_phone, service_type, slot_start, status
     FROM bookings
     WHERE status IN ('paid', 'completed')
-      AND (patient_name LIKE ? OR patient_phone LIKE ? OR patient_dob = ?)
+      AND (patient_name LIKE ? OR patient_phone LIKE ? OR patient_dob LIKE ?)
     ORDER BY slot_start DESC
-  `, [like, like, q]);
+  `, [like, like, like]);
   res.json(results);
 });
 

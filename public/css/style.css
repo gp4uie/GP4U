@@ -428,6 +428,7 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
   display: grid;
   grid-template-columns: 70px 1fr;
   grid-auto-rows: 34px;
+  max-width: 480px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   overflow: hidden;

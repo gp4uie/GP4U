@@ -157,15 +157,17 @@ router.put('/doctors/:id/availability', requireAdmin, async (req, res) => {
 
 // --- Patients: every patient who has ever booked, with a compiled clinical summary that can
 // be emailed to an external GP for continuity of care. ---
+// A single search box matches partial name (first, last, or both), email, phone number, or
+// partial date of birth (e.g. "1990" or "1990-05"), whichever the admin typed.
 router.get('/patients', requireAdmin, async (req, res) => {
   const q = (req.query.q || '').trim();
   const like = `%${q}%`;
   const patients = q
     ? await db.all(`
         SELECT email, name, dob, phone, created_at FROM patients
-        WHERE name LIKE ? OR email LIKE ? OR phone LIKE ?
+        WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? OR dob LIKE ?
         ORDER BY name ASC
-      `, [like, like, like])
+      `, [like, like, like, like])
     : await db.all('SELECT email, name, dob, phone, created_at FROM patients ORDER BY name ASC');
   res.json(patients);
 });
