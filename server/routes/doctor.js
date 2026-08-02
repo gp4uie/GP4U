@@ -129,6 +129,46 @@ router.delete('/doctors/:id', requireDoctor, async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Availability: each doctor sets their own weekly working hours. server/slots.js offers a
+// booking slot to patients if at least one doctor's hours cover it — patients never pick a
+// specific doctor, whoever's free takes it. ---
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+router.get('/availability', requireDoctor, async (req, res) => {
+  const rows = await db.all(
+    'SELECT day_of_week, start_time, end_time FROM doctor_availability WHERE doctor_id = ? ORDER BY day_of_week ASC',
+    [req.session.doctorId]
+  );
+  res.json(rows.map((r) => ({ ...r, start_time: r.start_time.slice(0, 5), end_time: r.end_time.slice(0, 5) })));
+});
+
+// Body: { days: [{ dayOfWeek, startTime, endTime }, ...] } — replaces this doctor's entire
+// week in one go, since the dashboard UI edits and saves the whole week at once.
+router.put('/availability', requireDoctor, async (req, res) => {
+  const { days } = req.body;
+  if (!Array.isArray(days)) return res.status(400).json({ error: 'days must be an array' });
+  for (const d of days) {
+    if (!Number.isInteger(d.dayOfWeek) || d.dayOfWeek < 0 || d.dayOfWeek > 6) {
+      return res.status(400).json({ error: `Invalid day of week: ${d.dayOfWeek}` });
+    }
+    if (!TIME_RE.test(d.startTime) || !TIME_RE.test(d.endTime)) {
+      return res.status(400).json({ error: `Invalid time for ${DAY_NAMES[d.dayOfWeek]}` });
+    }
+    if (d.startTime >= d.endTime) {
+      return res.status(400).json({ error: `${DAY_NAMES[d.dayOfWeek]}: start time must be before end time` });
+    }
+  }
+  await db.run('DELETE FROM doctor_availability WHERE doctor_id = ?', [req.session.doctorId]);
+  for (const d of days) {
+    await db.run(
+      'INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)',
+      [req.session.doctorId, d.dayOfWeek, d.startTime, d.endTime]
+    );
+  }
+  res.json({ ok: true });
+});
+
 // Starter medication list for the prescription search/autocomplete — see server/medications.js
 // for what this is (and isn't).
 router.get('/medications', requireDoctor, (req, res) => {
@@ -295,7 +335,7 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
       to: toEmail,
       subject: `Prescription for ${booking.patient_name} — ${process.env.PRACTICE_NAME}`,
       html: `
-        <p><strong>${process.env.PRACTICE_NAME}</strong> — ${process.env.PRACTICE_ADDRESS || ''} — ${process.env.PRACTICE_PHONE || ''}</p>
+        <p><strong>${process.env.PRACTICE_NAME}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
         <p>Patient: ${booking.patient_name} (DOB ${booking.patient_dob})<br>Address: ${booking.patient_address || 'N/A'}</p>
         <p><strong>${rx.medication}</strong> — ${rx.dose}<br>Quantity: ${rx.quantity}<br>Instructions: ${rx.instructions}</p>
         <p>Prescribed by ${rx.doctor_name} (${rx.doctor_reg_number}) on ${new Date(rx.issued_at).toLocaleString('en-IE')}</p>
@@ -348,7 +388,7 @@ router.post('/documents/:docId/send', requireDoctor, async (req, res) => {
       to: toEmail,
       subject: `${label} — ${booking.patient_name} — ${process.env.PRACTICE_NAME}`,
       html: `
-        <p><strong>${process.env.PRACTICE_NAME}</strong> — ${process.env.PRACTICE_ADDRESS || ''} — ${process.env.PRACTICE_PHONE || ''}</p>
+        <p><strong>${process.env.PRACTICE_NAME}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
         <p><strong>${label}</strong></p>
         <p>Re: ${booking.patient_name} (DOB ${booking.patient_dob})<br>Address: ${booking.patient_address || 'N/A'}</p>
         <pre style="font-family:inherit; white-space:pre-wrap;">${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}</pre>

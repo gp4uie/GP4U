@@ -185,6 +185,22 @@ async function initSchema() {
     )
   `);
 
+  // Each doctor's own weekly working hours — one row per day they work (day_of_week: 0=Sunday
+  // .. 6=Saturday), no row means that doctor doesn't work that day. server/slots.js offers a
+  // slot to patients if at least one doctor's hours cover it and fewer bookings exist for that
+  // slot than doctors covering it — patients never pick a specific doctor, whoever's free takes it.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS doctor_availability (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      doctor_id INT NOT NULL,
+      day_of_week TINYINT NOT NULL,
+      start_time TIME NOT NULL,
+      end_time TIME NOT NULL,
+      FOREIGN KEY (doctor_id) REFERENCES doctors(id),
+      UNIQUE KEY unique_doctor_day (doctor_id, day_of_week)
+    )
+  `);
+
   // type: 'new_booking' | 'new_message'
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notifications (

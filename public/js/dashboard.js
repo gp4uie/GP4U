@@ -67,13 +67,14 @@ async function submitForgot() {
 // --- Top-level tabs ---
 function showTab(tab) {
   activeTab = tab;
-  ['schedule', 'search', 'recent', 'doctors'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'doctors', 'availability'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'recent') loadRecent();
   if (tab === 'schedule') loadSchedule();
   if (tab === 'doctors') loadDoctors();
+  if (tab === 'availability') loadAvailability();
 }
 
 // --- Doctors (add/remove colleagues) ---
@@ -118,6 +119,64 @@ async function removeDoctor(id) {
   const data = await res.json();
   if (res.ok) loadDoctors();
   else alert(data.error);
+}
+
+// --- Availability (each doctor's own weekly working hours) ---
+const AVAILABILITY_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+async function loadAvailability() {
+  const res = await fetch('/api/doctor/availability');
+  const rows = await res.json();
+  const byDay = {};
+  rows.forEach((r) => { byDay[r.day_of_week] = r; });
+
+  document.getElementById('availabilityGrid').innerHTML = AVAILABILITY_DAYS.map((name, i) => {
+    const row = byDay[i];
+    return `
+      <div style="display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--line);">
+        <label style="display:flex; align-items:center; gap:8px; width:130px; margin:0;">
+          <input type="checkbox" id="avail_${i}_on" ${row ? 'checked' : ''} onchange="toggleAvailabilityDay(${i})">
+          ${name}
+        </label>
+        <input type="time" id="avail_${i}_start" value="${row ? row.start_time : '09:00'}" ${row ? '' : 'disabled'} style="width:120px;">
+        <span>to</span>
+        <input type="time" id="avail_${i}_end" value="${row ? row.end_time : '17:00'}" ${row ? '' : 'disabled'} style="width:120px;">
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleAvailabilityDay(i) {
+  const on = document.getElementById(`avail_${i}_on`).checked;
+  document.getElementById(`avail_${i}_start`).disabled = !on;
+  document.getElementById(`avail_${i}_end`).disabled = !on;
+}
+
+async function saveAvailability() {
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    if (document.getElementById(`avail_${i}_on`).checked) {
+      days.push({
+        dayOfWeek: i,
+        startTime: document.getElementById(`avail_${i}_start`).value,
+        endTime: document.getElementById(`avail_${i}_end`).value,
+      });
+    }
+  }
+  const res = await fetch('/api/doctor/availability', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ days }),
+  });
+  const data = await res.json();
+  const msg = document.getElementById('availabilityMsg');
+  if (res.ok) {
+    msg.style.color = 'var(--teal-700)';
+    msg.textContent = 'Availability saved.';
+  } else {
+    msg.style.color = '#c0392b';
+    msg.textContent = data.error;
+  }
 }
 
 // --- Schedule (day view, 15-minute slots) ---
