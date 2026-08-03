@@ -14,6 +14,12 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const isHttps = (process.env.BASE_URL || '').startsWith('https');
 
+// Hostinger's reverse proxy terminates TLS and forwards plain HTTP internally. Without this,
+// Express (and the `cookies` package cookie-session relies on) sees every request as insecure,
+// which silently prevents the session cookie's `secure` flag from ever being set — logins would
+// appear to succeed but the session cookie never actually reaches the browser.
+app.set('trust proxy', 1);
+
 // Baseline security headers (GDPR Article 32 "appropriate technical measures"). No
 // Content-Security-Policy here deliberately — this app relies on inline <script> blocks
 // throughout its pages, and a default CSP would break them; tightening that properly needs a
@@ -41,15 +47,6 @@ app.use(cookieSession({
 }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
-
-app.get('/api/_cookietest', (req, res) => {
-  res.json({
-    xForwardedProto: req.headers['x-forwarded-proto'] || null,
-    reqProtocol: req.protocol,
-    reqSecure: req.secure,
-    socketEncrypted: !!(req.socket && req.socket.encrypted),
-  });
-});
 
 app.get('/api/config', (req, res) => {
   res.json({
