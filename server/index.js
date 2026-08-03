@@ -44,7 +44,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/_cookietest', (req, res) => {
   res.cookie('cookietest', 'hello', { httpOnly: true, sameSite: 'lax', secure: isHttps });
-  res.cookie('cookietest.sig', 'world', { httpOnly: true, sameSite: 'lax', secure: isHttps });
+  res.cookie('cookietest2', 'world', { httpOnly: true, sameSite: 'lax', secure: isHttps, maxAge: 30 * 24 * 60 * 60 * 1000 });
   res.json({ set: true, sawIncoming: req.headers.cookie || null });
 });
 
