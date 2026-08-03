@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const Stripe = require('stripe');
 const db = require('../db');
-const { SERVICES } = require('../services');
+const { getServices, getService } = require('../services');
 const { getAvailableSlots } = require('../slots');
 const { upsertPatient } = require('../patients');
 const mailer = require('../mailer');
@@ -28,10 +28,13 @@ function newId(prefix) {
 
 // Best-effort: a missing/broken email setup should never break the booking flow itself.
 async function notifyBookingPaid(booking) {
+  const service = await getService(booking.service_type);
+  const serviceLabel = service ? service.label : booking.service_type;
+
   await db.run(`
     INSERT INTO notifications (type, booking_id, message)
     VALUES ('new_booking', ?, ?)
-  `, [booking.id, `New booking: ${booking.patient_name} — ${SERVICES[booking.service_type].label}`]);
+  `, [booking.id, `New booking: ${booking.patient_name} — ${serviceLabel}`]);
 
   const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
   try {
@@ -40,7 +43,7 @@ async function notifyBookingPaid(booking) {
       subject: `Your ${process.env.PRACTICE_NAME || 'GP4U'} booking is confirmed`,
       html: `
         <p>Hi ${booking.patient_name},</p>
-        <p>Your <strong>${SERVICES[booking.service_type].label}</strong> booking is confirmed for
+        <p>Your <strong>${serviceLabel}</strong> booking is confirmed for
         ${new Date(booking.slot_start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.</p>
         <p>Use this link any time to view your booking, join your video call, message your GP, or
         download anything they issue you: <a href="${link}">${link}</a></p>
@@ -56,7 +59,7 @@ async function notifyBookingPaid(booking) {
       await mailer.sendMail({
         to: process.env.DOCTOR_EMAIL,
         subject: `New booking: ${booking.patient_name}`,
-        html: `<p>${booking.patient_name} booked a ${SERVICES[booking.service_type].label} for ${new Date(booking.slot_start).toLocaleString('en-IE')}.</p>`,
+        html: `<p>${booking.patient_name} booked a ${serviceLabel} for ${new Date(booking.slot_start).toLocaleString('en-IE')}.</p>`,
       });
     } catch (err) {
       console.log('Doctor notification email not sent:', err.message);
@@ -64,13 +67,13 @@ async function notifyBookingPaid(booking) {
   }
 }
 
-router.get('/services', (req, res) => {
-  res.json(SERVICES);
+router.get('/services', async (req, res) => {
+  res.json(await getServices());
 });
 
 router.get('/slots', async (req, res) => {
   const { service } = req.query;
-  if (!SERVICES[service]) return res.status(400).json({ error: 'Unknown service type' });
+  if (!(await getService(service))) return res.status(400).json({ error: 'Unknown service type' });
   res.json(await getAvailableSlots(service));
 });
 
@@ -84,7 +87,7 @@ router.post('/bookings', async (req, res) => {
       slotStart, slotEnd,
     } = req.body;
 
-    const service = SERVICES[serviceType];
+    const service = await getService(serviceType);
     if (!service) return res.status(400).json({ error: 'Unknown service type' });
     if (!patientName || !patientPhone || !patientEmail || !pharmacyName || !reason || !patientDob || !slotStart || !slotEnd) {
       return res.status(400).json({ error: 'Please fill in all required fields (marked with *).' });

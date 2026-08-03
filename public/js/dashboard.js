@@ -15,11 +15,11 @@ async function checkSession() {
     document.getElementById('dashboardBox').style.display = 'block';
     document.getElementById('whoami').textContent = `${data.doctorName} — ${data.practiceName}`;
     document.getElementById('logoutLink').style.display = 'inline';
-    document.getElementById('contentEditorLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
     loadSchedule();
     loadNotifications();
     loadMedications();
+    loadTasks();
     setInterval(loadNotifications, 15000);
   }
 }
@@ -67,12 +67,39 @@ async function submitForgot() {
 // --- Top-level tabs ---
 function showTab(tab) {
   activeTab = tab;
-  ['schedule', 'search', 'recent'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'tasks'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'recent') loadRecent();
   if (tab === 'schedule') loadSchedule();
+  if (tab === 'tasks') loadTasks();
+}
+
+// --- Tasks ---
+async function loadTasks() {
+  const res = await fetch('/api/doctor/tasks');
+  const tasks = await res.json();
+  const pendingCount = tasks.filter((t) => t.status === 'pending').length;
+  const badge = document.getElementById('taskCount');
+  if (pendingCount > 0) { badge.style.display = 'inline-block'; badge.textContent = pendingCount; }
+  else { badge.style.display = 'none'; }
+
+  document.getElementById('tasksList').innerHTML = tasks.length ? tasks.map((t) => `
+    <div class="card" style="margin-bottom:10px; ${t.status === 'completed' ? 'opacity:0.6;' : ''}">
+      <p>${t.description}</p>
+      <p style="color:var(--ink-500); font-size:0.8rem;">
+        Patient: ${t.patient_name} • Created ${new Date(t.created_at).toLocaleString('en-IE')}
+        ${t.status === 'completed' ? ` • Completed ${new Date(t.completed_at).toLocaleString('en-IE')}` : ''}
+      </p>
+      ${t.status === 'pending' ? `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="completeTask(${t.id})">Mark Complete</button>` : '<span class="badge badge-green">Done</span>'}
+    </div>
+  `).join('') : '<p style="color:var(--ink-500);">No tasks yet.</p>';
+}
+
+async function completeTask(id) {
+  await fetch(`/api/doctor/tasks/${id}/complete`, { method: 'POST' });
+  loadTasks();
 }
 
 // --- Schedule (day view, 15-minute slots) ---

@@ -1,5 +1,5 @@
 const db = require('./db');
-const { SERVICES } = require('./services');
+const { getService } = require('./services');
 
 const DAYS_AHEAD = 10;
 const SLOT_STEP_MINS = 15;
@@ -39,7 +39,7 @@ async function getDayHoursRange(dayOfWeek) {
 // cover it, and fewer existing bookings overlap it than doctors covering it — so two doctors
 // both free at 10am means two patients can book that same 10am slot, one each.
 async function getAvailableSlots(serviceKey) {
-  const service = SERVICES[serviceKey];
+  const service = await getService(serviceKey);
   if (!service) return [];
 
   const durationMs = service.durationMins * 60 * 1000;

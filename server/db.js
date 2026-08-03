@@ -303,6 +303,46 @@ async function initSchema() {
     )
   `);
 
+  // Bookable services, editable from the admin content editor instead of a code file.
+  // `key` is the stable identifier used throughout bookings/slots (e.g. 'general', 'repeat_rx').
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS services (
+      \`key\` VARCHAR(32) PRIMARY KEY,
+      label VARCHAR(255) NOT NULL,
+      duration_mins INT NOT NULL,
+      price_cents INT NOT NULL,
+      sort_order INT NOT NULL DEFAULT 0
+    )
+  `);
+
+  // A doctor's own task list. Currently only populated automatically when a prescription is
+  // issued (type 'send_prescription') — the doctor marks it complete either by hand or
+  // automatically when they successfully send it (see routes/doctor.js).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      doctor_id INT NOT NULL,
+      booking_id VARCHAR(32) NOT NULL,
+      type VARCHAR(32) NOT NULL,
+      description TEXT NOT NULL,
+      related_id INT NULL,
+      status VARCHAR(16) NOT NULL DEFAULT 'pending',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME NULL,
+      FOREIGN KEY (doctor_id) REFERENCES doctors(id),
+      FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // Guards the auto-summary-to-admin email (sent when a consultation is marked complete)
+  // against being sent twice for the same booking.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS consultation_summary_log (
+      booking_id VARCHAR(32) PRIMARY KEY,
+      sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS blog_posts (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -333,9 +373,48 @@ async function initSchema() {
     hero_title: 'See a GP online, from anywhere in Ireland.',
     hero_subtitle: 'GP4U connects you with Irish-registered GPs for video and audio consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.',
     about_text: 'GP4U is a telemedicine service built by a practising Irish GP, aimed at making everyday GP care more convenient — without losing the personal, careful approach of a good family doctor. Every consultation is carried out by a GP registered with the Irish Medical Council.',
+    hero_badge_1: 'Irish Medical Council registered GPs',
+    hero_badge_2: 'Encrypted video & data',
+    hero_badge_3: 'Secure card payment',
+    hero_card_title: 'Same-day appointments',
+    hero_card_text: "Choose a consultation type, answer a few quick questions about why you're getting in touch, pick a time that suits, and pay securely online. You'll get a private video link for your appointment.",
+    services_section_title: 'Our Services',
+    services_section_subtitle: "Pick the type of consultation that fits what you need — prices are shown upfront, no surprises.",
+    how_it_works_1_title: 'Choose a service',
+    how_it_works_1_text: "Video, travel health, women's health, men's health, repeat prescription or a sick cert.",
+    how_it_works_2_title: "Tell us what's going on",
+    how_it_works_2_text: 'A short, private questionnaire so your GP is prepared before you speak.',
+    how_it_works_3_title: 'Pick a time & pay securely',
+    how_it_works_3_text: 'Choose a slot that suits you and pay by card — processed securely by Stripe.',
+    how_it_works_4_title: 'Have your consultation',
+    how_it_works_4_text: 'Join your private video or audio call right from your confirmation page.',
+    footer_contact_email: 'admin@gp4u.ie',
+    footer_legal_text: 'GP4U is an online GP consultation service. Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department. This service does not replace in-person examination where one is clinically necessary.',
   };
   for (const [key, value] of Object.entries(contentDefaults)) {
     await pool.query('INSERT IGNORE INTO site_content (`key`, value) VALUES (?, ?)', [key, value]);
+  }
+
+  // Seed the service catalogue once from the previous static list, so pricing/labels look the
+  // same as before until an admin actually edits them.
+  const serviceCountRow = await get('SELECT COUNT(*) AS n FROM services');
+  if (serviceCountRow.n === 0) {
+    const defaultServices = [
+      ['general', 'General GP Consultation', 15, 3500, 1],
+      ['video', 'Video Consultation', 15, 4000, 2],
+      ['travel', 'Travel Health Consultation', 20, 4500, 3],
+      ['womens', "Women's Health Consultation", 20, 4500, 4],
+      ['mens', "Men's Health Consultation", 20, 4500, 5],
+      ['repeat_rx', 'Repeat Prescription', 10, 2500, 6],
+      ['sick_cert', 'Sick Certificate', 10, 2500, 7],
+      ['weight_loss', 'Weight Loss Consultation', 20, 7500, 8],
+    ];
+    for (const [key, label, durationMins, priceCents, sortOrder] of defaultServices) {
+      await run(
+        'INSERT INTO services (`key`, label, duration_mins, price_cents, sort_order) VALUES (?, ?, ?, ?, ?)',
+        [key, label, durationMins, priceCents, sortOrder]
+      );
+    }
   }
 
   const postCountRow = await get('SELECT COUNT(*) AS n FROM blog_posts');

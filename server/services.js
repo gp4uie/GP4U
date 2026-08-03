@@ -1,13 +1,22 @@
-// Service catalogue for GP4U. Edit prices/durations/labels here — nothing else needs to change.
-const SERVICES = {
-  general: { label: 'General GP Consultation', durationMins: 15, priceCents: 3500 },
-  video: { label: 'Video Consultation', durationMins: 15, priceCents: 4000 },
-  travel: { label: 'Travel Health Consultation', durationMins: 20, priceCents: 4500 },
-  womens: { label: "Women's Health Consultation", durationMins: 20, priceCents: 4500 },
-  mens: { label: "Men's Health Consultation", durationMins: 20, priceCents: 4500 },
-  repeat_rx: { label: 'Repeat Prescription', durationMins: 10, priceCents: 2500 },
-  sick_cert: { label: 'Sick Certificate', durationMins: 10, priceCents: 2500 },
-  weight_loss: { label: 'Weight Loss Consultation', durationMins: 20, priceCents: 7500 },
-};
+// Service catalogue for GP4U — editable from the admin content editor (see routes/admin.js and
+// content-editor.html), backed by the `services` table instead of a static object.
+const db = require('./db');
 
-module.exports = { SERVICES };
+function rowToService(row) {
+  return { label: row.label, durationMins: row.duration_mins, priceCents: row.price_cents };
+}
+
+// Returns { [key]: { label, durationMins, priceCents } }, ordered by sort_order.
+async function getServices() {
+  const rows = await db.all('SELECT * FROM services ORDER BY sort_order ASC, `key` ASC');
+  const services = {};
+  rows.forEach((r) => { services[r.key] = rowToService(r); });
+  return services;
+}
+
+async function getService(key) {
+  const row = await db.get('SELECT * FROM services WHERE `key` = ?', [key]);
+  return row ? rowToService(row) : null;
+}
+
+module.exports = { getServices, getService };

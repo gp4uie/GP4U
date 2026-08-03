@@ -346,4 +346,37 @@ router.post('/patients/:email/send-summary', requireAdmin, async (req, res) => {
   }
 });
 
+// --- Prescriptions & Summaries: practice-wide view, not scoped to a single patient search
+// like the Patients tab above. ---
+router.get('/prescriptions', requireAdmin, async (req, res) => {
+  const prescriptions = await db.all(`
+    SELECT p.*, b.patient_name, b.pharmacy_name FROM prescriptions p
+    JOIN bookings b ON b.id = p.booking_id
+    ORDER BY p.issued_at DESC LIMIT 100
+  `);
+  res.json(prescriptions);
+});
+
+router.get('/completed-summaries', requireAdmin, async (req, res) => {
+  const bookings = await db.all(`
+    SELECT * FROM bookings WHERE status = 'completed' ORDER BY slot_start DESC LIMIT 50
+  `);
+  const summaries = [];
+  for (const b of bookings) {
+    const notes = await db.all('SELECT note_text FROM clinical_notes WHERE booking_id = ? ORDER BY created_at ASC', [b.id]);
+    const prescriptions = await db.all('SELECT medication, dose, frequency, duration FROM prescriptions WHERE booking_id = ? ORDER BY issued_at ASC', [b.id]);
+    const documents = await db.all('SELECT doc_type, fields FROM documents WHERE booking_id = ? ORDER BY created_at ASC', [b.id]);
+    const sickCerts = documents.filter((d) => d.doc_type === 'sick_cert').map((d) => {
+      const f = JSON.parse(d.fields);
+      const days = Math.round((new Date(f.dateTo) - new Date(f.dateFrom)) / (1000 * 60 * 60 * 24)) + 1;
+      return { days, dateFrom: f.dateFrom, dateTo: f.dateTo, fitForWork: f.fitForWork, diagnosis: f.diagnosis };
+    });
+    summaries.push({
+      bookingId: b.id, patientName: b.patient_name, serviceType: b.service_type, slotStart: b.slot_start,
+      reason: b.reason, notes, prescriptions, sickCerts,
+    });
+  }
+  res.json(summaries);
+});
+
 module.exports = { router, requireAdmin };

@@ -55,14 +55,14 @@
       <p id="heroSubtitle">GP4U connects you with Irish-registered GPs for video and audio consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.</p>
       <a href="/book.html" class="btn btn-primary">Book a Consultation</a>
       <div class="hero-badges">
-        <span class="hero-badge">Irish Medical Council registered GPs</span>
-        <span class="hero-badge">Encrypted video &amp; data</span>
-        <span class="hero-badge">Secure card payment</span>
+        <span class="hero-badge" id="heroBadge1"></span>
+        <span class="hero-badge" id="heroBadge2"></span>
+        <span class="hero-badge" id="heroBadge3"></span>
       </div>
     </div>
     <div class="hero-card">
-      <h3>Same-day appointments</h3>
-      <p style="color:#3c5460">Choose a consultation type, answer a few quick questions about why you're getting in touch, pick a time that suits, and pay securely online. You'll get a private video link for your appointment.</p>
+      <h3 id="heroCardTitle">Same-day appointments</h3>
+      <p style="color:#3c5460" id="heroCardText">Choose a consultation type, answer a few quick questions about why you're getting in touch, pick a time that suits, and pay securely online. You'll get a private video link for your appointment.</p>
       <a href="/book.html" class="btn btn-secondary btn-block">Get Started →</a>
     </div>
   </div>
@@ -70,8 +70,8 @@
 
 <section id="services" style="background:linear-gradient(160deg, #ffffff 0%, #eefaf9 55%, #eaf1ff 100%);">
   <div class="container">
-    <h2 class="section-title">Our Services</h2>
-    <p class="section-sub">Pick the type of consultation that fits what you need — prices are shown upfront, no surprises.</p>
+    <h2 class="section-title" id="servicesSectionTitle">Our Services</h2>
+    <p class="section-sub" id="servicesSectionSubtitle">Pick the type of consultation that fits what you need — prices are shown upfront, no surprises.</p>
     <div class="grid" id="servicesGrid"></div>
   </div>
 </section>
@@ -79,11 +79,11 @@
 <section id="how-it-works" style="background:linear-gradient(160deg, #eaf1ff 0%, #ffffff 45%, #ffffff 100%); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
   <div class="container">
     <h2 class="section-title">How it works</h2>
-    <div class="steps" style="max-width:640px;margin:0 auto;">
-      <div class="step"><div class="step-num">1</div><div><strong>Choose a service</strong><p>Video, travel health, women's health, men's health, repeat prescription or a sick cert.</p></div></div>
-      <div class="step"><div class="step-num">2</div><div><strong>Tell us what's going on</strong><p>A short, private questionnaire so your GP is prepared before you speak.</p></div></div>
-      <div class="step"><div class="step-num">3</div><div><strong>Pick a time &amp; pay securely</strong><p>Choose a slot that suits you and pay by card — processed securely by Stripe.</p></div></div>
-      <div class="step"><div class="step-num">4</div><div><strong>Have your consultation</strong><p>Join your private video or audio call right from your confirmation page.</p></div></div>
+    <div class="steps" style="max-width:640px;margin:0 auto;" id="howItWorksSteps">
+      <div class="step"><div class="step-num">1</div><div><strong id="howItWorks1Title"></strong><p id="howItWorks1Text"></p></div></div>
+      <div class="step"><div class="step-num">2</div><div><strong id="howItWorks2Title"></strong><p id="howItWorks2Text"></p></div></div>
+      <div class="step"><div class="step-num">3</div><div><strong id="howItWorks3Title"></strong><p id="howItWorks3Text"></p></div></div>
+      <div class="step"><div class="step-num">4</div><div><strong id="howItWorks4Title"></strong><p id="howItWorks4Text"></p></div></div>
     </div>
   </div>
 </section>
@@ -120,13 +120,13 @@
       <div>
         <h4>Contact</h4>
         <ul>
-          <li>admin@gp4u.ie</li>
+          <li id="footerContactEmail">admin@gp4u.ie</li>
           <li>www.gp4u.ie</li>
         </ul>
       </div>
     </div>
-    <div class="footer-legal">
-      GP4U is a prototype telemedicine platform. Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+    <div class="footer-legal" id="footerLegalText">
+      GP4U is an online GP consultation service. Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
       This service does not replace in-person examination where one is clinically necessary.
     </div>
   </div>
@@ -137,6 +137,19 @@ fetch('/api/content').then(r => r.json()).then(content => {
   document.getElementById('heroTitle').textContent = content.hero_title;
   document.getElementById('heroSubtitle').textContent = content.hero_subtitle;
   document.getElementById('aboutText').textContent = content.about_text;
+  document.getElementById('heroBadge1').textContent = content.hero_badge_1 || '';
+  document.getElementById('heroBadge2').textContent = content.hero_badge_2 || '';
+  document.getElementById('heroBadge3').textContent = content.hero_badge_3 || '';
+  document.getElementById('heroCardTitle').textContent = content.hero_card_title || '';
+  document.getElementById('heroCardText').textContent = content.hero_card_text || '';
+  document.getElementById('servicesSectionTitle').textContent = content.services_section_title || '';
+  document.getElementById('servicesSectionSubtitle').textContent = content.services_section_subtitle || '';
+  document.getElementById('footerContactEmail').textContent = content.footer_contact_email || '';
+  document.getElementById('footerLegalText').textContent = content.footer_legal_text || '';
+  [1, 2, 3, 4].forEach((n) => {
+    document.getElementById(`howItWorks${n}Title`).textContent = content[`how_it_works_${n}_title`] || '';
+    document.getElementById(`howItWorks${n}Text`).textContent = content[`how_it_works_${n}_text`] || '';
+  });
 });
 
 fetch('/api/services').then(r => r.json()).then(services => {

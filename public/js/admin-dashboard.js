@@ -20,13 +20,43 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['analytics', 'doctors', 'patients'].forEach((t) => {
+  ['analytics', 'doctors', 'patients', 'rx'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'analytics') loadAnalytics();
   if (tab === 'doctors') loadDoctors();
   if (tab === 'patients') loadPatients();
+  if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
+}
+
+async function loadAdminPrescriptions() {
+  const res = await fetch('/api/admin/prescriptions');
+  const prescriptions = await res.json();
+  document.getElementById('adminRxBody').innerHTML = prescriptions.length ? prescriptions.map((p) => `
+    <tr>
+      <td>${new Date(p.issued_at).toLocaleString('en-IE')}</td>
+      <td>${p.patient_name}</td>
+      <td>${p.medication} — ${p.dose}</td>
+      <td>${p.pharmacy_name || '—'}</td>
+      <td>${p.doctor_name}</td>
+      <td>${p.sent_to_email ? `Sent to ${p.sent_to_email}` : 'Not sent yet'}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" style="color:var(--ink-500);">No prescriptions issued yet.</td></tr>';
+}
+
+async function loadAdminSummaries() {
+  const res = await fetch('/api/admin/completed-summaries');
+  const summaries = await res.json();
+  document.getElementById('adminSummariesList').innerHTML = summaries.length ? summaries.map((s) => `
+    <div class="card" style="margin-bottom:12px;">
+      <p><strong>${s.patientName}</strong> — ${s.serviceType.replace('_', ' ')} — ${new Date(s.slotStart).toLocaleString('en-IE')}</p>
+      <p><strong>Presentation:</strong> ${s.reason || 'N/A'}</p>
+      ${s.notes.length ? `<p><strong>Notes:</strong> ${s.notes.map((n) => n.note_text).join('; ')}</p>` : ''}
+      ${s.prescriptions.length ? `<p><strong>Medication issued:</strong> ${s.prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`).join('; ')}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
+      ${s.sickCerts.length ? `<p><strong>Sick cert:</strong> ${s.sickCerts.map((c) => `${c.days} day(s) (${new Date(c.dateFrom).toLocaleDateString('en-IE')}–${new Date(c.dateTo).toLocaleDateString('en-IE')}), ${c.fitForWork}, diagnosis: ${c.diagnosis}`).join('; ')}</p>` : ''}
+    </div>
+  `).join('') : '<p style="color:var(--ink-500);">No completed consultations yet.</p>';
 }
 
 function euro(cents) {

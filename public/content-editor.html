@@ -15,24 +15,65 @@
     <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
     <button class="nav-toggle" aria-label="Toggle menu">☰</button>
     <nav class="main-nav">
-      <a href="/dashboard.html">← Back to Dashboard</a>
+      <a href="/admin-dashboard.html">← Back to Admin Dashboard</a>
     </nav>
   </div>
 </header>
 
 <div id="loginNotice" class="page-shell" style="display:none;">
-  <div class="notice"><strong>Please log in</strong> Go to the <a href="/dashboard.html">dashboard</a> and log in first, then come back to this page.</div>
+  <div class="notice"><strong>Please log in</strong> Go to the <a href="/admin-login.html">admin login</a> and log in first, then come back to this page.</div>
 </div>
 
 <div id="editorBox" class="page-shell" style="max-width:720px; display:none;">
   <h1>Edit Website Content</h1>
 
-  <h2>Homepage</h2>
+  <h2>Homepage Hero</h2>
   <div class="form-row"><label>Hero headline</label><input id="heroTitle"></div>
   <div class="form-row"><label>Hero subtitle</label><textarea id="heroSubtitle"></textarea></div>
+  <div class="form-grid">
+    <div class="form-row"><label>Badge 1</label><input id="heroBadge1"></div>
+    <div class="form-row"><label>Badge 2</label><input id="heroBadge2"></div>
+  </div>
+  <div class="form-row"><label>Badge 3</label><input id="heroBadge3"></div>
+  <div class="form-row"><label>Hero card title</label><input id="heroCardTitle"></div>
+  <div class="form-row"><label>Hero card text</label><textarea id="heroCardText"></textarea></div>
+  <button class="btn btn-primary" onclick="saveHomepage()">Save Hero</button>
+  <p id="heroMsg" style="color:#1c7a4b;"></p>
+
+  <h2 style="margin-top:40px;">Services Section</h2>
+  <div class="form-row"><label>Section title</label><input id="servicesSectionTitle"></div>
+  <div class="form-row"><label>Section subtitle</label><textarea id="servicesSectionSubtitle"></textarea></div>
+  <button class="btn btn-primary" onclick="saveHomepage()">Save Services Section</button>
+
+  <h2 style="margin-top:40px;">How It Works (4 steps)</h2>
+  <div id="howItWorksFields"></div>
+  <button class="btn btn-primary" onclick="saveHomepage()">Save How It Works</button>
+
+  <h2 style="margin-top:40px;">About Section</h2>
   <div class="form-row"><label>About section text</label><textarea id="aboutText"></textarea></div>
-  <button class="btn btn-primary" onclick="saveHomepage()">Save Homepage Text</button>
+  <button class="btn btn-primary" onclick="saveHomepage()">Save About Text</button>
+
+  <h2 style="margin-top:40px;">Footer</h2>
+  <div class="form-row"><label>Contact email shown in footer</label><input id="footerContactEmail"></div>
+  <div class="form-row"><label>Legal / disclaimer text</label><textarea id="footerLegalText"></textarea></div>
+  <button class="btn btn-primary" onclick="saveHomepage()">Save Footer</button>
   <p id="homepageMsg" style="color:#1c7a4b;"></p>
+
+  <h2 style="margin-top:40px;">Services &amp; Pricing</h2>
+  <p style="color:var(--ink-500); font-size:0.9rem;">Add, edit, or remove the consultation types patients can book. Changes apply immediately to the homepage and booking page.</p>
+  <div id="servicesList"></div>
+
+  <h3 style="margin-top:24px;">Add a new service</h3>
+  <div class="form-grid">
+    <div class="form-row"><label>Key (no spaces, e.g. "nutrition")</label><input id="newServiceKey" placeholder="e.g. nutrition"></div>
+    <div class="form-row"><label>Label</label><input id="newServiceLabel" placeholder="e.g. Nutrition Consultation"></div>
+  </div>
+  <div class="form-grid">
+    <div class="form-row"><label>Duration (minutes)</label><input id="newServiceDuration" type="number"></div>
+    <div class="form-row"><label>Price (€)</label><input id="newServicePrice" type="number" step="0.01"></div>
+  </div>
+  <button class="btn btn-primary" onclick="addService()">Add Service</button>
+  <p id="serviceFormMsg" style="color:#c0392b;"></p>
 
   <h2 style="margin-top:40px;">Health Info / Blog Posts</h2>
   <div id="postsList"></div>

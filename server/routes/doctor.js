@@ -159,6 +159,28 @@ router.post('/notifications/read-all', requireDoctor, async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Tasks: currently only auto-created when a prescription is issued (see
+// POST /bookings/:id/prescriptions below) — each doctor only sees their own. ---
+router.get('/tasks', requireDoctor, async (req, res) => {
+  const tasks = await db.all(`
+    SELECT t.*, b.patient_name FROM tasks t
+    JOIN bookings b ON b.id = t.booking_id
+    WHERE t.doctor_id = ?
+    ORDER BY (t.status = 'pending') DESC, t.created_at DESC
+    LIMIT 100
+  `, [req.session.doctorId]);
+  res.json(tasks);
+});
+
+router.post('/tasks/:id/complete', requireDoctor, async (req, res) => {
+  const result = await db.run(
+    "UPDATE tasks SET status = 'completed', completed_at = NOW() WHERE id = ? AND doctor_id = ?",
+    [req.params.id, req.session.doctorId]
+  );
+  if (result.changes === 0) return res.status(404).json({ error: 'Task not found' });
+  res.json({ ok: true });
+});
+
 // Patient record search — a single box matches partial name (first, last, or both), partial
 // phone number, or partial date of birth (e.g. "1990" or "1990-05"), whichever the doctor typed.
 // Note: this matches on name/DOB/phone text, not a dedicated patient ID, since there is no separate
@@ -223,7 +245,58 @@ router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
 });
 
 router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  const wasAlreadyCompleted = booking.status === 'completed';
   await db.run("UPDATE bookings SET status = 'completed' WHERE id = ?", [req.params.id]);
+
+  // Best-effort, and only once per booking (consultation_summary_log guards against a repeat
+  // "Mark Complete" click re-sending it) — a summary of presentation, medication issued, and any
+  // sick cert days, sent to every admin for their records.
+  if (!wasAlreadyCompleted) {
+    try {
+      const alreadyLogged = await db.get('SELECT 1 AS x FROM consultation_summary_log WHERE booking_id = ?', [req.params.id]);
+      if (!alreadyLogged) {
+        const notes = await db.all('SELECT * FROM clinical_notes WHERE booking_id = ? ORDER BY created_at ASC', [req.params.id]);
+        const prescriptions = await db.all('SELECT * FROM prescriptions WHERE booking_id = ? ORDER BY issued_at ASC', [req.params.id]);
+        const documents = await db.all('SELECT * FROM documents WHERE booking_id = ? ORDER BY created_at ASC', [req.params.id]);
+        const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+
+        const sickCertLines = documents
+          .filter((d) => d.doc_type === 'sick_cert')
+          .map((d) => {
+            const f = JSON.parse(d.fields);
+            const days = Math.round((new Date(f.dateTo) - new Date(f.dateFrom)) / (1000 * 60 * 60 * 24)) + 1;
+            return `${days} day(s) (${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')}), ${f.fitForWork}, diagnosis: ${f.diagnosis}`;
+          });
+        const referralLines = documents
+          .filter((d) => d.doc_type !== 'sick_cert')
+          .map((d) => DOCUMENT_TYPES[d.doc_type] ? DOCUMENT_TYPES[d.doc_type].label : d.doc_type);
+
+        const admins = await db.all('SELECT email FROM admins');
+        for (const admin of admins) {
+          await mailer.sendMail({
+            to: admin.email,
+            subject: `Consultation summary: ${booking.patient_name} — ${practiceName}`,
+            html: `
+              <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
+              <p><strong>Patient:</strong> ${booking.patient_name} (DOB ${booking.patient_dob})<br>
+              <strong>Service:</strong> ${booking.service_type.replace('_', ' ')}<br>
+              <strong>Seen:</strong> ${new Date(booking.slot_start).toLocaleString('en-IE')}</p>
+              <p><strong>Presentation/reason:</strong> ${booking.reason || 'N/A'}</p>
+              ${notes.length ? `<p><strong>Clinical notes:</strong><br>${notes.map((n) => n.note_text).join('<br>')}</p>` : ''}
+              ${prescriptions.length ? `<p><strong>Medication issued:</strong><br>${prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`).join('<br>')}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
+              ${sickCertLines.length ? `<p><strong>Sick cert issued:</strong><br>${sickCertLines.join('<br>')}</p>` : ''}
+              ${referralLines.length ? `<p><strong>Referral letters issued:</strong> ${referralLines.join(', ')}</p>` : ''}
+            `,
+          });
+        }
+        await db.run('INSERT INTO consultation_summary_log (booking_id) VALUES (?)', [req.params.id]);
+      }
+    } catch (err) {
+      console.log('Consultation summary to admin not sent:', err.message);
+    }
+  }
+
   res.json({ ok: true });
 });
 
@@ -245,10 +318,44 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
     return res.status(400).json({ error: 'All prescription fields are required' });
   }
   const doctor = await getCurrentDoctor(req);
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   const info = await db.run(`
     INSERT INTO prescriptions (booking_id, medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?,?,?,?,?)
   `, [req.params.id, db.encrypt(medication), db.encrypt(dose), db.encrypt(frequency), db.encrypt(duration), db.encrypt(instructions), quantity, doctor.name, doctor.reg_number]);
+
+  await db.run(
+    `INSERT INTO tasks (doctor_id, booking_id, type, description, related_id) VALUES (?, ?, 'send_prescription', ?, ?)`,
+    [doctor.id, req.params.id, `Send prescription to pharmacy: ${medication} (${dose}) for ${booking.patient_name}`, info.lastInsertRowid]
+  );
+
+  // Best-effort: every admin gets a copy so they can forward it to the pharmacy (e.g. over
+  // Healthmail, which this app can't send through directly — see server/pdf.js).
+  try {
+    const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+    const pdfBuffer = await generatePrescriptionPdf({
+      rx: { medication, dose, frequency, duration, instructions, quantity, doctor_name: doctor.name, doctor_reg_number: doctor.reg_number, issued_at: new Date() },
+      booking, practiceName,
+    });
+    const admins = await db.all('SELECT email FROM admins');
+    for (const admin of admins) {
+      await mailer.sendMail({
+        to: admin.email,
+        subject: `Prescription to send: ${booking.patient_name} — ${booking.pharmacy_name || 'pharmacy not given'}`,
+        html: `
+          <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
+          <p>A new prescription was issued for <strong>${booking.patient_name}</strong>.</p>
+          <p><strong>Pharmacy:</strong> ${booking.pharmacy_name || 'Not given — check with the patient'}</p>
+          <p>Please find the prescription attached as a PDF to forward on.</p>
+          <p>Prescribed by ${doctor.name} (${doctor.reg_number})</p>
+        `,
+        attachments: [{ filename: `Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+      });
+    }
+  } catch (err) {
+    console.log('Prescription copy to admin not sent:', err.message);
+  }
+
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -299,6 +406,12 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
       attachments: [{ filename: `Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE prescriptions SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.rxId]);
+    // Sending it counts as the associated task being done, whether or not the doctor also
+    // ticks it off manually.
+    await db.run(
+      "UPDATE tasks SET status = 'completed', completed_at = NOW() WHERE type = 'send_prescription' AND related_id = ? AND status = 'pending'",
+      [req.params.rxId]
+    );
     res.json({ ok: true });
   } catch (err) {
     res.status(err.code === 'MAILER_NOT_CONFIGURED' ? 400 : 500).json({ error: err.message });
