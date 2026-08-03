@@ -264,6 +264,20 @@ router.get('/prescriptions/:rxId', requireDoctor, async (req, res) => {
   });
 });
 
+// Lets the doctor download the same PDF that would be emailed — for cases like sending a
+// prescription to a pharmacy over Healthmail, where the doctor attaches it manually rather
+// than through this app's own SMTP (Healthmail doesn't offer SMTP relay access).
+router.get('/prescriptions/:rxId/pdf', requireDoctor, async (req, res) => {
+  const rx = await db.get('SELECT * FROM prescriptions WHERE id = ?', [req.params.rxId]);
+  if (!rx) return res.status(404).json({ error: 'Not found' });
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]);
+  const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+  const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practiceName });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf"`);
+  res.send(pdfBuffer);
+});
+
 router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
   const { toEmail } = req.body;
   if (!toEmail) return res.status(400).json({ error: 'Pharmacy email address is required' });

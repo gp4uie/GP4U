@@ -378,6 +378,7 @@ function renderPrescriptions(prescriptions) {
         <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${p.sent_to_email}` : ''}</p>
         <div style="display:flex; gap:10px;">
           <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}">Print</a>
+          <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" href="/api/doctor/prescriptions/${p.id}/pdf">Download PDF</a>
           <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendPrescription(${p.id})">Send to Pharmacy</button>
         </div>
       </div>
