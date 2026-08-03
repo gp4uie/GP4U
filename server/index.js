@@ -43,9 +43,13 @@ app.use(cookieSession({
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/_cookietest', (req, res) => {
-  res.cookie('cookietest', 'hello', { httpOnly: true, sameSite: 'lax', secure: isHttps });
-  res.cookie('cookietest2', 'world', { httpOnly: true, sameSite: 'lax', secure: isHttps, maxAge: 30 * 24 * 60 * 60 * 1000 });
-  res.json({ set: true, sawIncoming: req.headers.cookie || null });
+  const onHeaders = require('on-headers');
+  res.cookie('immediate', 'a', { httpOnly: true, sameSite: 'lax', secure: isHttps });
+  onHeaders(res, function () {
+    res.setHeader('X-OnHeaders-Ran', '1');
+    res.cookie('deferred', 'b', { httpOnly: true, sameSite: 'lax', secure: isHttps });
+  });
+  res.json({ set: true });
 });
 
 app.get('/api/config', (req, res) => {
