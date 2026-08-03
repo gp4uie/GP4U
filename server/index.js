@@ -42,6 +42,11 @@ app.use(cookieSession({
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+app.get('/api/_cookietest', (req, res) => {
+  res.cookie('cookietest', 'hello', { httpOnly: true, sameSite: 'lax', secure: isHttps });
+  res.json({ set: true, sawIncoming: req.headers.cookie || null });
+});
+
 app.get('/api/config', (req, res) => {
   res.json({
     practiceName: process.env.PRACTICE_NAME || 'GP4U',
