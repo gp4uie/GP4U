@@ -15,7 +15,7 @@ function getTransport() {
   });
 }
 
-async function sendMail({ to, subject, html }) {
+async function sendMail({ to, subject, html, attachments }) {
   if (!isConfigured()) {
     const err = new Error(
       'Email sending isn\'t set up yet. Add SMTP_HOST, SMTP_USER and SMTP_PASS to .env — see README.'
@@ -29,6 +29,7 @@ async function sendMail({ to, subject, html }) {
     to,
     subject,
     html,
+    attachments,
   });
 }
 

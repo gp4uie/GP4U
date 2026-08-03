@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
+const { generateSickCertPdf, generateReferralPdf, generatePrescriptionPdf } = require('../pdf');
 const { DOCUMENT_TYPES } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
 const { getDayHoursRange } = require('../slots');
@@ -271,15 +272,17 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]);
 
   try {
+    const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+    const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practiceName });
     await mailer.sendMail({
       to: toEmail,
-      subject: `Prescription for ${booking.patient_name} — ${process.env.PRACTICE_NAME}`,
+      subject: `Prescription for ${booking.patient_name} — ${practiceName}`,
       html: `
-        <p><strong>${process.env.PRACTICE_NAME}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-        <p>Patient: ${booking.patient_name} (DOB ${booking.patient_dob})<br>Address: ${booking.patient_address || 'N/A'}</p>
-        <p><strong>${rx.medication}</strong> — ${rx.dose}<br>Frequency: ${rx.frequency}<br>Duration: ${rx.duration}<br>Quantity: ${rx.quantity}<br>Instructions: ${rx.instructions}</p>
+        <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
+        <p>Please find the prescription for ${booking.patient_name} attached as a PDF.</p>
         <p>Prescribed by ${rx.doctor_name} (${rx.doctor_reg_number}) on ${new Date(rx.issued_at).toLocaleString('en-IE')}</p>
       `,
+      attachments: [{ filename: `Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE prescriptions SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.rxId]);
     res.json({ ok: true });
@@ -322,18 +325,23 @@ router.post('/documents/:docId/send', requireDoctor, async (req, res) => {
   if (!toEmail) return res.status(400).json({ error: 'Recipient email address is required' });
   const fields = JSON.parse(doc.fields);
   const label = DOCUMENT_TYPES[doc.doc_type].label;
+  const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+  const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number };
 
   try {
+    const pdfBuffer = doc.doc_type === 'sick_cert'
+      ? await generateSickCertPdf({ fields, booking, doctor, practiceName })
+      : await generateReferralPdf({ fields, booking, doctor, practiceName, isAE: doc.doc_type === 'referral_ae' });
+
     await mailer.sendMail({
       to: toEmail,
-      subject: `${label} — ${booking.patient_name} — ${process.env.PRACTICE_NAME}`,
+      subject: `${label} — ${booking.patient_name} — ${practiceName}`,
       html: `
-        <p><strong>${process.env.PRACTICE_NAME}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-        <p><strong>${label}</strong></p>
-        <p>Re: ${booking.patient_name} (DOB ${booking.patient_dob})<br>Address: ${booking.patient_address || 'N/A'}</p>
-        <pre style="font-family:inherit; white-space:pre-wrap;">${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}</pre>
+        <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
+        <p>Please find the ${label.toLowerCase()} for ${booking.patient_name} attached as a PDF.</p>
         <p>${doc.doctor_name} (${doc.doctor_reg_number})</p>
       `,
+      attachments: [{ filename: `${label.replace(/\s+/g, '-')}-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE documents SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.docId]);
     res.json({ ok: true });
