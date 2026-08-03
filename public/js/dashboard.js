@@ -259,6 +259,7 @@ async function openBooking(id, listType) {
     <p><strong>Current medications:</strong> ${b.current_medications || '—'}</p>
     <p><strong>Allergies:</strong> ${b.allergies || '—'}</p>
     <p><strong>Additional details:</strong> ${b.extra_details || '—'}</p>
+    ${b.safety_answers ? `<p><strong>Repeat prescription safety check:</strong><br>${b.safety_answers.replace(/\n/g, '<br>')}</p>` : ''}
     <p><strong>Status:</strong> <span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></p>
   `;
   const joinCallBtn = document.getElementById('joinCallBtn');
@@ -269,6 +270,14 @@ async function openBooking(id, listType) {
   joinCallBtn.onclick = (e) => {
     e.preventDefault();
     window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
+  };
+
+  const joinAudioCallBtn = document.getElementById('joinAudioCallBtn');
+  const audioCallUrl = `/consult.html?id=${id}&role=doctor&mode=audio`;
+  joinAudioCallBtn.href = audioCallUrl;
+  joinAudioCallBtn.onclick = (e) => {
+    e.preventDefault();
+    window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
   };
   renderAttachments(data.attachments);
   renderPreviousConsultations(data.previousConsultations);

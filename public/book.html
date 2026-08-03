@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book an Online GP Appointment — GP4U Ireland</title>
-<meta name="description" content="Book your online GP appointment in Ireland today. Choose audio, video, travel health, women's health, repeat prescription, or a sick cert — pay securely and get a private video link.">
+<meta name="description" content="Book your online GP appointment in Ireland today. Choose video, travel health, women's health, men's health, repeat prescription, or a sick cert — pay securely and join by video or audio call.">
 <link rel="canonical" href="https://www.gp4u.ie/book.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Book an Online GP Appointment — GP4U Ireland">
@@ -80,8 +80,26 @@
         <label id="extraDetailsLabel">Additional details</label>
         <input name="extraDetails" id="extraDetailsInput">
       </div>
+      <div id="repeatRxSafetyRow" style="display:none;">
+        <div class="notice">
+          <strong>Prescription renewal safety check</strong>
+          Since this is a repeat prescription, your GP needs to confirm nothing has changed before renewing it.
+        </div>
+        <div class="form-row">
+          <label>Are you currently taking this medication exactly as prescribed (correct dose and frequency)? <span style="color:#c0392b;">*</span></label>
+          <select id="rxAsPrescribedInput" name="rxAsPrescribed">
+            <option value="">Please choose…</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Since your last prescription, has anything changed — new symptoms, side effects, other medications, or health conditions? <span style="color:#c0392b;">*</span></label>
+          <textarea id="rxHealthChangesInput" name="rxHealthChanges" placeholder="Write 'No changes' if nothing has changed"></textarea>
+        </div>
+      </div>
       <div class="form-row">
-        <label>Attach a photo (optional — e.g. a rash or a letter)</label>
+        <label id="photoInputLabel">Attach a photo (optional — e.g. a rash or a letter)</label>
         <input type="file" id="photoInput" accept="image/*" multiple>
       </div>
       <button type="button" class="btn btn-primary" onclick="goToStep3FromForm()">Continue</button>

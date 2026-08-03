@@ -41,9 +41,10 @@
       <p id="passwordMsg" style="color:#c0392b;"></p>
     </div>
 
-    <h2 style="margin-top:32px;">Your video consultation</h2>
-    <p>Your appointment link will be active from 10 minutes before your slot.</p>
+    <h2 style="margin-top:32px;">Your consultation</h2>
+    <p>Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
     <a id="joinLink" class="btn btn-primary">Join Video Consultation</a>
+    <a id="joinAudioLink" class="btn btn-secondary">Join Audio Consultation</a>
 
     <h2 style="margin-top:32px;">Prescriptions</h2>
     <div id="prescriptionList"><p style="color:var(--ink-500);">None issued yet — your GP will add one here after your consultation if needed.</p></div>
@@ -129,6 +130,14 @@ async function loadBooking() {
   joinLink.onclick = (e) => {
     e.preventDefault();
     window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
+  };
+
+  const joinAudioLink = document.getElementById('joinAudioLink');
+  const audioCallUrl = `/consult.html?id=${bookingId}&token=${token}&role=patient&mode=audio`;
+  joinAudioLink.href = audioCallUrl;
+  joinAudioLink.onclick = (e) => {
+    e.preventDefault();
+    window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
   };
 
   const isCompleted = b.status === 'completed';

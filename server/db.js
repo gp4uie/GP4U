@@ -31,7 +31,7 @@ function toMySQLDateTime(isoString) {
 const ENCRYPTED_COLUMNS = new Set([
   'note_text', 'medication', 'dose', 'frequency', 'duration', 'instructions', 'fields',
   'reason', 'symptoms_duration', 'current_medications', 'allergies', 'extra_details',
-  'patient_address', 'address',
+  'patient_address', 'address', 'safety_answers',
 ]);
 
 function reviveDates(row) {
@@ -99,6 +99,7 @@ async function initSchema() {
       current_medications TEXT,
       allergies TEXT,
       extra_details TEXT,
+      safety_answers TEXT,
       slot_start DATETIME NOT NULL,
       slot_end DATETIME NOT NULL,
       amount_cents INT NOT NULL,
@@ -151,6 +152,9 @@ async function initSchema() {
   await widenColumn('prescriptions', 'frequency', 'TEXT NOT NULL');
   await widenColumn('prescriptions', 'duration', 'TEXT NOT NULL');
   await widenColumn('bookings', 'symptoms_duration', 'TEXT');
+  // Migration for sites where `bookings` already existed before the repeat-prescription safety
+  // questionnaire (medication changes / taken-as-prescribed) was added.
+  await ensureColumn('bookings', 'safety_answers', 'TEXT');
 
   // Append-only clinical notes: real clinical records are never edited after saving,
   // only added to, so there is deliberately no update/delete on this table.

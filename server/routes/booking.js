@@ -80,6 +80,7 @@ router.post('/bookings', async (req, res) => {
     const {
       serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress, pharmacyName,
       reason, symptomsDuration, currentMedications, allergies, extraDetails,
+      rxAsPrescribed, rxHealthChanges,
       slotStart, slotEnd,
     } = req.body;
 
@@ -91,6 +92,12 @@ router.post('/bookings', async (req, res) => {
     if (!EMAIL_RE.test(patientEmail)) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
+    if (serviceType === 'repeat_rx' && (!rxAsPrescribed || !rxHealthChanges)) {
+      return res.status(400).json({ error: 'Please complete the prescription renewal safety check.' });
+    }
+    const safetyAnswers = (rxAsPrescribed || rxHealthChanges)
+      ? `Taking medication exactly as prescribed: ${rxAsPrescribed || 'Not answered'}\nChanges since last prescription: ${rxHealthChanges || 'Not answered'}`
+      : '';
 
     const slotStartSql = db.toMySQLDateTime(slotStart);
     const slotEndSql = db.toMySQLDateTime(slotEnd);
@@ -108,10 +115,11 @@ router.post('/bookings', async (req, res) => {
     await db.run(`
       INSERT INTO bookings (id, patient_token, service_type, patient_name, patient_dob, patient_phone,
         patient_email, patient_address, pharmacy_name, reason, symptoms_duration, current_medications, allergies, extra_details,
-        slot_start, slot_end, amount_cents, status)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
+        safety_answers, slot_start, slot_end, amount_cents, status)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
     `, [id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, db.encrypt(patientAddress || ''), pharmacyName,
       db.encrypt(reason), db.encrypt(symptomsDuration || ''), db.encrypt(currentMedications || ''), db.encrypt(allergies || ''), db.encrypt(extraDetails || ''),
+      db.encrypt(safetyAnswers),
       slotStartSql, slotEndSql, service.priceCents]);
 
     await upsertPatient({ email: patientEmail, name: patientName, dob: patientDob, phone: patientPhone, address: patientAddress || '' });

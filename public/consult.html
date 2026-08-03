@@ -7,11 +7,27 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
 <link rel="stylesheet" href="/css/style.css">
+<style>
+  .audio-only-call #localVideo { display: none; }
+  .audio-only-call .audio-call-icon { display: flex; }
+  .audio-call-icon {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    color: #9fb3b8;
+    font-size: 2.2rem;
+  }
+</style>
 </head>
 <body>
 <div class="video-room">
   <div class="video-stage">
     <p id="status" style="color:#9fb3b8;">Setting up your camera and microphone…</p>
+    <div class="audio-call-icon">🎧</div>
     <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
     <video id="localVideo" autoplay playsinline muted></video>
   </div>

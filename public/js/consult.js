@@ -3,6 +3,7 @@ const bookingId = params.get('id');
 const token = params.get('token');
 const role = params.get('role') === 'doctor' ? 'doctor' : 'patient';
 const otherRole = role === 'doctor' ? 'patient' : 'doctor';
+const audioOnly = params.get('mode') === 'audio';
 
 const statusEl = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
@@ -10,6 +11,12 @@ const remoteVideo = document.getElementById('remoteVideo');
 
 let localStream, peer, currentCall;
 let micOn = true, camOn = true;
+
+if (audioOnly) {
+  document.title = 'Audio Consultation — GP4U';
+  document.body.classList.add('audio-only-call');
+  setStatus('Setting up your microphone…');
+}
 
 function setStatus(text) { statusEl.textContent = text; statusEl.style.display = text ? 'block' : 'none'; }
 
@@ -35,14 +42,20 @@ async function start() {
 
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+      video: audioOnly ? false : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
     });
   } catch (err) {
-    setStatus('Could not access your camera/microphone. Please allow camera and microphone permissions and reload this page.');
+    setStatus(audioOnly
+      ? 'Could not access your microphone. Please allow microphone permissions and reload this page.'
+      : 'Could not access your camera/microphone. Please allow camera and microphone permissions and reload this page.');
     return;
   }
-  localVideo.srcObject = localStream;
+  if (audioOnly) {
+    document.getElementById('camBtn').style.display = 'none';
+  } else {
+    localVideo.srcObject = localStream;
+  }
 
   // Sanitised, deterministic peer IDs so the two participants can find each other for this booking only.
   const myId = `gp4u-${bookingId}-${role}`;
@@ -79,9 +92,12 @@ function tryCall(theirId) {
 function wireCall(call) {
   currentCall = call;
   call.on('stream', (remoteStream) => {
+    // Still attached (and its audio still plays) even when hidden — only shown if the other
+    // side actually sent a video track, so an audio-only caller doesn't see a blank video box.
     remoteVideo.srcObject = remoteStream;
-    remoteVideo.style.display = 'block';
-    setStatus('');
+    const hasRemoteVideo = remoteStream.getVideoTracks().length > 0;
+    remoteVideo.style.display = hasRemoteVideo ? 'block' : 'none';
+    setStatus(hasRemoteVideo ? '' : `Audio call connected with the ${otherRole === 'doctor' ? 'GP' : 'patient'}.`);
   });
   call.on('close', () => {
     if (localStream) localStream.getTracks().forEach((t) => t.stop());
