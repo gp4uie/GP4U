@@ -226,8 +226,16 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
     });
   }
 
+  // The patient's own standing medical profile (allergies/current medications/known
+  // conditions/address, kept up to date by the patient in their portal) — distinct from this
+  // visit's intake answers on the booking itself, and visible regardless of which booking is open.
+  const patientProfile = await db.get(
+    'SELECT address, allergies, current_medications, known_conditions FROM patients WHERE email = ?',
+    [booking.patient_email]
+  );
+
   const { patient_token, ...safeBooking } = booking;
-  res.json({ booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations });
+  res.json({ booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile });
 });
 
 router.get('/attachments/:attId', requireDoctor, async (req, res) => {

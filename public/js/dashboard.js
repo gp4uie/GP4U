@@ -273,6 +273,15 @@ async function openBooking(id, listType) {
   const b = data.booking;
   currentPatientEmail = b.patient_email;
   document.getElementById('chartHeader').textContent = `${b.patient_name} — ${b.service_type.replace('_', ' ')}`;
+  const pp = data.patientProfile || {};
+  document.getElementById('patientProfileInfo').innerHTML = `
+    <h3 style="margin-top:0;">Patient-Maintained Medical Profile</h3>
+    <p style="color:var(--ink-500); font-size:0.85rem;">Kept up to date by the patient in their own portal — may not match what they entered for this specific visit below.</p>
+    <p><strong>Address:</strong> ${pp.address || '—'}</p>
+    <p><strong>Known conditions / diagnoses:</strong> ${pp.known_conditions || '—'}</p>
+    <p><strong>Allergies:</strong> ${pp.allergies || '—'}</p>
+    <p><strong>Current medications:</strong> ${pp.current_medications || '—'}</p>
+  `;
   document.getElementById('detailInfo').innerHTML = `
     <p><strong>Reference:</strong> ${b.id}</p>
     <p><strong>Patient:</strong> ${b.patient_name} (DOB ${b.patient_dob})</p>
@@ -313,6 +322,7 @@ async function openBooking(id, listType) {
   renderPrescriptions(data.prescriptions);
   renderDocuments(data.documents);
   renderAllDocuments(data.prescriptions, data.documents);
+  renderPreviousSidePanels(data.previousConsultations);
   showChartTab('overview');
   document.getElementById('detailPanel').style.display = 'block';
   document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
@@ -369,6 +379,49 @@ function renderPreviousConsultations(previous) {
       </div>
     `;
   }).join('');
+}
+
+// Compact "previous visits" side panels shown alongside the Clinical Notes/Prescription/
+// Referral tabs, so history is visible without leaving the tab or losing what's being typed.
+function renderPreviousSidePanels(previousConsultations) {
+  const dateLabel = (iso) => new Date(iso).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const allNotes = previousConsultations
+    .flatMap((p) => p.notes.map((n) => ({ ...n, visitDate: p.slot_start })))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  document.getElementById('previousNotesPanel').innerHTML = allNotes.length
+    ? allNotes.map((n) => `
+        <div style="margin-bottom:12px;">
+          <p style="white-space:pre-wrap; margin:0; font-size:0.9rem;">${n.note_text}</p>
+          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${n.doctor_name} • ${dateLabel(n.visitDate)}</p>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500); font-size:0.85rem;">No previous notes.</p>';
+
+  const allRx = previousConsultations
+    .flatMap((p) => p.prescriptions.map((rx) => ({ ...rx, visitDate: p.slot_start })))
+    .sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
+  document.getElementById('previousRxPanel').innerHTML = allRx.length
+    ? allRx.map((rx) => `
+        <div style="margin-bottom:12px;">
+          <p style="margin:0; font-size:0.9rem;"><strong>${rx.medication}</strong> — ${rx.dose}</p>
+          <p style="margin:0; font-size:0.85rem;">${rx.frequency}, ${rx.duration}, qty ${rx.quantity}</p>
+          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${dateLabel(rx.visitDate)} • <a href="/print-rx.html?rxId=${rx.id}" target="_blank">Print</a></p>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500); font-size:0.85rem;">No previous prescriptions.</p>';
+
+  const allReferrals = previousConsultations
+    .flatMap((p) => p.documents.filter((d) => d.doc_type !== 'sick_cert').map((d) => ({ ...d, visitDate: p.slot_start })))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  document.getElementById('previousReferralsPanel').innerHTML = allReferrals.length
+    ? allReferrals.map((d) => `
+        <div style="margin-bottom:12px;">
+          <p style="margin:0; font-size:0.9rem;"><strong>${DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</strong></p>
+          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${dateLabel(d.visitDate)} • <a href="/print-doc.html?docId=${d.id}" target="_blank">Print</a></p>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500); font-size:0.85rem;">No previous referral letters.</p>';
 }
 
 function renderMessages(messages) {

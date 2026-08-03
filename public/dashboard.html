@@ -116,7 +116,8 @@
       <div class="side-content">
 
         <div id="chartSection_overview">
-          <div class="card" id="detailInfo"></div>
+          <div class="card" id="patientProfileInfo" style="background:var(--bg-soft, #f6f9f9);"></div>
+          <div class="card" id="detailInfo" style="margin-top:12px;"></div>
           <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
             <a id="joinCallBtn" class="btn btn-primary">Join Video Call</a>
             <a id="joinAudioCallBtn" class="btn btn-secondary">Join Audio Call</a>
@@ -140,52 +141,68 @@
         </div>
 
         <div id="chartSection_notes" style="display:none;">
-          <h3 style="margin-top:0;">Clinical Notes</h3>
-          <div class="notice">Notes are saved permanently once added and cannot be edited or deleted — add a new note instead, as you would in a paper record. Notes are never shown to the patient.</div>
-          <div id="notesList"></div>
-          <div class="form-row"><textarea id="noteInput" placeholder="Consultation note…"></textarea></div>
-          <button class="btn btn-primary" onclick="saveNote()">Save Note</button>
+          <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;">
+            <div style="flex:2; min-width:280px;">
+              <h3 style="margin-top:0;">Clinical Notes</h3>
+              <div class="notice">Notes are saved permanently once added and cannot be edited or deleted — add a new note instead, as you would in a paper record. Notes are never shown to the patient.</div>
+              <div id="notesList"></div>
+              <div class="form-row"><textarea id="noteInput" placeholder="Consultation note…"></textarea></div>
+              <button class="btn btn-primary" onclick="saveNote()">Save Note</button>
+            </div>
+            <div style="flex:1; min-width:220px; max-width:300px; max-height:520px; overflow-y:auto; border-left:1px solid var(--line); padding-left:16px;">
+              <h4 style="margin-top:0;">Previous Notes (other visits)</h4>
+              <div id="previousNotesPanel"></div>
+            </div>
+          </div>
         </div>
 
         <div id="chartSection_prescription" style="display:none;">
-          <h3 style="margin-top:0;">Prescription</h3>
-          <div class="notice">
-            <strong>Sending a prescription</strong>
-            A PDF copy is emailed to admin automatically the moment you issue it, so it can be
-            forwarded to the pharmacy. "Send to Pharmacy" here emails the PDF directly if you have
-            the pharmacy's email address; use "Download PDF" on the issued prescription below if it
-            needs to go out over Healthmail instead (Healthmail doesn't support sending through this
-            app directly). Controlled drugs must still follow HPRA/Medical Council rules.
-          </div>
-          <div class="notice">
-            <strong>Medication search is a typing aid, not a formulary</strong>
-            The dropdown below is a small starter list of common medications and strengths to save
-            typing — it is not the Irish Medicines Formulary, the BNF, or the HSE reimbursement list,
-            and hasn't been clinically verified. You can still type anything else freely. Edit
-            <code>server/medications.js</code> to add, correct, or remove entries.
-          </div>
-          <div class="form-grid">
-            <div class="form-row">
-              <label>Medication</label>
-              <input id="rxMed" list="medicationList" oninput="onMedicationChange()" placeholder="Search or type a medication">
-              <datalist id="medicationList"></datalist>
+          <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;">
+            <div style="flex:2; min-width:280px;">
+              <h3 style="margin-top:0;">Prescription</h3>
+              <div class="notice">
+                <strong>Sending a prescription</strong>
+                A PDF copy is emailed to admin automatically the moment you issue it, so it can be
+                forwarded to the pharmacy. "Send to Pharmacy" here emails the PDF directly if you have
+                the pharmacy's email address; use "Download PDF" on the issued prescription below if it
+                needs to go out over Healthmail instead (Healthmail doesn't support sending through this
+                app directly). Controlled drugs must still follow HPRA/Medical Council rules.
+              </div>
+              <div class="notice">
+                <strong>Medication search is a typing aid, not a formulary</strong>
+                The dropdown below is a small starter list of common medications and strengths to save
+                typing — it is not the Irish Medicines Formulary, the BNF, or the HSE reimbursement list,
+                and hasn't been clinically verified. You can still type anything else freely. Edit
+                <code>server/medications.js</code> to add, correct, or remove entries.
+              </div>
+              <div class="form-grid">
+                <div class="form-row">
+                  <label>Medication</label>
+                  <input id="rxMed" list="medicationList" oninput="onMedicationChange()" placeholder="Search or type a medication">
+                  <datalist id="medicationList"></datalist>
+                </div>
+                <div class="form-row">
+                  <label>Dose</label>
+                  <input id="rxDose" list="doseList" placeholder="Search or type a dose">
+                  <datalist id="doseList"></datalist>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-row"><label>Frequency</label><input id="rxFrequency" placeholder="e.g. Twice daily"></div>
+                <div class="form-row"><label>Duration</label><input id="rxDuration" placeholder="e.g. 7 days"></div>
+              </div>
+              <div class="form-grid">
+                <div class="form-row"><label>Quantity</label><input id="rxQty"></div>
+              </div>
+              <div class="form-row"><label>Instructions</label><textarea id="rxInstructions" placeholder="Any further instructions for the patient/pharmacist"></textarea></div>
+              <button class="btn btn-primary" onclick="issuePrescription()">Issue Prescription</button>
+              <div id="existingRx" style="margin-top:16px;"></div>
             </div>
-            <div class="form-row">
-              <label>Dose</label>
-              <input id="rxDose" list="doseList" placeholder="Search or type a dose">
-              <datalist id="doseList"></datalist>
+            <div style="flex:1; min-width:220px; max-width:300px; max-height:700px; overflow-y:auto; border-left:1px solid var(--line); padding-left:16px;">
+              <h4 style="margin-top:0;">Previous Prescriptions (other visits)</h4>
+              <div id="previousRxPanel"></div>
             </div>
           </div>
-          <div class="form-grid">
-            <div class="form-row"><label>Frequency</label><input id="rxFrequency" placeholder="e.g. Twice daily"></div>
-            <div class="form-row"><label>Duration</label><input id="rxDuration" placeholder="e.g. 7 days"></div>
-          </div>
-          <div class="form-grid">
-            <div class="form-row"><label>Quantity</label><input id="rxQty"></div>
-          </div>
-          <div class="form-row"><label>Instructions</label><textarea id="rxInstructions" placeholder="Any further instructions for the patient/pharmacist"></textarea></div>
-          <button class="btn btn-primary" onclick="issuePrescription()">Issue Prescription</button>
-          <div id="existingRx" style="margin-top:16px;"></div>
         </div>
 
         <div id="chartSection_sickcert" style="display:none;">
@@ -210,27 +227,35 @@
         </div>
 
         <div id="chartSection_referral" style="display:none;">
-          <h3 style="margin-top:0;">Referral Letter</h3>
-          <div class="form-row">
-            <label>Referral type</label>
-            <select id="refType" onchange="toggleReferralFields()">
-              <option value="referral_ae">Emergency Department (A&amp;E)</option>
-              <option value="referral_specialist">Specialist</option>
-            </select>
+          <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;">
+            <div style="flex:2; min-width:280px;">
+              <h3 style="margin-top:0;">Referral Letter</h3>
+              <div class="form-row">
+                <label>Referral type</label>
+                <select id="refType" onchange="toggleReferralFields()">
+                  <option value="referral_ae">Emergency Department (A&amp;E)</option>
+                  <option value="referral_specialist">Specialist</option>
+                </select>
+              </div>
+              <div class="form-row" id="hospitalRow"><label>Hospital name</label><input id="refHospital" placeholder="e.g. St. Vincent's University Hospital"></div>
+              <div class="form-grid" id="specialistRow" style="display:none;">
+                <div class="form-row"><label>Specialty</label><input id="refSpecialty" placeholder="e.g. Cardiology"></div>
+                <div class="form-row"><label>Consultant / department</label><input id="refConsultant"></div>
+              </div>
+              <div class="form-row">
+                <label>Urgency</label>
+                <select id="refUrgency"><option>Routine</option><option>Urgent</option><option>Emergency</option></select>
+              </div>
+              <div class="form-row"><label>Clinical summary</label><textarea id="refSummary" placeholder="History, examination findings, relevant background"></textarea></div>
+              <div class="form-row"><label>Reason for referral</label><textarea id="refReason" placeholder="What you'd like the receiving team to assess/manage"></textarea></div>
+              <button class="btn btn-primary" onclick="collectReferralAndIssue()">Generate Referral Letter</button>
+              <div id="existingDocs_referral" style="margin-top:16px;"></div>
+            </div>
+            <div style="flex:1; min-width:220px; max-width:300px; max-height:700px; overflow-y:auto; border-left:1px solid var(--line); padding-left:16px;">
+              <h4 style="margin-top:0;">Previous Referral Letters (other visits)</h4>
+              <div id="previousReferralsPanel"></div>
+            </div>
           </div>
-          <div class="form-row" id="hospitalRow"><label>Hospital name</label><input id="refHospital" placeholder="e.g. St. Vincent's University Hospital"></div>
-          <div class="form-grid" id="specialistRow" style="display:none;">
-            <div class="form-row"><label>Specialty</label><input id="refSpecialty" placeholder="e.g. Cardiology"></div>
-            <div class="form-row"><label>Consultant / department</label><input id="refConsultant"></div>
-          </div>
-          <div class="form-row">
-            <label>Urgency</label>
-            <select id="refUrgency"><option>Routine</option><option>Urgent</option><option>Emergency</option></select>
-          </div>
-          <div class="form-row"><label>Clinical summary</label><textarea id="refSummary" placeholder="History, examination findings, relevant background"></textarea></div>
-          <div class="form-row"><label>Reason for referral</label><textarea id="refReason" placeholder="What you'd like the receiving team to assess/manage"></textarea></div>
-          <button class="btn btn-primary" onclick="collectReferralAndIssue()">Generate Referral Letter</button>
-          <div id="existingDocs_referral" style="margin-top:16px;"></div>
         </div>
 
         <div id="chartSection_documents" style="display:none;">

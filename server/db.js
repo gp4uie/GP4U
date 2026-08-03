@@ -31,7 +31,7 @@ function toMySQLDateTime(isoString) {
 const ENCRYPTED_COLUMNS = new Set([
   'note_text', 'medication', 'dose', 'frequency', 'duration', 'instructions', 'fields',
   'reason', 'symptoms_duration', 'current_medications', 'allergies', 'extra_details',
-  'patient_address', 'address', 'safety_answers',
+  'patient_address', 'address', 'safety_answers', 'known_conditions',
 ]);
 
 function reviveDates(row) {
@@ -198,6 +198,9 @@ async function initSchema() {
       dob VARCHAR(20),
       phone VARCHAR(64),
       address TEXT,
+      allergies TEXT,
+      current_medications TEXT,
+      known_conditions TEXT,
       reset_token VARCHAR(128) NULL,
       reset_token_expires DATETIME NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -206,6 +209,13 @@ async function initSchema() {
   // Migration for sites where `patients` already existed before reset_token was added.
   await ensureColumn('patients', 'reset_token', 'VARCHAR(128) NULL');
   await ensureColumn('patients', 'reset_token_expires', 'DATETIME NULL');
+  // Migration for sites where `patients` already existed before the self-service medical
+  // profile (allergies/current medications/known conditions) was added — kept separate from
+  // the per-visit intake answers on `bookings`, since this is the patient's standing profile,
+  // not "what's going on this specific visit".
+  await ensureColumn('patients', 'allergies', 'TEXT');
+  await ensureColumn('patients', 'current_medications', 'TEXT');
+  await ensureColumn('patients', 'known_conditions', 'TEXT');
 
   // Real per-doctor accounts (replacing the old single shared DOCTOR_PASSWORD). Every
   // prescription/document/clinical note is stamped with the name+reg number of whichever

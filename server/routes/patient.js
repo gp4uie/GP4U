@@ -22,7 +22,22 @@ router.get('/me', async (req, res) => {
     dob: patient ? patient.dob : '',
     phone: patient ? patient.phone : '',
     address: patient ? patient.address : '',
+    allergies: patient ? patient.allergies : '',
+    currentMedications: patient ? patient.current_medications : '',
+    knownConditions: patient ? patient.known_conditions : '',
   });
+});
+
+// Lets a patient keep a standing medical profile up to date — kept separate from the per-visit
+// intake answers on `bookings` (which capture "what's going on this specific visit"), so this is
+// visible to the doctor regardless of which booking they're looking at.
+router.put('/profile', requirePatient, async (req, res) => {
+  const { address, allergies, currentMedications, knownConditions } = req.body;
+  await db.run(
+    `UPDATE patients SET address = ?, allergies = ?, current_medications = ?, known_conditions = ? WHERE email = ?`,
+    [db.encrypt(address || ''), db.encrypt(allergies || ''), db.encrypt(currentMedications || ''), db.encrypt(knownConditions || ''), req.session.patientEmail]
+  );
+  res.json({ ok: true });
 });
 
 router.post('/login', async (req, res) => {
