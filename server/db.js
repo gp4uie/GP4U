@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
+const { encrypt, decrypt } = require('./encryption');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -23,13 +24,27 @@ function toMySQLDateTime(isoString) {
   return isoString.slice(0, 19).replace('T', ' ');
 }
 
+// Health-content columns encrypted at rest (see server/encryption.js) — matched by column name
+// alone regardless of table, so this stays correct automatically as new query shapes are added.
+// decrypt() is a no-op passthrough for anything not tagged as ciphertext, so this is also safe
+// for rows written before encryption existed.
+const ENCRYPTED_COLUMNS = new Set([
+  'note_text', 'medication', 'dose', 'frequency', 'duration', 'instructions', 'fields',
+  'reason', 'symptoms_duration', 'current_medications', 'allergies', 'extra_details',
+  'patient_address', 'address',
+]);
+
 function reviveDates(row) {
   if (!row) return row;
   const revived = {};
   for (const [key, value] of Object.entries(row)) {
-    revived[key] = typeof value === 'string' && MYSQL_DATETIME_RE.test(value)
-      ? `${value.slice(0, 19).replace(' ', 'T')}.000Z`
-      : value;
+    if (ENCRYPTED_COLUMNS.has(key)) {
+      revived[key] = decrypt(value);
+    } else {
+      revived[key] = typeof value === 'string' && MYSQL_DATETIME_RE.test(value)
+        ? `${value.slice(0, 19).replace(' ', 'T')}.000Z`
+        : value;
+    }
   }
   return revived;
 }
@@ -60,6 +75,13 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+// Widens a column already deployed as VARCHAR to TEXT — needed where encryption's ciphertext
+// (base64, plus IV/auth-tag overhead) can exceed a VARCHAR(255) limit that was fine for
+// plaintext. MODIFY COLUMN is safe to re-run every startup; MySQL no-ops if it's already TEXT.
+async function widenColumn(table, column, definition) {
+  await pool.query(`ALTER TABLE ${table} MODIFY COLUMN ${column} ${definition}`);
+}
+
 async function initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bookings (
@@ -73,7 +95,7 @@ async function initSchema() {
       patient_address TEXT,
       pharmacy_name VARCHAR(255),
       reason TEXT NOT NULL,
-      symptoms_duration VARCHAR(255),
+      symptoms_duration TEXT,
       current_medications TEXT,
       allergies TEXT,
       extra_details TEXT,
@@ -105,10 +127,10 @@ async function initSchema() {
     CREATE TABLE IF NOT EXISTS prescriptions (
       id INT AUTO_INCREMENT PRIMARY KEY,
       booking_id VARCHAR(32) NOT NULL,
-      medication VARCHAR(255) NOT NULL,
-      dose VARCHAR(255) NOT NULL,
-      frequency VARCHAR(255) NOT NULL DEFAULT '',
-      duration VARCHAR(255) NOT NULL DEFAULT '',
+      medication TEXT NOT NULL,
+      dose TEXT NOT NULL,
+      frequency TEXT NOT NULL,
+      duration TEXT NOT NULL,
       instructions TEXT NOT NULL,
       quantity VARCHAR(255) NOT NULL,
       doctor_name VARCHAR(255) NOT NULL,
@@ -123,6 +145,12 @@ async function initSchema() {
   // out of the old single "instructions" field.
   await ensureColumn('prescriptions', 'frequency', "VARCHAR(255) NOT NULL DEFAULT ''");
   await ensureColumn('prescriptions', 'duration', "VARCHAR(255) NOT NULL DEFAULT ''");
+  // Widen columns that now hold encrypted (larger) values instead of plain short text.
+  await widenColumn('prescriptions', 'medication', 'TEXT NOT NULL');
+  await widenColumn('prescriptions', 'dose', 'TEXT NOT NULL');
+  await widenColumn('prescriptions', 'frequency', 'TEXT NOT NULL');
+  await widenColumn('prescriptions', 'duration', 'TEXT NOT NULL');
+  await widenColumn('bookings', 'symptoms_duration', 'TEXT');
 
   // Append-only clinical notes: real clinical records are never edited after saving,
   // only added to, so there is deliberately no update/delete on this table.
@@ -353,4 +381,4 @@ async function initSchema() {
   }
 }
 
-module.exports = { pool, get, all, run, initSchema, toMySQLDateTime };
+module.exports = { pool, get, all, run, initSchema, toMySQLDateTime, encrypt };

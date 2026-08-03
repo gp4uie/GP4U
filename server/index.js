@@ -12,15 +12,32 @@ const contentRoutes = require('./routes/content');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const isHttps = (process.env.BASE_URL || '').startsWith('https');
+
+// Baseline security headers (GDPR Article 32 "appropriate technical measures"). No
+// Content-Security-Policy here deliberately — this app relies on inline <script> blocks
+// throughout its pages, and a default CSP would break them; tightening that properly needs a
+// dedicated pass to move every inline script to external files first.
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (isHttps) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  next();
+});
 
 app.use(express.json());
 // Sessions last until the user explicitly logs out, not on a timer — a long maxAge rather than
 // removing it entirely, since cookie-session requires some expiry and an unbounded cookie isn't
-// meaningfully different in practice for this app's usage pattern.
+// meaningfully different in practice for this app's usage pattern. `secure` is tied to BASE_URL
+// so the cookie still works over plain http on localhost but is HTTPS-only in production.
 app.use(cookieSession({
   name: 'gp4u_session',
   secret: process.env.SESSION_SECRET || 'dev-only-secret-change-me',
   maxAge: 30 * 24 * 60 * 60 * 1000,
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: isHttps,
 }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));

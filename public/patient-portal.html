@@ -27,6 +27,7 @@
       <button id="navBook" onclick="showSection('book')">Book a New Consultation</button>
       <button id="navPrevious" class="active" onclick="showSection('previous')">Previous Consultations <span id="unreadBadge" class="side-badge" style="display:none;">0</span></button>
       <button id="navDocuments" onclick="showSection('documents')">Documents Issued</button>
+      <button id="navPrivacy" onclick="showSection('privacy')">My Data &amp; Privacy</button>
     </div>
     <div class="side-content">
       <div id="section_book" style="display:none;">
@@ -50,6 +51,21 @@
         <h3 style="margin-top:24px;">Prescriptions</h3>
         <div id="prescriptionsList"><p style="color:var(--ink-500);">None yet.</p></div>
       </div>
+      <div id="section_privacy" style="display:none;">
+        <h1>My Data &amp; Privacy</h1>
+        <p style="color:var(--ink-500);">See <a href="/privacy.html">our Privacy &amp; GDPR Notice</a> for full details on what we collect and why.</p>
+
+        <h3 style="margin-top:24px;">Download My Data</h3>
+        <p style="color:var(--ink-500); font-size:0.9rem;">Get a copy of everything we hold about you — your profile, every consultation, clinical notes, prescriptions, documents, and messages — as a downloadable file.</p>
+        <button class="btn btn-secondary" onclick="downloadMyData()">Download My Data</button>
+
+        <h3 style="margin-top:28px;">Request Account Deletion</h3>
+        <p style="color:var(--ink-500); font-size:0.9rem;">You can ask us to delete your personal data. Note that GPs are legally required to retain clinical
+        records for a minimum period (see our Privacy Notice) — a person reviews every request and will
+        respond within one month, deleting what can legally be deleted.</p>
+        <button class="btn btn-secondary" onclick="requestDeletion()">Request Account Deletion</button>
+        <p id="privacyActionMsg" style="color:var(--teal-700); margin-top:10px;"></p>
+      </div>
     </div>
   </div>
 </div>
@@ -69,12 +85,13 @@ const BOOK_SERVICE_ICONS = {
 };
 
 function showSection(name) {
-  ['book', 'previous', 'documents'].forEach((s) => {
+  ['book', 'previous', 'documents', 'privacy'].forEach((s) => {
     document.getElementById('section_' + s).style.display = s === name ? 'block' : 'none';
   });
   document.getElementById('navBook').classList.toggle('active', name === 'book');
   document.getElementById('navPrevious').classList.toggle('active', name === 'previous');
   document.getElementById('navDocuments').classList.toggle('active', name === 'documents');
+  document.getElementById('navPrivacy').classList.toggle('active', name === 'privacy');
   if (name === 'book' && !document.getElementById('bookServiceChoices').dataset.loaded) {
     loadBookServices();
   }
@@ -146,6 +163,17 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
   await fetch('/api/patient/logout', { method: 'POST' });
   window.location.href = '/index.html';
 });
+
+function downloadMyData() {
+  window.location.href = '/api/patient/export-data';
+}
+
+async function requestDeletion() {
+  if (!confirm('Request deletion of your account and personal data? A person at the practice will review this and respond within one month, as required by law.')) return;
+  const res = await fetch('/api/patient/request-deletion', { method: 'POST' });
+  const data = await res.json();
+  document.getElementById('privacyActionMsg').textContent = data.message;
+}
 
 load();
 </script>

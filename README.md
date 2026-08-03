@@ -36,10 +36,16 @@ Stop the app any time with `Ctrl+C` in the terminal (MySQL itself keeps running 
 
 Open the `.env` file in this folder in any text editor (Notepad is fine) and update:
 
-- `PRACTICE_NAME` — shown across the site
-- `PRACTICE_ADDRESS` / `PRACTICE_PHONE` — shown on the letterhead of prescriptions, sick certs and referral letters
+- `PRACTICE_NAME` — shown across the site, including the letterhead of prescriptions/sick certs/referral letters (which also carries the "One Tap. Real Care." tagline and www.gp4u.ie — `PRACTICE_ADDRESS`/`PRACTICE_PHONE` exist as variables but aren't currently shown anywhere; fill them in once you have an official practice address/phone to publish)
 - `DOCTOR_NAME` / `DOCTOR_REG_NUMBER` / `DOCTOR_LOGIN_EMAIL` / `DOCTOR_PASSWORD` — used **once**, to create your own doctor login the very first time the app connects to a brand-new database. After that first login exists, these four are ignored — manage doctors (including yourself) from the **admin dashboard's Doctors tab** instead (see Section 4): add a colleague with their own name, IMC number, email and password, or remove one.
 - `ADMIN_NAME` / `ADMIN_LOGIN_EMAIL` / `ADMIN_PASSWORD` — same one-time-seed pattern, but for the separate admin area at `/admin-login.html` (see Section 4 for what admin can do). Can be the same email as your doctor login, or different — they're unrelated accounts in unrelated login systems.
+- `ENCRYPTION_KEY` — encrypts clinical notes, prescriptions, sick cert/referral details and intake
+  answers at rest in the database. A working one is already set in your local `.env`; generate a
+  different one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` if
+  you ever need to. **Back this up somewhere safe (e.g. a password manager) and never lose it** —
+  if it's lost, every encrypted record already saved becomes permanently unreadable, with no way to
+  recover it. Data written before this feature existed is unaffected either way (it just wasn't
+  encrypted, and still isn't retroactively).
 - `DOCTOR_EMAIL` — where you get emailed for new bookings/messages (needs `SMTP_*` set too, see Section 3.5)
 
 Restart the server (`Ctrl+C` then `npm start` again) after changing `.env`.
@@ -79,10 +85,13 @@ verification for your business. Only do this once you're ready to go live (see S
   patients can't message you about a consultation you've already finished (they can always book a
   new one).
 - **Patient login** (`/patient-login.html`, `/patient-portal.html`) — once a patient sets a
-  password, they get a sidebar with three sections: **Book a New Consultation**, **Previous
+  password, they get a sidebar with four sections: **Book a New Consultation** (shown right there
+  in the portal, without navigating away or losing their logged-in state), **Previous
   Consultations** (with a "New" badge on any booking with an unread message or newly issued
-  document), and **Documents Issued** (every prescription/sick cert/referral letter across all
-  their bookings in one place).
+  document), **Documents Issued** (every prescription/sick cert/referral letter across all their
+  bookings in one place), and **My Data & Privacy** — download everything held about them
+  (including clinical notes, which they don't otherwise see in the portal day-to-day) as a file, or
+  request account deletion (GDPR Articles 15 and 17; see Section 5).
 - **Video consultations** (`/consult.html`) — built-in video call, no Zoom/Meet needed
 - **Doctor dashboard** (`/dashboard.html`) — password-protected, with three top-level tabs:
   - **Schedule** — a day view with 15-minute slots; each booking block shows the patient's name
@@ -203,11 +212,22 @@ insurer, and (for some items) a developer should help you close off before real 
 - **A Data Protection Impact Assessment (DPIA)** — processing health data systematically like this
   is very likely to legally require one under GDPR Article 35. This is a specific document your
   solicitor/DPO should help produce; it's separate from (and more involved than) the privacy notice.
-- **HTTPS** — this only runs over plain `http://localhost` on your own computer right now. The
-  moment it's reachable over the internet, it must run under HTTPS/TLS — this happens at the
-  hosting stage (Section 6), not something to fix on your own PC.
+- **Processor agreements** — check what data-processing terms you actually have in place with
+  Stripe (standard DPA available), your SMTP/email provider (a personal Gmail account doesn't carry
+  the same processor terms as a proper Google Workspace account), and be aware the built-in video
+  calling uses a public PeerJS broker with no formal processor agreement at all — fine for a
+  prototype, not for real patient use (see Section 4's video consultations note).
 
-None of this blocks you from building and testing — it just needs sign-off before real patients use it.
+**What's already done on the technical side** (so the above list is shorter than it used to be):
+HTTPS is enforced site-wide with HSTS and baseline security headers set; clinical notes,
+prescriptions, sick cert/referral details and intake answers are encrypted at rest in the
+database (see `ENCRYPTION_KEY` in Section 2); patients can download or request deletion of their
+own data from their portal's "My Data & Privacy" section (GDPR Articles 15 and 17 — deletion
+requests go to a person to action, since clinical records have a legal minimum retention period
+that must be checked per patient, not deleted automatically).
+
+None of the remaining items blocks you from building and testing — they just need sign-off (and in
+some cases a signature with a third party) before real patients use it.
 
 ## 6. Known technical limitations of this prototype (fine for testing, not for scale)
 

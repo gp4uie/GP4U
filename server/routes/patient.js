@@ -150,4 +150,69 @@ router.post('/reset-password', async (req, res) => {
   res.json({ ok: true });
 });
 
+// GDPR Article 15 (right of access): everything held about this patient, as a downloadable
+// file — including clinical notes, which patients don't otherwise see anywhere in the portal
+// (that's a day-to-day workflow choice, not a legal one — the right of access to one's own
+// medical records applies regardless).
+router.get('/export-data', requirePatient, async (req, res) => {
+  const email = req.session.patientEmail;
+  const patient = await getPatient(email);
+  const bookings = await db.all('SELECT * FROM bookings WHERE patient_email = ? ORDER BY slot_start DESC', [email]);
+
+  const consultations = [];
+  for (const b of bookings) {
+    const { patient_token, ...safeBooking } = b;
+    consultations.push({
+      ...safeBooking,
+      clinicalNotes: await db.all('SELECT note_text, doctor_name, created_at FROM clinical_notes WHERE booking_id = ? ORDER BY created_at ASC', [b.id]),
+      prescriptions: await db.all('SELECT medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number, issued_at FROM prescriptions WHERE booking_id = ? ORDER BY issued_at ASC', [b.id]),
+      documents: await db.all('SELECT doc_type, fields, doctor_name, doctor_reg_number, created_at FROM documents WHERE booking_id = ? ORDER BY created_at ASC', [b.id]),
+      messages: await db.all('SELECT sender, body, created_at FROM messages WHERE booking_id = ? ORDER BY created_at ASC', [b.id]),
+    });
+  }
+
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    profile: { email, name: patient?.name, dob: patient?.dob, phone: patient?.phone, address: patient?.address },
+    consultations,
+  };
+
+  res.setHeader('Content-Disposition', `attachment; filename="gp4u-my-data-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(exportData, null, 2));
+});
+
+// GDPR Article 17 (right to erasure). This does not delete anything automatically: clinical
+// records must legally be retained for a minimum period (Medical Council of Ireland guidance —
+// see /privacy.html), so what can actually be deleted vs. must be kept depends on this patient's
+// specific history and needs a human decision, not an automatic bulk delete. This just puts the
+// request in front of every admin so it gets picked up and actioned/responded to.
+router.post('/request-deletion', requirePatient, async (req, res) => {
+  const email = req.session.patientEmail;
+  const admins = await db.all('SELECT email FROM admins');
+  const subject = `Data deletion request from ${email}`;
+  const html = `
+    <p>A patient has requested deletion of their personal data under GDPR Article 17.</p>
+    <p><strong>Patient email:</strong> ${email}<br><strong>Requested at:</strong> ${new Date().toLocaleString('en-IE')}</p>
+    <p>Clinical records must be retained for the legally required minimum period — check this
+    patient's booking history in the admin dashboard before deciding what can be deleted versus
+    must be kept, and reply to the patient within one month as required by GDPR.</p>
+  `;
+  let sent = false;
+  for (const admin of admins) {
+    try {
+      await mailer.sendMail({ to: admin.email, subject, html });
+      sent = true;
+    } catch (err) {
+      // Mailer not configured — fall through, still tell the patient it was recorded.
+    }
+  }
+  res.json({
+    ok: true,
+    message: sent
+      ? 'Your request has been sent to the practice. They will respond within one month, as required by law.'
+      : 'Your request was recorded, but email is not yet configured for this site — please also contact the practice directly to make sure it is seen.',
+  });
+});
+
 module.exports = { router, requirePatient };

@@ -110,8 +110,8 @@ router.post('/bookings', async (req, res) => {
         patient_email, patient_address, pharmacy_name, reason, symptoms_duration, current_medications, allergies, extra_details,
         slot_start, slot_end, amount_cents, status)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
-    `, [id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress || '', pharmacyName,
-      reason, symptomsDuration || '', currentMedications || '', allergies || '', extraDetails || '',
+    `, [id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, db.encrypt(patientAddress || ''), pharmacyName,
+      db.encrypt(reason), db.encrypt(symptomsDuration || ''), db.encrypt(currentMedications || ''), db.encrypt(allergies || ''), db.encrypt(extraDetails || ''),
       slotStartSql, slotEndSql, service.priceCents]);
 
     await upsertPatient({ email: patientEmail, name: patientName, dob: patientDob, phone: patientPhone, address: patientAddress || '' });

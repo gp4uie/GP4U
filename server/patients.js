@@ -8,7 +8,7 @@ async function upsertPatient({ email, name, dob, phone, address }) {
     VALUES (?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE name = VALUES(name), dob = VALUES(dob),
       phone = VALUES(phone), address = VALUES(address)
-  `, [email, name, dob, phone, address]);
+  `, [email, name, dob, phone, db.encrypt(address)]);
 }
 
 async function getPatient(email) {

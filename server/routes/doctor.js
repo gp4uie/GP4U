@@ -233,7 +233,7 @@ router.post('/bookings/:id/notes', requireDoctor, async (req, res) => {
   const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
     INSERT INTO clinical_notes (booking_id, note_text, doctor_name) VALUES (?, ?, ?)
-  `, [req.params.id, noteText.trim(), doctor.name]);
+  `, [req.params.id, db.encrypt(noteText.trim()), doctor.name]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -247,7 +247,7 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
   const info = await db.run(`
     INSERT INTO prescriptions (booking_id, medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?,?,?,?,?)
-  `, [req.params.id, medication, dose, frequency, duration, instructions, quantity, doctor.name, doctor.reg_number]);
+  `, [req.params.id, db.encrypt(medication), db.encrypt(dose), db.encrypt(frequency), db.encrypt(duration), db.encrypt(instructions), quantity, doctor.name, doctor.reg_number]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -297,7 +297,7 @@ router.post('/bookings/:id/documents', requireDoctor, async (req, res) => {
   const info = await db.run(`
     INSERT INTO documents (booking_id, doc_type, fields, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?)
-  `, [req.params.id, docType, JSON.stringify(fields), doctor.name, doctor.reg_number]);
+  `, [req.params.id, docType, db.encrypt(JSON.stringify(fields)), doctor.name, doctor.reg_number]);
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
