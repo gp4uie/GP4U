@@ -43,13 +43,12 @@ app.use(cookieSession({
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/_cookietest', (req, res) => {
-  const onHeaders = require('on-headers');
-  res.cookie('immediate', 'a', { httpOnly: true, sameSite: 'lax', secure: isHttps });
-  onHeaders(res, function () {
-    res.setHeader('X-OnHeaders-Ran', '1');
-    res.cookie('deferred', 'b', { httpOnly: true, sameSite: 'lax', secure: isHttps });
+  res.json({
+    xForwardedProto: req.headers['x-forwarded-proto'] || null,
+    reqProtocol: req.protocol,
+    reqSecure: req.secure,
+    socketEncrypted: !!(req.socket && req.socket.encrypted),
   });
-  res.json({ set: true });
 });
 
 app.get('/api/config', (req, res) => {
