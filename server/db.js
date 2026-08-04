@@ -410,14 +410,14 @@ async function initSchema() {
   const serviceCountRow = await get('SELECT COUNT(*) AS n FROM services');
   if (serviceCountRow.n === 0) {
     const defaultServices = [
-      ['general', 'General GP Consultation', 15, 3500, 1],
+      ['general', 'Phone Consultation', 15, 3500, 1],
       ['video', 'Video Consultation', 15, 4000, 2],
-      ['travel', 'Travel Health Consultation', 20, 4500, 3],
-      ['womens', "Women's Health Consultation", 20, 4500, 4],
-      ['mens', "Men's Health Consultation", 20, 4500, 5],
-      ['repeat_rx', 'Repeat Prescription', 10, 2500, 6],
-      ['sick_cert', 'Sick Certificate', 10, 2500, 7],
-      ['weight_loss', 'Weight Loss Consultation', 20, 7500, 8],
+      ['womens', "Women's Health Consultation", 20, 4500, 3],
+      ['mens', "Men's Health Consultation", 20, 4500, 4],
+      ['repeat_rx', 'Repeat Prescription', 10, 2500, 5],
+      ['sick_cert', 'Sick Certificate', 10, 2500, 6],
+      ['travel', 'Travel Health Consultation', 20, 4500, 7],
+      ['weight_loss', 'Weight Loss Management', 20, 7500, 8],
     ];
     for (const [key, label, durationMins, priceCents, sortOrder] of defaultServices) {
       await run(
@@ -458,6 +458,27 @@ async function initSchema() {
       'INSERT INTO services (`key`, label, duration_mins, price_cents, sort_order) VALUES (?, ?, ?, ?, ?)',
       [key, label, durationMins, priceCents, nextOrder++]
     );
+  }
+
+  // One-time rename/reorder of the original 8 core services (site review against webdoctor.ie —
+  // "General GP Consultation" -> "Phone Consultation", "Weight Loss Consultation" -> "Weight Loss
+  // Management", Travel Health moved further down the list). Renames are gated on the row still
+  // holding its original label, and the reorder is gated on the whole set still holding its
+  // original sort_order, so this never overwrites something an admin has since customised via
+  // Admin > Services & Pricing.
+  await run("UPDATE services SET label = 'Phone Consultation' WHERE `key` = 'general' AND label = 'General GP Consultation'");
+  await run("UPDATE services SET label = 'Weight Loss Management' WHERE `key` = 'weight_loss' AND label = 'Weight Loss Consultation'");
+  const ORIGINAL_CORE_ORDER = { general: 1, video: 2, travel: 3, womens: 4, mens: 5, repeat_rx: 6, sick_cert: 7, weight_loss: 8 };
+  const coreOrderRows = await all(
+    "SELECT `key`, sort_order FROM services WHERE `key` IN ('general','video','travel','womens','mens','repeat_rx','sick_cert','weight_loss')"
+  );
+  const stillOriginalOrder = coreOrderRows.length === 8
+    && coreOrderRows.every((r) => ORIGINAL_CORE_ORDER[r.key] === r.sort_order);
+  if (stillOriginalOrder) {
+    const NEW_CORE_ORDER = { general: 1, video: 2, womens: 3, mens: 4, repeat_rx: 5, sick_cert: 6, travel: 7, weight_loss: 8 };
+    for (const [key, sortOrder] of Object.entries(NEW_CORE_ORDER)) {
+      await run('UPDATE services SET sort_order = ? WHERE `key` = ?', [sortOrder, key]);
+    }
   }
 
   const postCountRow = await get('SELECT COUNT(*) AS n FROM blog_posts');

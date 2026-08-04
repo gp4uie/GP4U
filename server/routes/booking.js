@@ -83,7 +83,7 @@ router.post('/bookings', async (req, res) => {
     const {
       serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress, pharmacyName,
       reason, symptomsDuration, currentMedications, allergies, extraDetails,
-      rxAsPrescribed, rxHealthChanges,
+      rxAsPrescribed, rxHealthChanges, conditionAnswers,
       slotStart, slotEnd,
     } = req.body;
 
@@ -100,7 +100,7 @@ router.post('/bookings', async (req, res) => {
     }
     const safetyAnswers = (rxAsPrescribed || rxHealthChanges)
       ? `Taking medication exactly as prescribed: ${rxAsPrescribed || 'Not answered'}\nChanges since last prescription: ${rxHealthChanges || 'Not answered'}`
-      : '';
+      : (conditionAnswers || '');
 
     const slotStartSql = db.toMySQLDateTime(slotStart);
     const slotEndSql = db.toMySQLDateTime(slotEnd);

@@ -77,10 +77,10 @@
 </section>
 
 <section id="prescriptions">
-  <div class="container">
-    <h2 class="section-title">Prescription Services</h2>
-    <p class="section-sub">Already have a diagnosis and need an ongoing prescription reviewed? Answer a few quick safety questions and your GP can issue one online.</p>
-    <div class="grid" id="prescriptionsGrid"></div>
+  <div class="container" style="text-align:center;">
+    <h2 class="section-title">Repeat Prescriptions</h2>
+    <p class="section-sub">Already have a diagnosis and need an ongoing prescription reviewed? Answer a few quick safety questions and your GP can issue one online — covering women's health, men's health, skin conditions, and more.</p>
+    <a href="/repeat-prescription.html" class="btn btn-primary">View Repeat Prescription Services</a>
   </div>
 </section>
 
@@ -204,22 +204,8 @@ fetch('/api/services').then(r => r.json()).then(services => {
     </div>
   `).join('');
 
-  const prescriptionsGrid = document.getElementById('prescriptionsGrid');
-  prescriptionsGrid.innerHTML = PRESCRIPTION_SERVICE_KEYS
-    .filter((key) => services[key])
-    .map((key) => {
-      const s = services[key];
-      return `
-        <a class="card service-card" style="text-decoration:none; color:inherit; display:block;" href="/${PAGE_SLUGS[key]}.html">
-          <h3>${s.label}</h3>
-          <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
-          <p style="color:var(--ink-500);font-size:0.85rem;">${SERVICE_TAGLINES[key] || ''}</p>
-        </a>
-      `;
-    }).join('');
 });
 </script>
-<script src="/js/questionnaires.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>

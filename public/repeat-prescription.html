@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repeat Prescriptions Online — GP4U Ireland</title>
+<meta name="description" content="Renew your repeat prescription online with an Irish GP — contraception, hair loss, ED, asthma, hypothyroidism, hay fever, and more. Quick safety screening, prescription emailed to your pharmacy.">
+<link rel="canonical" href="https://www.gp4u.ie/repeat-prescription.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Repeat Prescriptions Online — GP4U Ireland">
+<meta property="og:description" content="Renew your repeat prescription online with an Irish GP. Quick safety screening, prescription emailed to your pharmacy.">
+<meta property="og:url" content="https://www.gp4u.ie/repeat-prescription.html">
+<meta property="og:image" content="https://www.gp4u.ie/img/gp4u-logo-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="main-nav">
+      <a href="/index.html#services">Services</a>
+      <a href="/index.html#how-it-works">How it works</a>
+      <a href="/blog.html">Health Info</a>
+      <a href="/index.html#about">About</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/patient-login.html" class="doctor-link">Patient Login</a>
+      <a href="/dashboard.html" class="doctor-link">Doctor Login</a>
+      <a href="/book.html" class="btn btn-primary">Book a GP</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" style="padding:56px 24px 64px;">
+  <div class="container">
+    <div class="hero-text" style="flex:1 1 100%;">
+      <h1>Repeat Prescriptions</h1>
+      <p>Already have a diagnosis and need an ongoing prescription reviewed? Pick your condition below, answer a few quick safety questions, and your GP can issue a prescription online — no waiting room needed.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div id="categoriesContainer">
+      <p>Loading services…</p>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <h4>GP4U</h4>
+        <ul>
+          <li><a href="/index.html#services">Services</a></li>
+          <li><a href="/book.html">Book a consultation</a></li>
+          <li><a href="/blog.html">Health info</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
+          <li><a href="/privacy.html#terms">Terms of Use</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li>admin@gp4u.ie</li>
+          <li>www.gp4u.ie</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-legal">
+      GP4U is an online GP consultation service. Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+      This service does not replace in-person examination where one is clinically necessary.
+    </div>
+  </div>
+</footer>
+
+<script src="/js/questionnaires.js"></script>
+<script>
+fetch('/api/services').then((r) => r.json()).then((services) => {
+  const container = document.getElementById('categoriesContainer');
+  container.innerHTML = Object.entries(CATEGORIES).map(([category, keys]) => {
+    const cards = keys
+      .filter((key) => services[key])
+      .map((key) => {
+        const s = services[key];
+        return `
+          <a class="card service-card" style="text-decoration:none; color:inherit; display:block;" href="/${PAGE_SLUGS[key]}.html">
+            <h3>${s.label}</h3>
+            <div class="service-price">€${(s.priceCents / 100).toFixed(2)}</div>
+            <p style="color:var(--ink-500);font-size:0.85rem;">${SERVICE_TAGLINES[key] || ''}</p>
+          </a>
+        `;
+      }).join('');
+    if (!cards) return '';
+    return `
+      <h2 class="section-title" style="text-align:left; font-size:1.3rem; margin:36px 0 16px;">${category}</h2>
+      <div class="grid">${cards}</div>
+    `;
+  }).join('');
+});
+</script>
+<script src="/js/nav-toggle.js"></script>
+</body>
+</html>

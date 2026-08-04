@@ -2,6 +2,7 @@ let SERVICES = {};
 let selectedService = null;
 let selectedSlot = null;
 let intakeData = {};
+let selectedRxCategory = null;
 
 const extraFieldLabels = {
   travel: 'Destination(s) and travel date(s)',
@@ -33,16 +34,88 @@ const SERVICE_ICONS = {
   weight_loss: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6l7 7 3-3 6 6M14 16h6v-6" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
+// The 14 condition-specific prescription services (see questionnaires.js) are not shown as their
+// own tiles here — they live behind the "Repeat Prescription" tile's category picker below, so
+// this step doesn't turn into a wall of 22 flat tiles.
+function isRxConditionKey(key) {
+  return typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
+}
+
 function renderServiceChoices() {
+  selectedRxCategory = null;
+  document.getElementById('step1Nav').style.display = 'none';
+  document.getElementById('step1Heading').style.display = 'none';
+  document.getElementById('step1SubText').style.display = 'none';
   const grid = document.getElementById('serviceChoices');
-  grid.innerHTML = Object.entries(SERVICES).map(([key, s]) => `
-    <div class="card service-card" style="cursor:pointer;" onclick="chooseService('${key}')">
+  grid.innerHTML = Object.entries(SERVICES)
+    .filter(([key]) => !isRxConditionKey(key))
+    .map(([key, s]) => {
+      const isRepeatRx = key === 'repeat_rx';
+      return `
+    <div class="card service-card" style="cursor:pointer;" onclick="${isRepeatRx ? 'showRxCategories()' : `chooseService('${key}')`}">
       <div class="service-icon">${SERVICE_ICONS[key] || SERVICE_ICONS.general}</div>
       <h3>${s.label}</h3>
       <div class="service-price">€${(s.priceCents / 100).toFixed(2)}</div>
       <p style="color:var(--ink-500);font-size:0.85rem;">${s.durationMins} min appointment</p>
     </div>
+  `;
+    }).join('');
+}
+
+// Inline "Repeat Prescription" picker: category tiles, then condition tiles within a category —
+// swapped into the same #serviceChoices grid so there's no page reload, matching the rest of the
+// wizard. Falls through to the generic repeat_rx flow for anything not in the 14-condition list.
+function showRxCategories() {
+  selectedRxCategory = null;
+  document.getElementById('step1Nav').style.display = 'block';
+  const heading = document.getElementById('step1Heading');
+  heading.style.display = 'block';
+  heading.textContent = 'Repeat Prescription — choose a category';
+  const sub = document.getElementById('step1SubText');
+  sub.style.display = 'block';
+  sub.textContent = "Pick the category that best matches what you're renewing.";
+  const grid = document.getElementById('serviceChoices');
+  grid.innerHTML = Object.keys(CATEGORIES).map((category) => `
+    <div class="card service-card" style="cursor:pointer;" data-category="${category}">
+      <h3>${category}</h3>
+      <p style="color:var(--ink-500);font-size:0.85rem;">${CATEGORIES[category].filter((k) => SERVICES[k]).length} conditions</p>
+    </div>
   `).join('');
+  // data-category attributes (not inline onclick strings) so category names containing an
+  // apostrophe (e.g. "Women's Health") can't break out of an inline onclick="...('...')" handler.
+  grid.querySelectorAll('[data-category]').forEach((el) => {
+    el.addEventListener('click', () => showRxConditions(el.dataset.category));
+  });
+}
+
+function showRxConditions(category) {
+  selectedRxCategory = category;
+  document.getElementById('step1Heading').textContent = category;
+  document.getElementById('step1SubText').textContent = 'Choose the condition your prescription is for.';
+  const keys = (CATEGORIES[category] || []).filter((k) => SERVICES[k]);
+  const grid = document.getElementById('serviceChoices');
+  grid.innerHTML = keys.map((key) => {
+    const s = SERVICES[key];
+    return `
+      <div class="card service-card" style="cursor:pointer;" onclick="chooseService('${key}')">
+        <h3>${s.label}</h3>
+        <div class="service-price">€${(s.priceCents / 100).toFixed(2)}</div>
+        <p style="color:var(--ink-500);font-size:0.85rem;">${SERVICE_TAGLINES[key] || ''}</p>
+      </div>
+    `;
+  }).join('') + `
+    <div class="card service-card" style="cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center;" onclick="chooseService('repeat_rx')">
+      <p style="color:var(--ink-500);font-size:0.9rem; margin:0;">Don't see your medication here?<br><strong>Request a general repeat prescription →</strong></p>
+    </div>
+  `;
+}
+
+function step1Back() {
+  if (selectedRxCategory) {
+    showRxCategories();
+  } else {
+    renderServiceChoices();
+  }
 }
 
 // Renders the condition-specific safety questions (see questionnaires.js) above the generic
@@ -71,7 +144,50 @@ function renderConditionQuestions(key) {
         </select>
       </div>
     `).join('')}
+    ${(config.info || []).map((f) => `
+      <div class="form-row">
+        <label>${f.label} ${f.required ? '<span style="color:#c0392b;">*</span>' : ''}</label>
+        <input ${f.required ? 'required' : ''} name="info_${f.id}" class="info-input">
+      </div>
+    `).join('')}
   `;
+  // Evaluate on every answer, not just on Continue — the patient shouldn't have to fill in the
+  // rest of the questionnaire before finding out a single "yes" already rules out a written
+  // request, so we surface the video-consultation offer the moment it's triggered.
+  container.querySelectorAll('.cq-input').forEach((el) => {
+    el.addEventListener('change', () => checkConditionAnswersSoFar(key));
+  });
+}
+
+function checkConditionAnswersSoFar(key) {
+  const container = document.getElementById('conditionQuestionsContainer');
+  const answers = {};
+  container.querySelectorAll('.cq-input').forEach((el) => {
+    if (el.value) answers[el.name.slice(3)] = el.value;
+  });
+  const result = evaluateRedFlags(key, answers);
+  if (result.triggered) {
+    showRedFlagPanel(result);
+  } else {
+    dismissRedFlagPanel();
+  }
+}
+
+// Formats this service's safety-question and info-field answers into a readable block for the
+// doctor (stored server-side in bookings.safety_answers, alongside the repeat_rx safety check).
+function buildConditionAnswersSummary(key, formData) {
+  const config = typeof QUESTIONNAIRES !== 'undefined' ? QUESTIONNAIRES[key] : null;
+  if (!config) return '';
+  const lines = [];
+  (config.redFlags || []).forEach((q) => {
+    const val = formData.get(`cq_${q.id}`);
+    if (val) lines.push(`${q.question} — ${val === 'yes' ? 'Yes' : 'No'}`);
+  });
+  (config.info || []).forEach((f) => {
+    const val = formData.get(`info_${f.id}`);
+    if (val) lines.push(`${f.label} — ${val}`);
+  });
+  return lines.join('\n');
 }
 
 function chooseService(key) {
@@ -88,6 +204,7 @@ function chooseService(key) {
   }
 
   const isRepeatRx = key === 'repeat_rx';
+  const isRxService = isRepeatRx || isRxConditionKey(key);
   const safetyRow = document.getElementById('repeatRxSafetyRow');
   const asPrescribedInput = document.getElementById('rxAsPrescribedInput');
   const healthChangesInput = document.getElementById('rxHealthChangesInput');
@@ -99,8 +216,17 @@ function chooseService(key) {
     healthChangesInput.value = '';
   }
 
-  document.getElementById('photoInputLabel').textContent = isRepeatRx
-    ? 'Attach a photo of your previous prescription (recommended)'
+  document.getElementById('reasonLabelText').textContent = isRxService
+    ? 'Which medication would you like prescribed?'
+    : 'What would you like to discuss with the GP?';
+  document.getElementById('reasonInput').placeholder = isRxService
+    ? 'e.g. Rigevidon 30/150mcg, one tablet daily — include the name, strength, and how you take it'
+    : 'Please describe your symptoms or the reason for this consultation';
+
+  document.getElementById('symptomsDurationRow').style.display = isRxService ? 'none' : 'block';
+
+  document.getElementById('photoInputLabel').textContent = isRxService
+    ? 'Attach a photo of your previous prescription or recent blood results (recommended)'
     : 'Attach a photo (optional — e.g. a rash or a letter)';
 
   goToStep(2);
@@ -123,6 +249,7 @@ function goToStep3FromForm() {
   if (!form.reportValidity()) return;
   const formData = new FormData(form);
   intakeData = Object.fromEntries(formData.entries());
+  intakeData.conditionAnswers = buildConditionAnswersSummary(selectedService, formData);
 
   const result = evaluateRedFlags(selectedService, collectConditionAnswers(formData));
   if (result.triggered) {

@@ -55,6 +55,11 @@
 
   <!-- STEP 1 -->
   <div id="step1">
+    <div id="step1Nav" style="display:none; margin-bottom:14px;">
+      <button type="button" class="btn btn-secondary" onclick="step1Back()">← Back</button>
+    </div>
+    <h3 id="step1Heading" style="display:none;"></h3>
+    <p id="step1SubText" style="display:none; color:var(--ink-500); font-size:0.9rem; margin-top:-8px;"></p>
     <div class="grid" id="serviceChoices"></div>
   </div>
 
@@ -75,9 +80,9 @@
       </div>
       <div class="form-row"><label>Home address</label><input required name="patientAddress" placeholder="Needed for sick certs / referral letters if you need one"></div>
       <div class="form-row"><label>Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input required name="pharmacyName" placeholder="e.g. Boots Pharmacy, Main Street"></div>
-      <div class="form-row"><label>What would you like to discuss with the GP? <span style="color:#c0392b;">*</span></label><textarea required name="reason" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
+      <div class="form-row"><label><span id="reasonLabelText">What would you like to discuss with the GP?</span> <span style="color:#c0392b;">*</span></label><textarea required name="reason" id="reasonInput" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
       <div class="form-grid">
-        <div class="form-row"><label>How long have you had these symptoms?</label><input name="symptomsDuration" placeholder="e.g. 3 days"></div>
+        <div class="form-row" id="symptomsDurationRow"><label>How long have you had these symptoms?</label><input name="symptomsDuration" placeholder="e.g. 3 days"></div>
         <div class="form-row"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
       </div>
       <div class="form-row"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>

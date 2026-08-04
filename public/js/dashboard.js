@@ -295,7 +295,7 @@ async function openBooking(id, listType) {
     <p><strong>Current medications:</strong> ${b.current_medications || '—'}</p>
     <p><strong>Allergies:</strong> ${b.allergies || '—'}</p>
     <p><strong>Additional details:</strong> ${b.extra_details || '—'}</p>
-    ${b.safety_answers ? `<p><strong>Repeat prescription safety check:</strong><br>${b.safety_answers.replace(/\n/g, '<br>')}</p>` : ''}
+    ${b.safety_answers ? `<p><strong>Safety questionnaire:</strong><br>${b.safety_answers.replace(/\n/g, '<br>')}</p>` : ''}
     <p><strong>Status:</strong> <span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></p>
   `;
   const joinCallBtn = document.getElementById('joinCallBtn');
