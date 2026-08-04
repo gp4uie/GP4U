@@ -45,8 +45,40 @@ function renderServiceChoices() {
   `).join('');
 }
 
+// Renders the condition-specific safety questions (see questionnaires.js) above the generic
+// intake fields, if the selected service has any. Re-run every time the service changes so
+// switching services (including the routed "switch to video" path) clears any stale questions.
+function renderConditionQuestions(key) {
+  const container = document.getElementById('conditionQuestionsContainer');
+  const config = typeof QUESTIONNAIRES !== 'undefined' ? QUESTIONNAIRES[key] : null;
+  if (!config || !config.redFlags.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `
+    <div class="notice">
+      <strong>A few quick safety questions</strong>
+      These help make sure a written prescription request is safe for you. If any answer needs a
+      closer look, we'll offer you a video consultation instead of turning you away.
+    </div>
+    ${config.redFlags.map((q) => `
+      <div class="form-row">
+        <label>${q.question} <span style="color:#c0392b;">*</span></label>
+        <select required name="cq_${q.id}" class="cq-input">
+          <option value="">Please choose…</option>
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </div>
+    `).join('')}
+  `;
+}
+
 function chooseService(key) {
   selectedService = key;
+  renderConditionQuestions(key);
+  document.getElementById('redFlagPanel').style.display = 'none';
+  document.getElementById('step2ContinueBtn').style.display = 'inline-block';
   const row = document.getElementById('extraDetailsRow');
   if (extraFieldLabels[key]) {
     row.style.display = 'block';
@@ -76,11 +108,71 @@ function chooseService(key) {
 
 document.getElementById('intakeForm').addEventListener('submit', (e) => e.preventDefault());
 
+// Pulls this service's safety-question answers out of the submitted form data (cq_<id> ->
+// answers[id]) so they can be checked against questionnaires.js's red-flag rules.
+function collectConditionAnswers(formData) {
+  const answers = {};
+  for (const [name, value] of formData.entries()) {
+    if (name.startsWith('cq_')) answers[name.slice(3)] = value;
+  }
+  return answers;
+}
+
 function goToStep3FromForm() {
   const form = document.getElementById('intakeForm');
   if (!form.reportValidity()) return;
-  intakeData = Object.fromEntries(new FormData(form).entries());
+  const formData = new FormData(form);
+  intakeData = Object.fromEntries(formData.entries());
+
+  const result = evaluateRedFlags(selectedService, collectConditionAnswers(formData));
+  if (result.triggered) {
+    showRedFlagPanel(result);
+    return;
+  }
   goToStep(3);
+}
+
+function showRedFlagPanel(result) {
+  document.getElementById('step2ContinueBtn').style.display = 'none';
+  const panel = document.getElementById('redFlagPanel');
+  panel.style.display = 'block';
+  if (result.urgent) {
+    document.getElementById('redFlagTitle').textContent = 'This needs urgent attention';
+    document.getElementById('redFlagText').innerHTML =
+      'Based on your answers, this is not suitable for a routine online request. ' +
+      '<strong>If you have sudden or severe symptoms, call 112/999 or go to your nearest Emergency Department now.</strong> ' +
+      'If it is not an emergency but you still need to speak to a GP without delay, you can continue below with our soonest available video consultation.';
+  } else {
+    document.getElementById('redFlagTitle').textContent = 'This needs a video consultation instead';
+    document.getElementById('redFlagText').textContent =
+      "Based on your answers, a written prescription request isn't suitable here — your GP needs to " +
+      "assess you over a live video call first. You won't need to re-enter your details below.";
+  }
+  document.getElementById('redFlagBulletList').innerHTML = result.triggeredBullets.map((b) => `<li>${b}</li>`).join('');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function dismissRedFlagPanel() {
+  document.getElementById('redFlagPanel').style.display = 'none';
+  document.getElementById('step2ContinueBtn').style.display = 'inline-block';
+}
+
+// Carries the patient over to the Video Consultation service after a safety-question red flag,
+// without making them re-enter anything — the generic fields (name/dob/reason/etc.) stay filled
+// in on the same form; only the reason field gets a short note prepended so the doctor knows why
+// this came in as a video call instead of a routine written request.
+function switchToVideoConsultation() {
+  const previousLabel = (SERVICES[selectedService] && SERVICES[selectedService].label) || selectedService;
+  const form = document.getElementById('intakeForm');
+  const formData = new FormData(form);
+  const result = evaluateRedFlags(selectedService, collectConditionAnswers(formData));
+  const reasonField = form.reason;
+  const note = `[Routed to video consultation — originally requested: ${previousLabel}. Safety screening flagged: ${result.triggeredBullets.join('; ')}.]\n\n`;
+  if (!reasonField.value.startsWith('[Routed to video consultation')) {
+    reasonField.value = note + reasonField.value;
+  }
+  dismissRedFlagPanel();
+  chooseService('video');
 }
 
 async function loadSlots() {

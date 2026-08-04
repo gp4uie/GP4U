@@ -76,6 +76,36 @@
   </div>
 </section>
 
+<section id="prescriptions">
+  <div class="container">
+    <h2 class="section-title">Prescription Services</h2>
+    <p class="section-sub">Already have a diagnosis and need an ongoing prescription reviewed? Answer a few quick safety questions and your GP can issue one online.</p>
+    <div class="grid" id="prescriptionsGrid"></div>
+  </div>
+</section>
+
+<section id="trust" style="background:linear-gradient(160deg, #ffffff 0%, #eefaf9 55%, #eaf1ff 100%); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="container">
+    <h2 class="section-title">Why patients trust GP4U</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Irish Medical Council registered</h3>
+        <p style="color:var(--ink-500); font-size:0.92rem;">Every consultation is carried out by a GP registered with the Irish Medical Council — the same standard of doctor you'd see in person.</p>
+      </div>
+      <div class="card">
+        <h3>GDPR &amp; privacy compliant</h3>
+        <p style="color:var(--ink-500); font-size:0.92rem;">Your data is encrypted and handled in line with GDPR. See our <a href="/privacy.html">Privacy &amp; GDPR Notice</a> for full details on how your records are kept and protected.</p>
+      </div>
+      <div class="card">
+        <!-- TODO: replace with real, consented patient reviews/testimonials once collected —
+             do not add star ratings or quotes here until genuine reviews exist. -->
+        <h3>Patient reviews</h3>
+        <p style="color:var(--ink-500); font-size:0.92rem;">Patient reviews are coming soon.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="how-it-works" style="background:linear-gradient(160deg, #eaf1ff 0%, #ffffff 45%, #ffffff 100%); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
   <div class="container">
     <h2 class="section-title">How it works</h2>
@@ -173,8 +203,23 @@ fetch('/api/services').then(r => r.json()).then(services => {
       <a href="/book.html?service=${key}" class="btn btn-secondary btn-block">Book</a>
     </div>
   `).join('');
+
+  const prescriptionsGrid = document.getElementById('prescriptionsGrid');
+  prescriptionsGrid.innerHTML = PRESCRIPTION_SERVICE_KEYS
+    .filter((key) => services[key])
+    .map((key) => {
+      const s = services[key];
+      return `
+        <a class="card service-card" style="text-decoration:none; color:inherit; display:block;" href="/${PAGE_SLUGS[key]}.html">
+          <h3>${s.label}</h3>
+          <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
+          <p style="color:var(--ink-500);font-size:0.85rem;">${SERVICE_TAGLINES[key] || ''}</p>
+        </a>
+      `;
+    }).join('');
 });
 </script>
+<script src="/js/questionnaires.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>

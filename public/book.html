@@ -44,6 +44,10 @@
     <span id="tab4">4. Review &amp; pay</span>
   </div>
 
+  <p style="color:var(--ink-500); font-size:0.85rem; margin-top:-8px;">
+    <strong>How your prescription reaches your pharmacy:</strong> once your GP approves a prescription request, they email it directly to the pharmacy you name below — please make sure the name and location are accurate.
+  </p>
+
   <div id="cancelledNotice" class="notice" style="display:none;">
     <strong>Payment cancelled</strong>
     No charge was made. You can pick a service and try again below.
@@ -62,6 +66,7 @@
     </div>
     <p style="color:var(--ink-500); font-size:0.85rem;"><span style="color:#c0392b;">*</span> Required fields — the form won't continue until these are filled in.</p>
     <form id="intakeForm">
+      <div id="conditionQuestionsContainer"></div>
       <div class="form-grid">
         <div class="form-row"><label>Full name <span style="color:#c0392b;">*</span></label><input required name="patientName"></div>
         <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob"></div>
@@ -102,8 +107,18 @@
         <label id="photoInputLabel">Attach a photo (optional — e.g. a rash or a letter)</label>
         <input type="file" id="photoInput" accept="image/*" multiple>
       </div>
-      <button type="button" class="btn btn-primary" onclick="goToStep3FromForm()">Continue</button>
+      <button type="button" class="btn btn-primary" id="step2ContinueBtn" onclick="goToStep3FromForm()">Continue</button>
     </form>
+
+    <div id="redFlagPanel" class="notice" style="display:none; margin-top:18px;">
+      <strong id="redFlagTitle"></strong>
+      <p id="redFlagText"></p>
+      <ul id="redFlagBulletList"></ul>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+        <button type="button" class="btn btn-primary" onclick="switchToVideoConsultation()">Continue with a Video Consultation</button>
+        <button type="button" class="btn btn-secondary" onclick="dismissRedFlagPanel()">Go back and review my answers</button>
+      </div>
+    </div>
   </div>
 
   <!-- STEP 3 -->
@@ -122,6 +137,7 @@
   </div>
 </div>
 
+<script src="/js/questionnaires.js"></script>
 <script src="/js/book.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>

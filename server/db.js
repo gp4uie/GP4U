@@ -427,6 +427,39 @@ async function initSchema() {
     }
   }
 
+  // Prescription-request services (written request, no live consultation unless a safety
+  // question routes the patient to Video instead — see public/js/questionnaires.js). Added after
+  // the original 8 services already existed in production, so this checks per-key rather than
+  // gating on the whole table being empty. Price is a placeholder (€25, matching Repeat
+  // Prescription) — review and adjust real pricing per condition in Admin > Services & Pricing
+  // before launch.
+  const prescriptionServices = [
+    ['contraception', 'Contraceptive Pill/Patch/Ring', 10, 2500],
+    ['period_delay', 'Period Delay', 10, 2500],
+    ['uti', 'UTI / Cystitis Treatment', 10, 2500],
+    ['ed', 'Erectile Dysfunction', 10, 2500],
+    ['hair_loss', 'Hair Loss Treatment', 10, 2500],
+    ['acne', 'Acne Treatment', 10, 2500],
+    ['asthma', 'Asthma Review', 10, 2500],
+    ['migraine', 'Migraine Treatment', 10, 2500],
+    ['hypothyroidism', 'Hypothyroidism Review', 10, 2500],
+    ['stop_smoking', 'Stop Smoking Support', 10, 2500],
+    ['hay_fever', 'Hay Fever / Allergy Treatment', 10, 2500],
+    ['cold_sores', 'Cold Sore Treatment', 10, 2500],
+    ['eczema_psoriasis', 'Eczema / Psoriasis Review', 10, 2500],
+    ['travel_health', 'Travel Health & Vaccination Advice', 10, 2500],
+  ];
+  const maxOrderRow = await get('SELECT COALESCE(MAX(sort_order), 0) AS n FROM services');
+  let nextOrder = maxOrderRow.n + 1;
+  for (const [key, label, durationMins, priceCents] of prescriptionServices) {
+    const existing = await get('SELECT `key` FROM services WHERE `key` = ?', [key]);
+    if (existing) continue;
+    await run(
+      'INSERT INTO services (`key`, label, duration_mins, price_cents, sort_order) VALUES (?, ?, ?, ?, ?)',
+      [key, label, durationMins, priceCents, nextOrder++]
+    );
+  }
+
   const postCountRow = await get('SELECT COUNT(*) AS n FROM blog_posts');
   if (postCountRow.n === 0) {
     await run('INSERT INTO blog_posts (title, body) VALUES (?, ?)', [
