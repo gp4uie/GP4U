@@ -46,7 +46,18 @@ app.use(cookieSession({
   secure: isHttps,
 }));
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// `no-cache` (not "don't cache" despite the name) tells browsers/CDNs they must revalidate with
+// the origin on every request instead of trusting a locally cached copy for some TTL — cheap
+// (a 304 if nothing changed) and guarantees a deploy is never masked by a stale cached .js/.css
+// file. This app has no build step to fingerprint asset filenames, so this is the simplest way
+// to keep a redeploy from silently not reaching patients (see book.js/questionnaires.js history).
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res, filePath) => {
+    if (/\.(js|css)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 
 app.get('/api/config', (req, res) => {
   res.json({
