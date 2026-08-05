@@ -87,14 +87,18 @@
 <script src="/js/questionnaires.js"></script>
 <script>
 fetch('/api/services').then((r) => r.json()).then((services) => {
+  // A different brand accent per category — same palette as the homepage's service tiles,
+  // just applied as a left border here so each category reads distinctly at a glance.
+  const CATEGORY_COLORS = ['var(--teal-600)', 'var(--blue-600)', 'var(--green-500)', 'var(--teal-bright)'];
   const container = document.getElementById('categoriesContainer');
-  container.innerHTML = Object.entries(CATEGORIES).map(([category, keys]) => {
+  container.innerHTML = Object.entries(CATEGORIES).map(([category, keys], i) => {
+    const accent = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
     const cards = keys
       .filter((key) => services[key])
       .map((key) => {
         const s = services[key];
         return `
-          <a class="card service-card" style="text-decoration:none; color:inherit; display:block;" href="/${PAGE_SLUGS[key]}.html">
+          <a class="card service-card" style="text-decoration:none; color:inherit; display:block; border-left: 4px solid ${accent};" href="/${PAGE_SLUGS[key]}.html">
             <h3>${s.label}</h3>
             <div class="service-price">€${(s.priceCents / 100).toFixed(2)}</div>
             <p style="color:var(--ink-500);font-size:0.85rem;">${SERVICE_TAGLINES[key] || ''}</p>
@@ -103,7 +107,7 @@ fetch('/api/services').then((r) => r.json()).then((services) => {
       }).join('');
     if (!cards) return '';
     return `
-      <h2 class="section-title" style="text-align:left; font-size:1.3rem; margin:36px 0 16px;">${category}</h2>
+      <h2 class="section-title section-title-left" style="border-left: 5px solid ${accent}; padding-left: 14px;">${category}</h2>
       <div class="grid">${cards}</div>
     `;
   }).join('');

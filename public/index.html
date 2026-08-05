@@ -61,6 +61,9 @@
       </div>
     </div>
     <div class="hero-card">
+      <div class="hero-card-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
       <h3 id="heroCardTitle">Same-day appointments</h3>
       <p style="color:#3c5460" id="heroCardText">Choose a consultation type, answer a few quick questions about why you're getting in touch, pick a time that suits, and pay securely online. You'll get a private video link for your appointment.</p>
       <a href="/book.html" class="btn btn-secondary btn-block">Get Started →</a>
@@ -73,14 +76,6 @@
     <h2 class="section-title" id="servicesSectionTitle">Our Services</h2>
     <p class="section-sub" id="servicesSectionSubtitle">Pick the type of consultation that fits what you need — prices are shown upfront, no surprises.</p>
     <div class="grid" id="servicesGrid"></div>
-  </div>
-</section>
-
-<section id="prescriptions">
-  <div class="container" style="text-align:center;">
-    <h2 class="section-title">Repeat Prescriptions</h2>
-    <p class="section-sub">Already have a diagnosis and need an ongoing prescription reviewed? Answer a few quick safety questions and your GP can issue one online — covering women's health, men's health, skin conditions, and more.</p>
-    <a href="/repeat-prescription.html" class="btn btn-primary">View Repeat Prescription Services</a>
   </div>
 </section>
 
@@ -188,6 +183,14 @@ fetch('/api/services').then(r => r.json()).then(services => {
   // tile's category picker (repeat-prescription.html), not as their own tiles here — see book.js's
   // isRxConditionKey for the matching logic used on the booking page.
   const isRxConditionKey = (key) => typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
+  // Cycled across tiles purely for visual variety — all four stay inside the existing brand
+  // palette (teal / blue / green), nothing new introduced. See matching .icon-* classes in style.css.
+  const ICON_COLORS = [
+    { stroke: '#0f6e6e', cls: 'icon-teal' },
+    { stroke: '#1d4ed8', cls: 'icon-blue' },
+    { stroke: '#128080', cls: 'icon-bright' },
+    { stroke: '#2e9e6b', cls: 'icon-green' },
+  ];
   const icons = {
     general: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="#0f6e6e" stroke-width="2.5" stroke-linecap="round"/></svg>',
     video: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="13" height="12" rx="3" stroke="#0f6e6e" stroke-width="2"/><path d="M16 10l5-3v10l-5-3z" fill="#0f6e6e"/></svg>',
@@ -201,11 +204,13 @@ fetch('/api/services').then(r => r.json()).then(services => {
   const grid = document.getElementById('servicesGrid');
   grid.innerHTML = Object.entries(services)
     .filter(([key]) => !isRxConditionKey(key))
-    .map(([key, s]) => {
+    .map(([key, s], i) => {
       const bookHref = key === 'repeat_rx' ? '/repeat-prescription.html' : `/book.html?service=${key}`;
+      const color = ICON_COLORS[i % ICON_COLORS.length];
+      const iconSvg = (icons[key] || icons.general).replace(/#0f6e6e/g, color.stroke);
       return `
     <div class="card service-card">
-      <div class="service-icon">${icons[key] || icons.general}</div>
+      <div class="service-icon ${color.cls}">${iconSvg}</div>
       <h3>${s.label}</h3>
       <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
       <p style="color:var(--ink-500);font-size:0.85rem;margin-bottom:14px;">${s.durationMins} minute appointment</p>

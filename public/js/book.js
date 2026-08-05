@@ -41,6 +41,15 @@ function isRxConditionKey(key) {
   return typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
 }
 
+// Cycled across tiles purely for visual variety — all four stay inside the existing brand
+// palette (teal / blue / green), matching the same cycling done on the homepage (index.html).
+const ICON_COLORS = [
+  { stroke: '#0f6e6e', cls: 'icon-teal' },
+  { stroke: '#1d4ed8', cls: 'icon-blue' },
+  { stroke: '#128080', cls: 'icon-bright' },
+  { stroke: '#2e9e6b', cls: 'icon-green' },
+];
+
 function renderServiceChoices() {
   selectedRxCategory = null;
   document.getElementById('step1Nav').style.display = 'none';
@@ -49,11 +58,13 @@ function renderServiceChoices() {
   const grid = document.getElementById('serviceChoices');
   grid.innerHTML = Object.entries(SERVICES)
     .filter(([key]) => !isRxConditionKey(key))
-    .map(([key, s]) => {
+    .map(([key, s], i) => {
       const isRepeatRx = key === 'repeat_rx';
+      const color = ICON_COLORS[i % ICON_COLORS.length];
+      const iconSvg = (SERVICE_ICONS[key] || SERVICE_ICONS.general).replace(/#0f6e6e/g, color.stroke);
       return `
     <div class="card service-card" style="cursor:pointer;" onclick="${isRepeatRx ? 'showRxCategories()' : `chooseService('${key}')`}">
-      <div class="service-icon">${SERVICE_ICONS[key] || SERVICE_ICONS.general}</div>
+      <div class="service-icon ${color.cls}">${iconSvg}</div>
       <h3>${s.label}</h3>
       <div class="service-price">€${(s.priceCents / 100).toFixed(2)}</div>
       <p style="color:var(--ink-500);font-size:0.85rem;">${s.durationMins} min appointment</p>
