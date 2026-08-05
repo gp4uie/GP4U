@@ -217,7 +217,7 @@ function chooseService(key) {
   }
 
   document.getElementById('reasonLabelText').textContent = isRxService
-    ? 'Which medication would you like prescribed?'
+    ? 'What is the current medication you have been prescribed?'
     : 'What would you like to discuss with the GP?';
   document.getElementById('reasonInput').placeholder = isRxService
     ? 'e.g. Rigevidon 30/150mcg, one tablet daily — include the name, strength, and how you take it'
@@ -226,7 +226,7 @@ function chooseService(key) {
   document.getElementById('symptomsDurationRow').style.display = isRxService ? 'none' : 'block';
 
   document.getElementById('photoInputLabel').textContent = isRxService
-    ? 'Attach a photo of your previous prescription or recent blood results (recommended)'
+    ? 'Attach previous prescriptions (recommended)'
     : 'Attach a photo (optional — e.g. a rash or a letter)';
 
   goToStep(2);

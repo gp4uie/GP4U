@@ -162,6 +162,7 @@
   </div>
 </footer>
 
+<script src="/js/questionnaires.js"></script>
 <script>
 fetch('/api/content').then(r => r.json()).then(content => {
   document.getElementById('heroTitle').textContent = content.hero_title;
@@ -183,6 +184,10 @@ fetch('/api/content').then(r => r.json()).then(content => {
 });
 
 fetch('/api/services').then(r => r.json()).then(services => {
+  // The 14 condition-specific prescription services live behind the single "Repeat Prescription"
+  // tile's category picker (repeat-prescription.html), not as their own tiles here — see book.js's
+  // isRxConditionKey for the matching logic used on the booking page.
+  const isRxConditionKey = (key) => typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
   const icons = {
     general: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="#0f6e6e" stroke-width="2.5" stroke-linecap="round"/></svg>',
     video: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="13" height="12" rx="3" stroke="#0f6e6e" stroke-width="2"/><path d="M16 10l5-3v10l-5-3z" fill="#0f6e6e"/></svg>',
@@ -194,15 +199,20 @@ fetch('/api/services').then(r => r.json()).then(services => {
     weight_loss: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6l7 7 3-3 6 6M14 16h6v-6" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
   const grid = document.getElementById('servicesGrid');
-  grid.innerHTML = Object.entries(services).map(([key, s]) => `
+  grid.innerHTML = Object.entries(services)
+    .filter(([key]) => !isRxConditionKey(key))
+    .map(([key, s]) => {
+      const bookHref = key === 'repeat_rx' ? '/repeat-prescription.html' : `/book.html?service=${key}`;
+      return `
     <div class="card service-card">
       <div class="service-icon">${icons[key] || icons.general}</div>
       <h3>${s.label}</h3>
       <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
       <p style="color:var(--ink-500);font-size:0.85rem;margin-bottom:14px;">${s.durationMins} minute appointment</p>
-      <a href="/book.html?service=${key}" class="btn btn-secondary btn-block">Book</a>
+      <a href="${bookHref}" class="btn btn-secondary btn-block">Book</a>
     </div>
-  `).join('');
+  `;
+    }).join('');
 
 });
 </script>
