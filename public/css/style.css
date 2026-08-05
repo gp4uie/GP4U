@@ -284,10 +284,38 @@ h2.section-title::after {
   background: linear-gradient(90deg, var(--teal-600), var(--blue-500));
 }
 p.section-sub { text-align: center; color: var(--ink-500); max-width: 560px; margin: 0 auto 40px; font-size: 1.05rem; }
-/* Left-aligned category headings (e.g. repeat-prescription.html) use a coloured left border
-   instead of the centred underline, so skip the ::after bar here. Matches h2.section-title's own
-   specificity so this override actually wins regardless of rule order. */
+/* Left-aligned category headings (e.g. repeat-prescription.html, homepage About section) use a
+   coloured left border instead of the centred underline. Matches h2.section-title's own
+   specificity so these overrides actually win regardless of rule order. */
+h2.section-title.section-title-left { text-align: left; margin-bottom: 16px; }
 h2.section-title.section-title-left::after { display: none; }
+
+/* Homepage "About" section: photo beside the copy. */
+.about-layout { display: flex; gap: 44px; align-items: center; flex-wrap: wrap; }
+.about-photo {
+  flex: 1 1 260px;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: 75% 15%;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+.about-copy { flex: 2 1 380px; }
+.about-copy p { font-size: 1.05rem; }
+
+/* Condition-page hero photo (ed.html, asthma.html, etc.) — same treatment as the homepage's
+   hero-card, just an image instead of a text box. */
+.hero-photo-wrap { flex: 1 1 300px; max-width: 380px; }
+.hero-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
 
 /* Cards / grid */
 .grid {
