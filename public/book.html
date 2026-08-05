@@ -72,47 +72,49 @@
     <p style="color:var(--ink-500); font-size:0.85rem;"><span style="color:#c0392b;">*</span> Required fields — the form won't continue until these are filled in.</p>
     <form id="intakeForm">
       <div id="conditionQuestionsContainer"></div>
-      <div class="form-grid">
-        <div class="form-row"><label>Full name <span style="color:#c0392b;">*</span></label><input required name="patientName"></div>
-        <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob"></div>
-        <div class="form-row"><label>Phone number <span style="color:#c0392b;">*</span></label><input required type="tel" name="patientPhone"></div>
-        <div class="form-row"><label>Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail"></div>
-      </div>
-      <div class="form-row"><label>Home address</label><input required name="patientAddress" placeholder="Needed for sick certs / referral letters if you need one"></div>
-      <div class="form-row"><label>Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input required name="pharmacyName" placeholder="e.g. Boots Pharmacy, Main Street"></div>
-      <div class="form-row"><label><span id="reasonLabelText">What would you like to discuss with the GP?</span> <span style="color:#c0392b;">*</span></label><textarea required name="reason" id="reasonInput" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
-      <div class="form-grid">
-        <div class="form-row" id="symptomsDurationRow"><label>How long have you had these symptoms?</label><input name="symptomsDuration" placeholder="e.g. 3 days"></div>
-        <div class="form-row"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
-      </div>
-      <div class="form-row"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>
-      <div class="form-row" id="extraDetailsRow" style="display:none;">
-        <label id="extraDetailsLabel">Additional details</label>
-        <input name="extraDetails" id="extraDetailsInput">
-      </div>
-      <div id="repeatRxSafetyRow" style="display:none;">
-        <div class="notice">
-          <strong>Prescription renewal safety check</strong>
-          Since this is a repeat prescription, your GP needs to confirm nothing has changed before renewing it.
+      <div id="patientDetailsFields" style="display:none;">
+        <div class="form-grid">
+          <div class="form-row"><label>Full name <span style="color:#c0392b;">*</span></label><input required name="patientName"></div>
+          <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob"></div>
+          <div class="form-row"><label>Phone number <span style="color:#c0392b;">*</span></label><input required type="tel" name="patientPhone"></div>
+          <div class="form-row"><label>Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail"></div>
+        </div>
+        <div class="form-row"><label>Home address</label><input required name="patientAddress" placeholder="Needed for sick certs / referral letters if you need one"></div>
+        <div class="form-row"><label>Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input required name="pharmacyName" placeholder="e.g. Boots Pharmacy, Main Street"></div>
+        <div class="form-row"><label><span id="reasonLabelText">What would you like to discuss with the GP?</span> <span style="color:#c0392b;">*</span></label><textarea required name="reason" id="reasonInput" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
+        <div class="form-grid">
+          <div class="form-row" id="symptomsDurationRow"><label>How long have you had these symptoms?</label><input name="symptomsDuration" placeholder="e.g. 3 days"></div>
+          <div class="form-row"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
+        </div>
+        <div class="form-row"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>
+        <div class="form-row" id="extraDetailsRow" style="display:none;">
+          <label id="extraDetailsLabel">Additional details</label>
+          <input name="extraDetails" id="extraDetailsInput">
+        </div>
+        <div id="repeatRxSafetyRow" style="display:none;">
+          <div class="notice">
+            <strong>Prescription renewal safety check</strong>
+            Since this is a repeat prescription, your GP needs to confirm nothing has changed before renewing it.
+          </div>
+          <div class="form-row">
+            <label>Are you currently taking this medication exactly as prescribed (correct dose and frequency)? <span style="color:#c0392b;">*</span></label>
+            <select id="rxAsPrescribedInput" name="rxAsPrescribed">
+              <option value="">Please choose…</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Since your last prescription, has anything changed — new symptoms, side effects, other medications, or health conditions? <span style="color:#c0392b;">*</span></label>
+            <textarea id="rxHealthChangesInput" name="rxHealthChanges" placeholder="Write 'No changes' if nothing has changed"></textarea>
+          </div>
         </div>
         <div class="form-row">
-          <label>Are you currently taking this medication exactly as prescribed (correct dose and frequency)? <span style="color:#c0392b;">*</span></label>
-          <select id="rxAsPrescribedInput" name="rxAsPrescribed">
-            <option value="">Please choose…</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
-          </select>
+          <label id="photoInputLabel">Attach a photo (optional — e.g. a rash or a letter)</label>
+          <input type="file" id="photoInput" accept="image/*" multiple>
         </div>
-        <div class="form-row">
-          <label>Since your last prescription, has anything changed — new symptoms, side effects, other medications, or health conditions? <span style="color:#c0392b;">*</span></label>
-          <textarea id="rxHealthChangesInput" name="rxHealthChanges" placeholder="Write 'No changes' if nothing has changed"></textarea>
-        </div>
+        <button type="button" class="btn btn-primary" id="step2ContinueBtn" onclick="goToStep3FromForm()">Continue</button>
       </div>
-      <div class="form-row">
-        <label id="photoInputLabel">Attach a photo (optional — e.g. a rash or a letter)</label>
-        <input type="file" id="photoInput" accept="image/*" multiple>
-      </div>
-      <button type="button" class="btn btn-primary" id="step2ContinueBtn" onclick="goToStep3FromForm()">Continue</button>
     </form>
 
     <div id="redFlagPanel" class="notice" style="display:none; margin-top:18px;">

@@ -199,7 +199,8 @@ function renderConditionQuestionsStep(key) {
   if (triggeredIndex !== -1) {
     showRedFlagPanel(evaluateRedFlags(key, conditionAnswers));
   } else {
-    dismissRedFlagPanel();
+    document.getElementById('redFlagPanel').style.display = 'none';
+    document.getElementById('patientDetailsFields').style.display = allCleared ? 'block' : 'none';
   }
 }
 
@@ -222,9 +223,14 @@ function buildConditionAnswersSummary(key, formData) {
 
 function chooseService(key) {
   selectedService = key;
-  renderConditionQuestions(key);
   document.getElementById('redFlagPanel').style.display = 'none';
-  document.getElementById('step2ContinueBtn').style.display = 'inline-block';
+  // Patient details stay hidden until the safety questionnaire clears (see
+  // renderConditionQuestionsStep) — services with no questionnaire at all (video, sick cert,
+  // etc.) have nothing to gate on, so their details show immediately.
+  const config = typeof QUESTIONNAIRES !== 'undefined' ? QUESTIONNAIRES[key] : null;
+  const hasQuestionnaire = !!(config && config.redFlags && config.redFlags.length);
+  document.getElementById('patientDetailsFields').style.display = hasQuestionnaire ? 'none' : 'block';
+  renderConditionQuestions(key);
   const row = document.getElementById('extraDetailsRow');
   if (extraFieldLabels[key]) {
     row.style.display = 'block';
@@ -290,7 +296,7 @@ function goToStep3FromForm() {
 }
 
 function showRedFlagPanel(result) {
-  document.getElementById('step2ContinueBtn').style.display = 'none';
+  document.getElementById('patientDetailsFields').style.display = 'none';
   const panel = document.getElementById('redFlagPanel');
   panel.style.display = 'block';
   if (result.urgent) {
@@ -309,9 +315,11 @@ function showRedFlagPanel(result) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+// "Go back and review my answers" — just hides the panel. Patient details stay hidden, since
+// the question that triggered it is still there to be changed (see renderConditionQuestionsStep
+// for what reveals the details fields again).
 function dismissRedFlagPanel() {
   document.getElementById('redFlagPanel').style.display = 'none';
-  document.getElementById('step2ContinueBtn').style.display = 'inline-block';
 }
 
 // Carries the patient over to the Video Consultation service after a safety-question red flag,
