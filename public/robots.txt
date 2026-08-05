@@ -8,6 +8,9 @@ Disallow: /confirmation.html
 Disallow: /consult.html
 Disallow: /print-rx.html
 Disallow: /print-doc.html
+Disallow: /admin-login.html
+Disallow: /admin-dashboard.html
+Disallow: /reset-password.html
 Disallow: /api/
 
 Sitemap: https://www.gp4u.ie/sitemap.xml
