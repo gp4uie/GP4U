@@ -46,12 +46,12 @@ body {
   color: var(--ink-900);
   background-color: var(--bg);
   /* A faint, repeating pulse-line (heartbeat monitor) motif — the same mark as the logo/hero
-     icon, just tiled almost imperceptibly across the whole page as texture rather than a
-     decoration. Sits behind every page via this shared stylesheet; opaque section/card
-     backgrounds naturally cover it where they exist, letting it show through everywhere else
-     (margins, plain sections, the translucent header). Two-colour version keeps the brand's
-     teal->blue pairing rather than a single flat tint. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='110'%3E%3Cpath d='M0 55 H70 L80 24 L96 86 L106 55 H150 L160 34 L174 76 L184 55 H220' fill='none' stroke='%230f6e6e' stroke-width='1.6' stroke-opacity='0.05' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='106' cy='55' r='2.4' fill='%231d4ed8' fill-opacity='0.07'/%3E%3C/svg%3E");
+     icon, tiled across the whole page as a visible-but-quiet texture (not decoration loud enough
+     to compete with content). Sits behind every page via this shared stylesheet; opaque
+     section/card backgrounds naturally cover it where they exist, letting it show through
+     everywhere else (margins, plain sections, the translucent header). Two-colour version keeps
+     the brand's teal->blue pairing rather than a single flat tint. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='110'%3E%3Cpath d='M0 55 H70 L80 24 L96 86 L106 55 H150 L160 34 L174 76 L184 55 H220' fill='none' stroke='%230f6e6e' stroke-width='2' stroke-opacity='0.16' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='106' cy='55' r='3' fill='%231d4ed8' fill-opacity='0.22'/%3E%3C/svg%3E");
   background-repeat: repeat;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
