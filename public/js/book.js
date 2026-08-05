@@ -129,16 +129,20 @@ function step1Back() {
   }
 }
 
-// Answers collected so far for the safety questionnaire currently on screen — reset whenever
-// renderConditionQuestions() starts a fresh questionnaire (i.e. the patient picked a service).
+// Answers collected so far for the safety questionnaire currently on screen, and which question
+// is on screen — both reset whenever renderConditionQuestions() starts a fresh questionnaire
+// (i.e. the patient picked a service).
 let conditionAnswers = {};
+let currentQuestionIndex = 0;
 
-// Renders the condition-specific safety questions (see questionnaires.js) one at a time: only
-// the already-answered questions plus the next unanswered one are in the DOM. An acceptable
-// answer reveals the next question; a red-flag answer stops there and shows the video-consultation
-// offer immediately below it, instead of the patient filling in the whole questionnaire first.
+// Renders the condition-specific safety questions (see questionnaires.js) one at a time — only
+// the current question is in the DOM, not a growing list the patient has to scroll through. An
+// acceptable answer replaces it with the next question; a red-flag answer stops there and shows
+// the video-consultation offer instead. A Back button steps to the previous question to review
+// or change it, without losing any answers already given.
 function renderConditionQuestions(key) {
   conditionAnswers = {};
+  currentQuestionIndex = 0;
   renderConditionQuestionsStep(key);
 }
 
@@ -151,56 +155,74 @@ function renderConditionQuestionsStep(key) {
   }
   const redFlags = config.redFlags;
 
-  // Walk the questions in order: stop at the first one that's either unanswered (so it can be
-  // shown next) or triggered (so nothing further is revealed).
-  let triggeredIndex = -1;
-  let stopIndex = redFlags.length;
-  for (let i = 0; i < redFlags.length; i++) {
-    const val = conditionAnswers[redFlags[i].id];
-    if (!val) { stopIndex = i; break; }
-    const isTriggered = (redFlags[i].triggerOn === 'no') ? val === 'no' : val === 'yes';
-    if (isTriggered) { triggeredIndex = i; stopIndex = i; break; }
+  // All questions answered with nothing triggered — show any free-text info fields (no
+  // right/wrong answer, so no step-through needed) and reveal the rest of the booking form.
+  if (currentQuestionIndex >= redFlags.length) {
+    container.innerHTML = `
+      <div class="notice">
+        <strong>Thanks — safety questions complete</strong>
+        Nothing here needs a closer look. Just a few more details below.
+      </div>
+      ${(config.info || []).map((f) => `
+        <div class="form-row">
+          <label>${f.label} ${f.required ? '<span style="color:#c0392b;">*</span>' : ''}</label>
+          <input ${f.required ? 'required' : ''} name="info_${f.id}" class="info-input">
+        </div>
+      `).join('')}
+    `;
+    document.getElementById('redFlagPanel').style.display = 'none';
+    document.getElementById('patientDetailsFields').style.display = 'block';
+    return;
   }
-  const allCleared = triggeredIndex === -1 && stopIndex === redFlags.length;
-  const showCount = triggeredIndex !== -1 ? triggeredIndex + 1 : Math.min(stopIndex + 1, redFlags.length);
-  const visible = redFlags.slice(0, showCount);
+
+  document.getElementById('patientDetailsFields').style.display = 'none';
+
+  const q = redFlags[currentQuestionIndex];
+  const answeredValue = conditionAnswers[q.id] || '';
 
   container.innerHTML = `
     <div class="notice">
-      <strong>A few quick safety questions</strong>
+      <strong>A few quick safety questions — ${currentQuestionIndex + 1} of ${redFlags.length}</strong>
       These help make sure a written prescription request is safe for you. If any answer needs a
       closer look, we'll offer you a video consultation instead of turning you away.
     </div>
-    ${visible.map((q) => `
-      <div class="form-row">
-        <label>${q.question} <span style="color:#c0392b;">*</span></label>
-        <select required name="cq_${q.id}" class="cq-input" data-qid="${q.id}">
-          <option value="">Please choose…</option>
-          <option value="no" ${conditionAnswers[q.id] === 'no' ? 'selected' : ''}>No</option>
-          <option value="yes" ${conditionAnswers[q.id] === 'yes' ? 'selected' : ''}>Yes</option>
-        </select>
-      </div>
-    `).join('')}
-    ${allCleared ? (config.info || []).map((f) => `
-      <div class="form-row">
-        <label>${f.label} ${f.required ? '<span style="color:#c0392b;">*</span>' : ''}</label>
-        <input ${f.required ? 'required' : ''} name="info_${f.id}" class="info-input">
-      </div>
-    `).join('') : ''}
+    <div class="form-row">
+      <label>${q.question} <span style="color:#c0392b;">*</span></label>
+      <select required name="cq_${q.id}" class="cq-input" data-qid="${q.id}">
+        <option value="">Please choose…</option>
+        <option value="no" ${answeredValue === 'no' ? 'selected' : ''}>No</option>
+        <option value="yes" ${answeredValue === 'yes' ? 'selected' : ''}>Yes</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:10px;">
+      ${currentQuestionIndex > 0 ? '<button type="button" class="btn btn-secondary" id="cqBackBtn">← Back</button>' : ''}
+      <button type="button" class="btn btn-secondary" id="cqContinueBtn">Continue</button>
+    </div>
   `;
 
-  container.querySelectorAll('.cq-input').forEach((el) => {
-    el.addEventListener('change', () => {
-      conditionAnswers[el.dataset.qid] = el.value;
+  const select = container.querySelector('.cq-input');
+  const evaluateAndAdvance = () => {
+    if (!select.value) { select.reportValidity(); return; }
+    conditionAnswers[q.id] = select.value;
+    const isTriggered = (q.triggerOn === 'no') ? select.value === 'no' : select.value === 'yes';
+    if (isTriggered) {
+      showRedFlagPanel(evaluateRedFlags(key, conditionAnswers));
+    } else {
+      document.getElementById('redFlagPanel').style.display = 'none';
+      currentQuestionIndex++;
+      renderConditionQuestionsStep(key);
+    }
+  };
+  select.addEventListener('change', evaluateAndAdvance);
+  document.getElementById('cqContinueBtn').addEventListener('click', evaluateAndAdvance);
+
+  const backBtn = document.getElementById('cqBackBtn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      document.getElementById('redFlagPanel').style.display = 'none';
+      currentQuestionIndex--;
       renderConditionQuestionsStep(key);
     });
-  });
-
-  if (triggeredIndex !== -1) {
-    showRedFlagPanel(evaluateRedFlags(key, conditionAnswers));
-  } else {
-    document.getElementById('redFlagPanel').style.display = 'none';
-    document.getElementById('patientDetailsFields').style.display = allCleared ? 'block' : 'none';
   }
 }
 
