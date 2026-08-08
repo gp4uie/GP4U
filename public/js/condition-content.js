@@ -196,17 +196,4 @@ const CONDITION_CONTENT = {
     ],
   },
 
-  travel_health: {
-    about: [
-      "Pre-travel health advice covers destination-specific vaccine recommendations, malaria prevention if relevant, and general advice for staying well abroad — ideally arranged 4-6 weeks before you travel, since some vaccines need time to take effect or require more than one dose.",
-      "Requirements vary hugely by destination, itinerary (city vs. rural/adventure travel), and your own health history and existing vaccinations, so advice is tailored rather than generic.",
-      "Online review suits general advice and routine travel vaccination guidance. Trips requiring a Yellow Fever certificate, or complex itineraries, are sometimes better suited to a specialist travel clinic with certification authority."
-    ],
-    faqs: [
-      { q: 'How far in advance should I book?', a: 'Ideally 4-6 weeks before travel, to leave time for any vaccine course and for it to become effective.' },
-      { q: 'Can you administer vaccines through this service?', a: 'This service covers advice and prescriptions where appropriate — ask about arrangements for administering any recommended vaccines.' },
-      { q: 'Do I need malaria tablets for my trip?', a: 'This depends on your specific destination and itinerary — your GP will advise based on where exactly you’re going.' },
-      { q: 'What if my destination requires a Yellow Fever certificate?', a: 'This typically needs a specialist, registered Yellow Fever centre — the questionnaire will flag this so you can arrange it separately.' },
-    ],
-  },
 };

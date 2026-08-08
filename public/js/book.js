@@ -8,6 +8,7 @@ const extraFieldLabels = {
   travel: 'Destination(s) and travel date(s)',
   repeat_rx: 'Name(s) of the medication you need repeated',
   sick_cert: "Employer name (if the cert is for work)",
+  weight_loss: 'Current weight, height, and your goal (e.g. lose 10kg by summer)',
 };
 
 function qs(name) {
@@ -263,6 +264,7 @@ function chooseService(key) {
 
   const isRepeatRx = key === 'repeat_rx';
   const isRxService = isRepeatRx || isRxConditionKey(key);
+  const isSickCert = key === 'sick_cert';
   const safetyRow = document.getElementById('repeatRxSafetyRow');
   const asPrescribedInput = document.getElementById('rxAsPrescribedInput');
   const healthChangesInput = document.getElementById('rxHealthChangesInput');
@@ -274,17 +276,59 @@ function chooseService(key) {
     healthChangesInput.value = '';
   }
 
-  document.getElementById('reasonLabelText').textContent = isRxService
-    ? 'What is the current medication you have been prescribed?'
-    : 'What would you like to discuss with the GP?';
-  document.getElementById('reasonInput').placeholder = isRxService
-    ? 'e.g. Rigevidon 30/150mcg, one tablet daily — include the name, strength, and how you take it'
-    : 'Please describe your symptoms or the reason for this consultation';
+  // Reason field: focused wording per category rather than one generic prompt for every
+  // service — a sick cert request needs different information from a prescription renewal.
+  const reasonLabel = document.getElementById('reasonLabelText');
+  const reasonInput = document.getElementById('reasonInput');
+  if (isRxService) {
+    reasonLabel.textContent = 'What is the current medication you have been prescribed?';
+    reasonInput.placeholder = 'e.g. Rigevidon 30/150mcg, one tablet daily — include the name, strength, and how you take it';
+  } else if (isSickCert) {
+    reasonLabel.textContent = 'What is the illness or injury, and how many days off do you need?';
+    reasonInput.placeholder = 'e.g. Flu with fever since Monday — need 3 days off work';
+  } else {
+    reasonLabel.textContent = 'What would you like to discuss with the GP?';
+    reasonInput.placeholder = 'Please describe your symptoms or the reason for this consultation';
+  }
+
+  // Pharmacy details: only guaranteed relevant when the booking is specifically for a
+  // prescription. Required for those, optional (not hidden — a GP consultation can still end
+  // in a prescription) for general consultations, and hidden entirely for a sick cert, which
+  // never involves a pharmacy.
+  const pharmacyRow = document.getElementById('pharmacyRow');
+  const pharmacyInput = document.getElementById('pharmacyInput');
+  const pharmacyNotice = document.getElementById('pharmacyNoticeText');
+  const pharmacyLabel = document.getElementById('pharmacyLabel');
+  if (isSickCert) {
+    pharmacyRow.style.display = 'none';
+    pharmacyInput.required = false;
+    pharmacyNotice.style.display = 'none';
+  } else {
+    pharmacyRow.style.display = 'block';
+    pharmacyNotice.style.display = 'block';
+    if (isRxService) {
+      pharmacyInput.required = true;
+      pharmacyLabel.innerHTML = 'Your regular pharmacy\'s name <span style="color:#c0392b;">*</span>';
+    } else {
+      pharmacyInput.required = false;
+      pharmacyLabel.textContent = "Your regular pharmacy's name (if your GP prescribes anything)";
+    }
+  }
 
   document.getElementById('symptomsDurationRow').style.display = isRxService ? 'none' : 'block';
+  document.getElementById('symptomsDurationLabel').textContent = isSickCert
+    ? 'When did this start?'
+    : 'How long have you had these symptoms?';
+
+  // Allergies/current medications aren't relevant to a sick cert request (no medication
+  // involved) — keep the form focused rather than asking irrelevant questions.
+  document.getElementById('allergiesRow').style.display = isSickCert ? 'none' : 'block';
+  document.getElementById('currentMedicationsRow').style.display = isSickCert ? 'none' : 'block';
 
   document.getElementById('photoInputLabel').textContent = isRxService
     ? 'Attach previous prescriptions (recommended)'
+    : isSickCert
+    ? 'Attach supporting documentation (optional)'
     : 'Attach a photo (optional — e.g. a rash or a letter)';
 
   goToStep(2);

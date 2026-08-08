@@ -481,6 +481,13 @@ async function initSchema() {
     }
   }
 
+  // "Travel Health & Vaccination Advice" (one of the 14 repeat-prescription condition services)
+  // duplicated the existing standalone "Travel Health Consultation" (`travel`) — a real
+  // consultation, whereas travel health isn't a "repeat" of anything a patient already takes.
+  // Removing the row is safe: bookings.service_type is a plain string with no foreign key to
+  // this table, so any past booking under this key is unaffected.
+  await run("DELETE FROM services WHERE `key` = 'travel_health'");
+
   const postCountRow = await get('SELECT COUNT(*) AS n FROM blog_posts');
   if (postCountRow.n === 0) {
     await run('INSERT INTO blog_posts (title, body) VALUES (?, ?)', [

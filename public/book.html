@@ -44,7 +44,7 @@
     <span id="tab4">4. Review &amp; pay</span>
   </div>
 
-  <p style="color:var(--ink-500); font-size:0.85rem; margin-top:-8px;">
+  <p style="color:var(--ink-500); font-size:0.85rem; margin-top:-8px;" id="pharmacyNoticeText">
     <strong>How your prescription reaches your pharmacy:</strong> once your GP approves a prescription request, they email it directly to the pharmacy you name below — please make sure the name and location are accurate.
   </p>
 
@@ -80,13 +80,13 @@
           <div class="form-row"><label>Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail"></div>
         </div>
         <div class="form-row"><label>Home address</label><input required name="patientAddress" placeholder="Needed for sick certs / referral letters if you need one"></div>
-        <div class="form-row"><label>Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input required name="pharmacyName" placeholder="e.g. Boots Pharmacy, Main Street"></div>
+        <div class="form-row" id="pharmacyRow"><label id="pharmacyLabel">Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input name="pharmacyName" id="pharmacyInput" placeholder="e.g. Boots Pharmacy, Main Street"></div>
         <div class="form-row"><label><span id="reasonLabelText">What would you like to discuss with the GP?</span> <span style="color:#c0392b;">*</span></label><textarea required name="reason" id="reasonInput" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
         <div class="form-grid">
-          <div class="form-row" id="symptomsDurationRow"><label>How long have you had these symptoms?</label><input name="symptomsDuration" placeholder="e.g. 3 days"></div>
-          <div class="form-row"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
+          <div class="form-row" id="symptomsDurationRow"><label id="symptomsDurationLabel">How long have you had these symptoms?</label><input name="symptomsDuration" id="symptomsDurationInput" placeholder="e.g. 3 days"></div>
+          <div class="form-row" id="allergiesRow"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
         </div>
-        <div class="form-row"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>
+        <div class="form-row" id="currentMedicationsRow"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>
         <div class="form-row" id="extraDetailsRow" style="display:none;">
           <label id="extraDetailsLabel">Additional details</label>
           <input name="extraDetails" id="extraDetailsInput">

@@ -206,19 +206,6 @@ const QUESTIONNAIRES = {
     ],
   },
 
-  travel_health: {
-    redFlags: [
-      { id: 'pregnant', question: 'Are you currently pregnant?', bullet: 'Currently pregnant' },
-      { id: 'immunocompromised', question: 'Are you immunocompromised, or taking medication that suppresses your immune system?', bullet: 'Immunocompromised' },
-      { id: 'yellowFever', question: 'Does your destination require a Yellow Fever vaccination certificate?', bullet: 'Destination requires a Yellow Fever certificate (may need an in-person/specialist travel clinic)' },
-      { id: 'mentalHealthHistory', question: 'Have you ever had a significant mental health condition such as depression, anxiety, or a psychotic episode?', bullet: 'Significant mental health history (relevant to some anti-malaria medication choices)' },
-      { id: 'epilepsy', question: 'Do you have epilepsy or a history of seizures?', bullet: 'Epilepsy or seizure history (relevant to some anti-malaria medication choices)' },
-      { id: 'shortNotice', question: 'Are you travelling within the next 2 weeks?', bullet: 'Travelling within 2 weeks — may not leave enough time for some vaccines/courses' },
-    ],
-    info: [
-      { id: 'destination', label: 'Where are you travelling to, and when?', required: true },
-    ],
-  },
 };
 
 // Groups conditions the same way webdoctor.ie's Repeat Prescription section does, for the
@@ -227,16 +214,19 @@ const CATEGORIES = {
   "Women's Health": ['contraception', 'period_delay', 'uti'],
   "Men's Health": ['hair_loss', 'ed'],
   'Skin Health': ['acne', 'cold_sores', 'eczema_psoriasis'],
-  'General Health': ['asthma', 'migraine', 'hypothyroidism', 'stop_smoking', 'hay_fever', 'travel_health'],
+  'General Health': ['asthma', 'migraine', 'hypothyroidism', 'stop_smoking', 'hay_fever'],
 };
 
 // Human-readable labels for the service pages / hub page, keyed the same as QUESTIONNAIRES
 // and the `services` table (underscore-case). Page filenames use hyphens for SEO-friendly URLs —
 // see PAGE_SLUGS below for the key -> filename mapping.
+// Note: travel health is deliberately not a repeat-prescription condition here — it's covered by
+// the standalone "Travel Health Consultation" (`travel`) service instead, since a trip isn't a
+// "repeat" of anything a patient already takes.
 const PRESCRIPTION_SERVICE_KEYS = [
   'contraception', 'period_delay', 'uti', 'ed', 'hair_loss', 'acne', 'asthma',
   'migraine', 'hypothyroidism', 'stop_smoking', 'hay_fever', 'cold_sores',
-  'eczema_psoriasis', 'travel_health',
+  'eczema_psoriasis',
 ];
 
 const PAGE_SLUGS = {
@@ -253,7 +243,6 @@ const PAGE_SLUGS = {
   hay_fever: 'hay-fever',
   cold_sores: 'cold-sores',
   eczema_psoriasis: 'eczema-psoriasis',
-  travel_health: 'travel-health',
 };
 
 // One-line taglines for the repeat-prescription.html hub page cards.
@@ -271,7 +260,6 @@ const SERVICE_TAGLINES = {
   hay_fever: 'Allergy symptoms not settling with OTC meds',
   cold_sores: 'Treatment for recurring outbreaks',
   eczema_psoriasis: 'Review of a diagnosed flare-up',
-  travel_health: 'Advice & vaccinations for your trip',
 };
 
 // Evaluates a filled-in answers object ({ [questionId]: 'yes'|'no' }) against a service's
