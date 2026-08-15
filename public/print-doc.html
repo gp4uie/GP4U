@@ -18,6 +18,16 @@
   .field { margin-bottom: 10px; }
   .field label { font-weight: 700; display:block; font-size:0.82rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.03em; }
   .sig { margin-top: 50px; }
+  .sig-name {
+    font-family: "Segoe Script", "Bradley Hand", "Snell Roundhand", "Brush Script MT", cursive;
+    font-size: 1.7rem;
+    color: var(--teal-900);
+    margin: 0 0 2px;
+    padding: 0 6px 4px 0;
+    border-bottom: 1px solid var(--ink-500);
+    display: inline-block;
+  }
+  .sig-meta { margin: 6px 0 0; font-size: 0.85rem; color: var(--ink-500); }
   .body-text { white-space: pre-wrap; line-height: 1.6; }
 </style>
 </head>
@@ -52,7 +62,10 @@ function renderSickCert(f, b, practice, doc) {
     <p class="body-text">This is to certify that ${b.patient_name} (DOB ${b.patient_dob}) of ${b.patient_address || 'the address on file'}
 was examined by me and is ${f.fitForWork} from ${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')} inclusive,
 due to: ${f.diagnosis}.</p>
-    <div class="sig"><p>${doc.doctor_name}<br>IMC Reg No: ${doc.doctor_reg_number}<br>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p></div>
+    <div class="sig">
+      <p class="sig-name">${doc.doctor_name}</p>
+      <p class="sig-meta">IMC Reg No: ${doc.doctor_reg_number}<br>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p>
+    </div>
   `;
 }
 
@@ -78,7 +91,11 @@ function renderReferral(f, b, practice, doc, isAE) {
     <p class="body-text">${f.clinicalSummary}</p>
     <h3>Reason for Referral</h3>
     <p class="body-text">${f.reasonForReferral}</p>
-    <div class="sig"><p>Yours sincerely,<br><br>${doc.doctor_name}<br>IMC Reg No: ${doc.doctor_reg_number}</p></div>
+    <div class="sig">
+      <p>Yours sincerely,</p>
+      <p class="sig-name">${doc.doctor_name}</p>
+      <p class="sig-meta">IMC Reg No: ${doc.doctor_reg_number}</p>
+    </div>
   `;
 }
 

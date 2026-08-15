@@ -2,6 +2,7 @@ let currentBookingId = null;
 let currentPatientEmail = null;
 let scheduleDate = new Date();
 let activeTab = 'schedule';
+let activeChartTab = 'overview';
 
 let currentListType = null; // 'schedule' | 'search' | 'recent'
 let scheduleIds = [], searchIds = [], recentIds = [];
@@ -21,6 +22,14 @@ async function checkSession() {
     loadMedications();
     loadTasks();
     setInterval(loadNotifications, 15000);
+    // Keep an open chart current — e.g. a new patient message — without disturbing whatever
+    // sub-tab, scroll position, or in-progress typing the doctor currently has (openBooking only
+    // re-renders read-only display lists, never the live form fields; see keepTab/isSameBooking
+    // above for why this doesn't bounce the view around).
+    setInterval(() => {
+      const panelOpen = document.getElementById('detailPanel').style.display !== 'none';
+      if (currentBookingId && panelOpen) openBooking(currentBookingId, null, true);
+    }, 20000);
   }
 }
 
@@ -86,13 +95,13 @@ async function loadTasks() {
   else { badge.style.display = 'none'; }
 
   document.getElementById('tasksList').innerHTML = tasks.length ? tasks.map((t) => `
-    <div class="card" style="margin-bottom:10px; ${t.status === 'completed' ? 'opacity:0.6;' : ''}">
+    <div class="card task-card" style="margin-bottom:10px; ${t.status === 'completed' ? 'opacity:0.6;' : ''}" onclick="openBooking('${t.booking_id}', null)">
       <p>${t.description}</p>
       <p style="color:var(--ink-500); font-size:0.8rem;">
         Patient: ${t.patient_name} • Created ${new Date(t.created_at).toLocaleString('en-IE')}
         ${t.status === 'completed' ? ` • Completed ${new Date(t.completed_at).toLocaleString('en-IE')}` : ''}
       </p>
-      ${t.status === 'pending' ? `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="completeTask(${t.id})">Mark Complete</button>` : '<span class="badge badge-green">Done</span>'}
+      ${t.status === 'pending' ? `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="event.stopPropagation(); completeTask(${t.id})">Mark Complete</button>` : '<span class="badge badge-green">Done</span>'}
     </div>
   `).join('') : '<p style="color:var(--ink-500);">No tasks yet.</p>';
 }
@@ -125,6 +134,8 @@ async function loadSchedule() {
   renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins);
 }
 
+const SCHEDULE_ROW_PX = 34;
+
 function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
   const stepMin = 15;
   const totalSlots = Math.max(1, Math.ceil((dayEndMins - dayStartMins) / stepMin));
@@ -151,7 +162,34 @@ function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
     const reasonPreview = b.reason ? b.reason.slice(0, 40) + (b.reason.length > 40 ? '…' : '') : '';
     html += `<div class="schedule-booking ${b.status === 'completed' ? 'completed' : ''}" style="grid-row:${rowStart} / span ${rowSpan};" onclick="openBooking('${b.id}', 'schedule')" title="${reasonPreview.replace(/"/g, '&quot;')}">${timeLabel} <strong>${b.patient_name}</strong> — ${reasonPreview || b.service_type.replace('_', ' ')}</div>`;
   });
-  document.getElementById('scheduleGrid').innerHTML = html;
+
+  // Current-time line, only when this is actually today.
+  const now = new Date();
+  const isToday = isoDate(scheduleDate) === isoDate(now);
+  let nowRowFraction = null;
+  if (isToday) {
+    const nowMinsFromDayStart = (now.getHours() * 60 + now.getMinutes()) - dayStartMins;
+    if (nowMinsFromDayStart >= 0 && nowMinsFromDayStart <= (dayEndMins - dayStartMins)) {
+      nowRowFraction = nowMinsFromDayStart / stepMin;
+      html += `<div class="schedule-now-line" style="top:${nowRowFraction * SCHEDULE_ROW_PX}px;"></div>`;
+    }
+  }
+
+  const grid = document.getElementById('scheduleGrid');
+  grid.innerHTML = html;
+
+  // Land the view somewhere useful instead of always at 00:00 — on "now" if it's today, on the
+  // first booking of the day otherwise, so a doctor isn't blind-scrolling a mostly-empty grid to
+  // find the one or two real appointments.
+  let scrollToPx = null;
+  if (nowRowFraction !== null) {
+    scrollToPx = Math.max(0, (nowRowFraction - 3) * SCHEDULE_ROW_PX);
+  } else if (bookings.length) {
+    const first = new Date(bookings[0].slot_start);
+    const firstRowFraction = ((first.getHours() * 60 + first.getMinutes()) - dayStartMins) / stepMin;
+    scrollToPx = Math.max(0, (firstRowFraction - 2) * SCHEDULE_ROW_PX);
+  }
+  if (scrollToPx !== null) grid.scrollTop = scrollToPx;
 }
 
 // --- Search Patients ---
@@ -244,6 +282,7 @@ async function handleNotifClick(id, bookingId) {
 const CHART_TABS = ['overview', 'previous', 'messages', 'notes', 'prescription', 'sickcert', 'referral', 'documents'];
 
 function showChartTab(name) {
+  activeChartTab = name;
   CHART_TABS.forEach((t) => {
     document.getElementById('chartSection_' + t).style.display = t === name ? 'block' : 'none';
   });
@@ -261,11 +300,17 @@ function navigateCase(delta) {
   const idx = list.indexOf(currentBookingId);
   if (idx === -1) return;
   const newIdx = idx + delta;
-  if (newIdx >= 0 && newIdx < list.length) openBooking(list[newIdx], currentListType);
+  if (newIdx >= 0 && newIdx < list.length) openBooking(list[newIdx], currentListType, true);
 }
 
 // --- Booking detail panel ---
-async function openBooking(id, listType) {
+// keepTab: preserve whichever chart sub-tab (Notes, Prescription, ...) was already open instead
+// of jumping back to Overview. Used for same-booking refreshes (a save/issue action, the
+// background poll below, Mark Complete) and for Previous/Next Case paging — landing back on
+// Overview every time you save something or move to the next case was the single biggest
+// papercut in the chart-review, see dashboard-chart-review notes.
+async function openBooking(id, listType, keepTab) {
+  const isSameBooking = id === currentBookingId && document.getElementById('detailPanel').style.display !== 'none';
   currentBookingId = id;
   if (listType !== undefined && listType !== null) currentListType = listType;
   const res = await fetch(`/api/doctor/bookings/${id}`);
@@ -323,9 +368,11 @@ async function openBooking(id, listType) {
   renderDocuments(data.documents);
   renderAllDocuments(data.prescriptions, data.documents);
   renderPreviousSidePanels(data.previousConsultations);
-  showChartTab('overview');
+  showChartTab((isSameBooking || keepTab) ? activeChartTab : 'overview');
   document.getElementById('detailPanel').style.display = 'block';
-  document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+  if (!isSameBooking) {
+    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+  }
 }
 
 function renderAttachments(attachments) {
@@ -336,13 +383,18 @@ function renderAttachments(attachments) {
 
 const DOC_TYPE_LABELS = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
 
+// How many of the most recent previous visits to show fully expanded by default. Older visits
+// (this list is newest-first) collapse into a <details> summary line instead, so a long-standing
+// patient's history doesn't turn into one very long fully-expanded scroll. See chart-review notes.
+const PREVIOUS_VISITS_EXPANDED = 2;
+
 function renderPreviousConsultations(previous) {
   const container = document.getElementById('previousConsultationsList');
   if (!previous.length) {
     container.innerHTML = '<p style="color:var(--ink-500);">No previous consultations for this patient.</p>';
     return;
   }
-  container.innerHTML = previous.map((p) => {
+  container.innerHTML = previous.map((p, idx) => {
     const notesHtml = p.notes.length
       ? p.notes.map(n => `<div style="margin-bottom:6px;"><p style="white-space:pre-wrap; margin:0;">${n.note_text}</p><p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${n.doctor_name} • ${new Date(n.created_at).toLocaleString('en-IE')}</p></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">No notes recorded.</p>';
@@ -353,30 +405,50 @@ function renderPreviousConsultations(previous) {
       ? p.documents.map(d => `<div style="margin-bottom:6px;">${DOC_TYPE_LABELS[d.doc_type] || d.doc_type} — ${new Date(d.created_at).toLocaleDateString('en-IE')} <a href="/print-doc.html?docId=${d.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
 
-    return `
-      <div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <div>
-            <strong>${new Date(p.slot_start).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-            — ${p.service_type.replace('_', ' ')}
-            <span class="badge ${p.status === 'completed' ? 'badge-green' : 'badge-amber'}">${p.status}</span>
-          </div>
-          <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="openBooking('${p.id}', currentListType)">Open This Visit</button>
-        </div>
-        <p style="margin:10px 0 4px;"><strong>Reason:</strong> ${p.reason || '—'}</p>
-        <div style="margin-top:10px;">
-          <p style="font-weight:600; margin-bottom:4px;">Clinical Notes</p>
-          ${notesHtml}
-        </div>
-        <div style="margin-top:10px;">
-          <p style="font-weight:600; margin-bottom:4px;">Prescriptions</p>
-          ${rxHtml}
-        </div>
-        <div style="margin-top:10px;">
-          <p style="font-weight:600; margin-bottom:4px;">Documents</p>
-          ${docsHtml}
-        </div>
+    const dateLabel = new Date(p.slot_start).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const summaryLine = `
+      <strong>${dateLabel}</strong>
+      — ${p.service_type.replace('_', ' ')}
+      <span class="badge ${p.status === 'completed' ? 'badge-green' : 'badge-amber'}">${p.status}</span>
+    `;
+    const body = `
+      <p style="margin:10px 0 4px;"><strong>Reason:</strong> ${p.reason || '—'}</p>
+      <div style="margin-top:10px;">
+        <p style="font-weight:600; margin-bottom:4px;">Clinical Notes</p>
+        ${notesHtml}
       </div>
+      <div style="margin-top:10px;">
+        <p style="font-weight:600; margin-bottom:4px;">Prescriptions</p>
+        ${rxHtml}
+      </div>
+      <div style="margin-top:10px;">
+        <p style="font-weight:600; margin-bottom:4px;">Documents</p>
+        ${docsHtml}
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="event.stopPropagation(); openBooking('${p.id}', currentListType)">Open This Visit</button>
+      </div>
+    `;
+
+    if (idx < PREVIOUS_VISITS_EXPANDED) {
+      return `
+        <div class="card" style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>${summaryLine}</div>
+          </div>
+          ${body}
+        </div>
+      `;
+    }
+    const visitCounts = `${p.notes.length} note${p.notes.length === 1 ? '' : 's'} · ${p.prescriptions.length} rx · ${p.documents.length} doc${p.documents.length === 1 ? '' : 's'}`;
+    return `
+      <details class="card prev-visit" style="margin-bottom:14px;">
+        <summary>
+          <span>${summaryLine}</span>
+          <span class="prev-visit-counts">${visitCounts}</span>
+        </summary>
+        ${body}
+      </details>
     `;
   }).join('');
 }

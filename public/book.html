@@ -75,7 +75,7 @@
       <div id="patientDetailsFields" style="display:none;">
         <div class="form-grid">
           <div class="form-row"><label>Full name <span style="color:#c0392b;">*</span></label><input required name="patientName"></div>
-          <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob"></div>
+          <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob" id="patientDobInput" min="1900-01-01"></div>
           <div class="form-row"><label>Phone number <span style="color:#c0392b;">*</span></label><input required type="tel" name="patientPhone"></div>
           <div class="form-row"><label>Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail"></div>
         </div>
@@ -145,7 +145,7 @@
 </div>
 
 <script src="/js/questionnaires.js?v=3"></script>
-<script src="/js/book.js?v=3"></script>
+<script src="/js/book.js?v=4"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>

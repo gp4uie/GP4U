@@ -18,6 +18,16 @@
   .field { margin-bottom: 10px; }
   .field label { font-weight: 700; display:block; font-size:0.82rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.03em; }
   .sig { margin-top: 50px; }
+  .sig-name {
+    font-family: "Segoe Script", "Bradley Hand", "Snell Roundhand", "Brush Script MT", cursive;
+    font-size: 1.7rem;
+    color: var(--teal-900);
+    margin: 0 0 2px;
+    padding: 0 6px 4px 0;
+    border-bottom: 1px solid var(--ink-500);
+    display: inline-block;
+  }
+  .sig-meta { margin: 6px 0 0; font-size: 0.85rem; color: var(--ink-500); }
 </style>
 </head>
 <body>
@@ -61,7 +71,8 @@ fetch(url).then(r => r.json()).then(data => {
     <div class="field"><label>Quantity</label>${p.quantity}</div>
     <div class="field"><label>Instructions</label>${p.instructions}</div>
     <div class="sig">
-      <p>${p.doctor_name}<br>IMC Reg No: ${p.doctor_reg_number}</p>
+      <p class="sig-name">${p.doctor_name}</p>
+      <p class="sig-meta">IMC Reg No: ${p.doctor_reg_number}</p>
     </div>
   `;
 });

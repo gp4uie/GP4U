@@ -4,6 +4,12 @@ let selectedSlot = null;
 let intakeData = {};
 let selectedRxCategory = null;
 
+// Can't be born in the future — paired with the static min="1900-01-01" on the input itself.
+// form.reportValidity() (see goToStep3FromForm) enforces both natively via the date input's own
+// min/max, so no extra JS check is needed beyond setting this.
+const dobInput = document.getElementById('patientDobInput');
+if (dobInput) dobInput.max = new Date().toISOString().slice(0, 10);
+
 const extraFieldLabels = {
   travel: 'Destination(s) and travel date(s)',
   repeat_rx: 'Name(s) of the medication you need repeated',

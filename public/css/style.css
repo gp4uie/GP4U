@@ -331,6 +331,31 @@ h2.section-title.section-title-left::after { display: none; }
   padding: 24px;
   transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
 }
+/* Doctor dashboard's Tasks tab — the whole card opens the patient's chart. */
+.task-card { cursor: pointer; }
+.task-card:hover { background: #f2fbfa; box-shadow: var(--shadow-md); }
+/* Older previous-visit cards on the doctor chart — collapsed by default so a long-standing
+   patient's history isn't one very long fully-expanded scroll (see chart-review notes). */
+.prev-visit summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prev-visit summary::-webkit-details-marker { display: none; }
+.prev-visit summary > span:first-child::before {
+  content: "▸";
+  color: var(--ink-500);
+  margin-right: 8px;
+  transition: transform 0.15s var(--ease);
+  display: inline-block;
+}
+.prev-visit[open] summary > span:first-child::before { transform: rotate(90deg); }
+.prev-visit .prev-visit-counts { color: var(--ink-500); font-size: 0.82rem; font-weight: 400; }
+.prev-visit[open] summary { margin-bottom: 4px; }
 /* A thin colour-coded top edge on the trust-signal cards — small touch of variety instead of
    three identical white boxes in a row. */
 #trust .card { position: relative; overflow: hidden; }
@@ -553,11 +578,44 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
   grid-template-columns: 70px 1fr;
   grid-auto-rows: 34px;
   max-width: 480px;
+  max-height: 640px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: white;
   box-shadow: var(--shadow-sm);
+  position: relative;
+}
+/* Current-time indicator — only rendered when viewing today, positioned in JS via inline "top".
+   Spans both grid columns so it reads as one continuous line across the time labels and the
+   bookings column, the way a live clock line does in most calendar apps. */
+.schedule-now-line {
+  position: absolute;
+  left: 0; right: 0;
+  grid-column: 1 / -1;
+  height: 0;
+  border-top: 2px solid #c0392b;
+  z-index: 3;
+  pointer-events: none;
+}
+.schedule-now-line::before {
+  content: "";
+  position: absolute;
+  left: 4px; top: -4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #c0392b;
+}
+.schedule-now-line::after {
+  content: "Now";
+  position: absolute;
+  left: 16px; top: -8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #c0392b;
+  background: white;
+  padding: 0 4px;
 }
 .slot-time-label {
   grid-column: 1;
@@ -615,9 +673,11 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
 }
 .side-nav button:hover { background: #f2fbfa; }
 .side-nav button.active { background: var(--teal-700); color: white; box-shadow: 0 4px 12px rgba(15, 110, 110, 0.28); }
-.side-nav .side-badge {
+/* Not scoped to .side-nav — also used as the pending-count pill on the dashboard's top-level
+   "Tasks" tab button (#taskCount), which isn't inside a .side-nav. */
+.side-badge {
   background: var(--gold-600); color: white; border-radius: 999px; font-size: 0.72rem;
-  padding: 1px 7px; font-weight: 700;
+  padding: 1px 7px; font-weight: 700; margin-left: 4px;
 }
 .side-nav button.active .side-badge { background: white; color: var(--gold-600); }
 .side-content { flex: 1; min-width: 0; }

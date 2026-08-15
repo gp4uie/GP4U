@@ -22,6 +22,18 @@ const upload = multer({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Plausibility check, not an identity check — just rejects the obviously-impossible dates a typo
+// or placeholder value produces (e.g. a test record with DOB "1111-11-11"). Mirrors the
+// min="1900-01-01" on the client's date input; enforced again here since the client check is
+// only a UI convenience.
+function isPlausibleDob(dob) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) return false;
+  const date = new Date(dob + 'T00:00:00');
+  if (Number.isNaN(date.getTime())) return false;
+  const minDate = new Date('1900-01-01T00:00:00');
+  return date >= minDate && date <= new Date();
+}
+
 function newId(prefix) {
   return `${prefix}-${crypto.randomBytes(4).toString('hex')}`.toUpperCase();
 }
@@ -91,6 +103,9 @@ router.post('/bookings', async (req, res) => {
     if (!service) return res.status(400).json({ error: 'Unknown service type' });
     if (!patientName || !patientPhone || !patientEmail || !pharmacyName || !reason || !patientDob || !slotStart || !slotEnd) {
       return res.status(400).json({ error: 'Please fill in all required fields (marked with *).' });
+    }
+    if (!isPlausibleDob(patientDob)) {
+      return res.status(400).json({ error: 'Please enter a valid date of birth.' });
     }
     if (!EMAIL_RE.test(patientEmail)) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
