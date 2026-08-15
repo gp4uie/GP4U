@@ -346,8 +346,15 @@ h2.section-title.section-title-left::after { display: none; }
 .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--teal-700); }
 .stat-label { color: var(--ink-500); font-size: 0.82rem; margin-top: 4px; }
 
-.service-card {
-  cursor: pointer;
+.service-card { cursor: pointer; }
+.service-card:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); }
+.service-card h3 { margin: 8px 0 6px; font-size: 1.12rem; }
+.service-price { font-weight: 800; color: var(--teal-700); font-size: 1.2rem; margin-bottom: 10px; }
+
+/* Full-tile photo background — only the homepage "Our Services" grid cards get this (they carry
+   both .service-card and .service-card-photo). The repeat-prescription category tiles reuse plain
+   .service-card without a photo and must stay as ordinary white cards. */
+.service-card-photo {
   position: relative;
   overflow: hidden;
   padding: 0;
@@ -355,9 +362,7 @@ h2.section-title.section-title-left::after { display: none; }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  color: #fff;
 }
-.service-card:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); }
 .service-card-bg {
   position: absolute;
   inset: 0;
@@ -367,7 +372,7 @@ h2.section-title.section-title-left::after { display: none; }
 }
 /* Dark gradient over the photo so the white title/price/button stay readable regardless of
    how light or busy the underlying photo is. */
-.service-card::after {
+.service-card-photo::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -375,8 +380,8 @@ h2.section-title.section-title-left::after { display: none; }
   z-index: 1;
 }
 .service-card-body { position: relative; z-index: 2; padding: 20px; }
-.service-card h3 { margin: 0 0 6px; font-size: 1.12rem; color: #fff; }
-.service-price { font-weight: 800; color: #fff; font-size: 1.2rem; margin-bottom: 4px; }
+.service-card-photo h3 { color: #fff; }
+.service-card-photo .service-price { color: #fff; margin-bottom: 4px; }
 .service-card-body p { color: rgba(255, 255, 255, 0.82) !important; }
 .service-card-body .btn-secondary {
   background: rgba(255, 255, 255, 0.95);

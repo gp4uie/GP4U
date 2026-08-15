@@ -207,7 +207,7 @@ fetch('/api/services').then(r => r.json()).then(services => {
       const bookHref = key === 'repeat_rx' ? '/repeat-prescription.html' : `/book.html?service=${key}`;
       const photo = photos[key] || photos.general;
       return `
-    <div class="card service-card">
+    <div class="card service-card service-card-photo">
       <img class="service-card-bg" src="/img/photos/${photo}" alt="" loading="lazy" width="640" height="480">
       <div class="service-card-body">
         <h3>${s.label}</h3>
