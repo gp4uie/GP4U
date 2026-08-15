@@ -346,25 +346,44 @@ h2.section-title.section-title-left::after { display: none; }
 .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--teal-700); }
 .stat-label { color: var(--ink-500); font-size: 0.82rem; margin-top: 4px; }
 
-.service-card { cursor: pointer; }
-.service-card:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); }
-.service-card h3 { margin: 8px 0 6px; font-size: 1.12rem; }
-.service-price { font-weight: 800; color: var(--teal-700); font-size: 1.2rem; margin-bottom: 10px; }
-.service-icon {
-  width: 48px; height: 48px;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #eefaf9, #eaf1ff);
-  border-radius: 14px;
+.service-card {
+  cursor: pointer;
+  position: relative;
   overflow: hidden;
+  padding: 0;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: #fff;
 }
-.service-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* Colour variants cycled across service tiles (see index.html / book.js) so the services grid
-   reads as more than a wall of identical grey-teal squares — all four stay within the existing
-   brand palette (teal / blue / green), nothing new introduced. */
-.service-icon.icon-teal { background: linear-gradient(135deg, #d7f3ef, #eefaf9); }
-.service-icon.icon-blue { background: linear-gradient(135deg, #dbe7ff, #eaf1ff); }
-.service-icon.icon-bright { background: linear-gradient(135deg, #cdf6ee, #e7fbf8); }
-.service-icon.icon-green { background: linear-gradient(135deg, #d9f2e3, #eefaf6); }
+.service-card:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); }
+.service-card-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+/* Dark gradient over the photo so the white title/price/button stay readable regardless of
+   how light or busy the underlying photo is. */
+.service-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 30, 30, 0.05) 0%, rgba(8, 24, 26, 0.55) 55%, rgba(6, 18, 20, 0.88) 100%);
+  z-index: 1;
+}
+.service-card-body { position: relative; z-index: 2; padding: 20px; }
+.service-card h3 { margin: 0 0 6px; font-size: 1.12rem; color: #fff; }
+.service-price { font-weight: 800; color: #fff; font-size: 1.2rem; margin-bottom: 4px; }
+.service-card-body p { color: rgba(255, 255, 255, 0.82) !important; }
+.service-card-body .btn-secondary {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--teal-700);
+  border-color: transparent;
+}
+.service-card-body .btn-secondary:hover { background: #fff; }
 
 .steps { counter-reset: step; }
 .step { display: flex; gap: 18px; margin-bottom: 28px; align-items: flex-start; }

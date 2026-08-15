@@ -187,54 +187,34 @@ fetch('/api/services').then(r => r.json()).then(services => {
   // tile's category picker (repeat-prescription.html), not as their own tiles here — see book.js's
   // isRxConditionKey for the matching logic used on the booking page.
   const isRxConditionKey = (key) => typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
-  // Cycled across tiles purely for visual variety — all four stay inside the existing brand
-  // palette (teal / blue / green), nothing new introduced. See matching .icon-* classes in style.css.
-  const ICON_COLORS = [
-    { stroke: '#0f6e6e', cls: 'icon-teal' },
-    { stroke: '#1d4ed8', cls: 'icon-blue' },
-    { stroke: '#128080', cls: 'icon-bright' },
-    { stroke: '#2e9e6b', cls: 'icon-green' },
-  ];
-  const icons = {
-    general: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="#0f6e6e" stroke-width="2.5" stroke-linecap="round"/></svg>',
-    video: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="13" height="12" rx="3" stroke="#0f6e6e" stroke-width="2"/><path d="M16 10l5-3v10l-5-3z" fill="#0f6e6e"/></svg>',
-    travel: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 3L3 10l7 3 3 7 8-17z" stroke="#0f6e6e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>',
-    womens: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.5-9.5-9C1 8 2.5 4 6.5 4c2 0 3.5 1.2 4.5 2.8C12 5.2 13.5 4 15.5 4c4 0 5.5 4 4 7-2.5 4.5-7.5 9-7.5 9z" stroke="#0f6e6e" stroke-width="1.8" stroke-linejoin="round"/></svg>',
-    mens: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="15" r="6" stroke="#0f6e6e" stroke-width="2"/><path d="M13.5 10.5L20 4M20 4h-5M20 4v5" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    repeat_rx: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round"/><path d="M18 3v4h-4M6 21v-4h4" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    sick_cert: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="#0f6e6e" stroke-width="2"/><path d="M8.5 12.5l2.3 2.3L15.5 10" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    weight_loss: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6l7 7 3-3 6 6M14 16h6v-6" stroke="#0f6e6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  };
-  // Small real photo shown in place of the SVG icon on each consultation-type card —
-  // sourced as CC0 stock photography, cropped square in scripts/process-consult-photos.js.
+  // Full-tile background photo for each consultation-type card — sourced as CC0 stock
+  // photography, cropped 4:3 in scripts/process-consult-photos-wide.js. Falls back to the
+  // general-consultation photo for any future service key that doesn't have its own yet.
   const photos = {
-    general: 'consult-general.jpg',
-    video: 'consult-video.jpg',
-    womens: 'consult-womens.jpg',
-    mens: 'consult-mens.jpg',
-    repeat_rx: 'consult-repeat-rx.jpg',
-    sick_cert: 'consult-sick-cert.jpg',
-    travel: 'consult-travel.jpg',
-    weight_loss: 'consult-weight-loss.jpg',
+    general: 'consult-general-bg.jpg',
+    video: 'consult-video-bg.jpg',
+    womens: 'consult-womens-bg.jpg',
+    mens: 'consult-mens-bg.jpg',
+    repeat_rx: 'consult-repeat-rx-bg.jpg',
+    sick_cert: 'consult-sick-cert-bg.jpg',
+    travel: 'consult-travel-bg.jpg',
+    weight_loss: 'consult-weight-loss-bg.jpg',
   };
   const grid = document.getElementById('servicesGrid');
   grid.innerHTML = Object.entries(services)
     .filter(([key]) => !isRxConditionKey(key))
-    .map(([key, s], i) => {
+    .map(([key, s]) => {
       const bookHref = key === 'repeat_rx' ? '/repeat-prescription.html' : `/book.html?service=${key}`;
-      const color = ICON_COLORS[i % ICON_COLORS.length];
-      const iconSvg = (icons[key] || icons.general).replace(/#0f6e6e/g, color.stroke);
-      const photo = photos[key];
-      const iconInner = photo
-        ? `<img src="/img/photos/${photo}" alt="" loading="lazy" width="48" height="48">`
-        : iconSvg;
+      const photo = photos[key] || photos.general;
       return `
     <div class="card service-card">
-      <div class="service-icon ${color.cls}">${iconInner}</div>
-      <h3>${s.label}</h3>
-      <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
-      <p style="color:var(--ink-500);font-size:0.85rem;margin-bottom:14px;">${s.durationMins} minute appointment</p>
-      <a href="${bookHref}" class="btn btn-secondary btn-block">Book</a>
+      <img class="service-card-bg" src="/img/photos/${photo}" alt="" loading="lazy" width="640" height="480">
+      <div class="service-card-body">
+        <h3>${s.label}</h3>
+        <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
+        <p style="font-size:0.85rem;margin-bottom:14px;">${s.durationMins} minute appointment</p>
+        <a href="${bookHref}" class="btn btn-secondary btn-block">Book</a>
+      </div>
     </div>
   `;
     }).join('');
