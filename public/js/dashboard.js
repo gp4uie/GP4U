@@ -8,15 +8,44 @@ let currentListType = null; // 'schedule' | 'search' | 'recent'
 let scheduleIds = [], searchIds = [], recentIds = [];
 let MEDICATIONS_LIST = [];
 
+// Sessions now idle-timeout server-side (see requireDoctor in server/routes/doctor.js), so any
+// authenticated call can come back 401 mid-use — not just at page load. Every fetch to an
+// authenticated /api/doctor/* route (other than login/logout/me/forgot-password, which manage
+// the session state themselves) should go through this instead of a bare fetch(), so an expired
+// session lands back on a clean login screen with a clear message instead of the page silently
+// treating an {error: ...} response as real data and throwing.
+async function doctorFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    showSessionExpired();
+    throw new Error('session-expired');
+  }
+  return res;
+}
+
+function showSessionExpired() {
+  document.getElementById('detailPanel').style.display = 'none';
+  document.getElementById('dashboardBox').style.display = 'none';
+  document.getElementById('notifWrap').style.display = 'none';
+  document.getElementById('logoutLink').style.display = 'none';
+  document.getElementById('loginBox').style.display = 'block';
+  document.getElementById('loginError').textContent = 'Your session expired due to inactivity. Please log in again.';
+  document.getElementById('passwordInput').value = '';
+}
+
+let doctorTotpEnabled = false;
+
 async function checkSession() {
   const res = await fetch('/api/doctor/me');
   const data = await res.json();
   if (data.loggedIn) {
+    document.getElementById('totpBox').style.display = 'none';
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('dashboardBox').style.display = 'block';
     document.getElementById('whoami').textContent = `${data.doctorName} — ${data.practiceName}`;
     document.getElementById('logoutLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
+    doctorTotpEnabled = !!data.totpEnabled;
     loadSchedule();
     loadNotifications();
     loadMedications();
@@ -42,11 +71,39 @@ async function login() {
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
-  if (res.ok) {
+  if (res.ok && data.requiresTotp) {
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('totpBox').style.display = 'block';
+    document.getElementById('totpError').textContent = '';
+    document.getElementById('totpCodeInput').value = '';
+    document.getElementById('totpCodeInput').focus();
+  } else if (res.ok) {
     checkSession();
   } else {
     document.getElementById('loginError').textContent = data.error || 'Incorrect email or password.';
   }
+}
+
+async function verifyTotpLogin() {
+  const code = document.getElementById('totpCodeInput').value;
+  const res = await fetch('/api/doctor/login/verify-totp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    checkSession();
+  } else {
+    document.getElementById('totpError').textContent = data.error || 'Incorrect code.';
+  }
+}
+
+async function cancelTotpLogin() {
+  await fetch('/api/doctor/logout', { method: 'POST' });
+  document.getElementById('totpBox').style.display = 'none';
+  document.getElementById('loginBox').style.display = 'block';
+  document.getElementById('passwordInput').value = '';
 }
 
 document.getElementById('logoutLink').addEventListener('click', async (e) => {
@@ -76,18 +133,84 @@ async function submitForgot() {
 // --- Top-level tabs ---
 function showTab(tab) {
   activeTab = tab;
-  ['schedule', 'search', 'recent', 'tasks'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'tasks', 'security'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'recent') loadRecent();
   if (tab === 'schedule') loadSchedule();
   if (tab === 'tasks') loadTasks();
+  if (tab === 'security') renderSecurityTab();
+}
+
+// --- Two-factor authentication ---
+function renderSecurityTab() {
+  document.getElementById('totpEnableFlow').style.display = 'none';
+  document.getElementById('totpSetupMsg').textContent = '';
+  if (doctorTotpEnabled) {
+    document.getElementById('totpStatusText').innerHTML = '<span class="badge badge-green">Enabled</span> — a code from your authenticator app is required at login.';
+    document.getElementById('totpEnableBtn').style.display = 'none';
+    document.getElementById('totpDisableFlow').style.display = 'block';
+  } else {
+    document.getElementById('totpStatusText').innerHTML = '<span class="badge badge-amber">Not enabled</span> — your account only requires a password to log in.';
+    document.getElementById('totpEnableBtn').style.display = 'inline-block';
+    document.getElementById('totpDisableFlow').style.display = 'none';
+  }
+}
+
+async function startTotpSetup() {
+  const res = await doctorFetch('/api/doctor/totp/setup', { method: 'POST' });
+  const data = await res.json();
+  document.getElementById('totpSecretText').textContent = data.secret;
+  document.getElementById('totpOtpauthLink').href = data.otpauthUrl;
+  document.getElementById('totpConfirmInput').value = '';
+  document.getElementById('totpSetupMsg').textContent = '';
+  document.getElementById('totpEnableFlow').style.display = 'block';
+  document.getElementById('totpEnableBtn').style.display = 'none';
+}
+
+async function confirmTotpSetup() {
+  const code = document.getElementById('totpConfirmInput').value;
+  const res = await doctorFetch('/api/doctor/totp/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    document.getElementById('totpSetupMsg').textContent = data.error;
+    return;
+  }
+  doctorTotpEnabled = true;
+  renderSecurityTab();
+}
+
+function cancelTotpSetup() {
+  document.getElementById('totpEnableFlow').style.display = 'none';
+  document.getElementById('totpEnableBtn').style.display = 'inline-block';
+}
+
+async function disableTotp() {
+  const password = document.getElementById('totpDisablePassword').value;
+  const res = await doctorFetch('/api/doctor/totp/disable', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    document.getElementById('totpDisableMsg').textContent = data.error;
+    return;
+  }
+  document.getElementById('totpDisablePassword').value = '';
+  document.getElementById('totpDisableMsg').textContent = '';
+  doctorTotpEnabled = false;
+  renderSecurityTab();
 }
 
 // --- Tasks ---
 async function loadTasks() {
-  const res = await fetch('/api/doctor/tasks');
+  const res = await doctorFetch('/api/doctor/tasks');
   const tasks = await res.json();
   const pendingCount = tasks.filter((t) => t.status === 'pending').length;
   const badge = document.getElementById('taskCount');
@@ -107,7 +230,7 @@ async function loadTasks() {
 }
 
 async function completeTask(id) {
-  await fetch(`/api/doctor/tasks/${id}/complete`, { method: 'POST' });
+  await doctorFetch(`/api/doctor/tasks/${id}/complete`, { method: 'POST' });
   loadTasks();
 }
 
@@ -128,7 +251,7 @@ function goToToday() {
 
 async function loadSchedule() {
   document.getElementById('scheduleDateLabel').textContent = scheduleDate.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
-  const res = await fetch('/api/doctor/schedule?date=' + isoDate(scheduleDate));
+  const res = await doctorFetch('/api/doctor/schedule?date=' + isoDate(scheduleDate));
   const data = await res.json();
   scheduleIds = data.bookings.map((b) => b.id);
   renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins);
@@ -197,7 +320,7 @@ async function runSearch() {
   const q = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
   if (!q) { resultsEl.innerHTML = ''; return; }
-  const res = await fetch('/api/doctor/search?q=' + encodeURIComponent(q));
+  const res = await doctorFetch('/api/doctor/search?q=' + encodeURIComponent(q));
   const results = await res.json();
   searchIds = results.map((b) => b.id);
   if (!results.length) {
@@ -227,7 +350,7 @@ async function runSearch() {
 
 // --- Recent Cases ---
 async function loadRecent() {
-  const res = await fetch('/api/doctor/recent');
+  const res = await doctorFetch('/api/doctor/recent');
   const bookings = await res.json();
   recentIds = bookings.map((b) => b.id);
   const body = document.getElementById('recentBody');
@@ -243,7 +366,7 @@ async function loadRecent() {
 
 // --- Notifications ---
 async function loadNotifications() {
-  const res = await fetch('/api/doctor/notifications');
+  const res = await doctorFetch('/api/doctor/notifications');
   const data = await res.json();
   const countEl = document.getElementById('notifCount');
   if (data.unreadCount > 0) {
@@ -272,7 +395,7 @@ document.addEventListener('click', (e) => {
 });
 
 async function handleNotifClick(id, bookingId) {
-  await fetch(`/api/doctor/notifications/${id}/read`, { method: 'POST' });
+  await doctorFetch(`/api/doctor/notifications/${id}/read`, { method: 'POST' });
   document.getElementById('notifDropdown').classList.remove('open');
   loadNotifications();
   openBooking(bookingId, null);
@@ -313,7 +436,7 @@ async function openBooking(id, listType, keepTab) {
   const isSameBooking = id === currentBookingId && document.getElementById('detailPanel').style.display !== 'none';
   currentBookingId = id;
   if (listType !== undefined && listType !== null) currentListType = listType;
-  const res = await fetch(`/api/doctor/bookings/${id}`);
+  const res = await doctorFetch(`/api/doctor/bookings/${id}`);
   const data = await res.json();
   const b = data.booking;
   currentPatientEmail = b.patient_email;
@@ -361,6 +484,7 @@ async function openBooking(id, listType, keepTab) {
     window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
   };
   renderAttachments(data.attachments);
+  renderAllergyBanner(b, pp);
   renderPreviousConsultations(data.previousConsultations);
   renderMessages(data.messages);
   renderNotes(data.notes);
@@ -379,6 +503,23 @@ function renderAttachments(attachments) {
   document.getElementById('attachmentsList').innerHTML = attachments.length
     ? attachments.map(a => `<a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;margin:0 8px 8px 0;display:inline-block;" target="_blank" href="/api/doctor/attachments/${a.id}">${a.original_name}</a>`).join('')
     : '<p style="color:var(--ink-500);">None uploaded.</p>';
+}
+
+// Shown at the top of the Prescription tab specifically — that's the moment an allergy actually
+// matters, and a doctor can now reach it without passing through Overview first (see the tab
+// history fix above), so this can no longer rely on Overview as an incidental checkpoint.
+function renderAllergyBanner(booking, patientProfile) {
+  const visitAllergies = (booking.allergies || '').trim();
+  const profileAllergies = ((patientProfile && patientProfile.allergies) || '').trim();
+  const el = document.getElementById('rxAllergyBanner');
+  if (!visitAllergies && !profileAllergies) {
+    el.innerHTML = `<div class="allergy-banner none"><strong>Allergies</strong>None reported — this visit or patient profile.</div>`;
+    return;
+  }
+  const lines = [];
+  if (visitAllergies) lines.push(`<span class="source-label">This visit:</span> ${visitAllergies}`);
+  if (profileAllergies && profileAllergies !== visitAllergies) lines.push(`<span class="source-label">Patient profile:</span> ${profileAllergies}`);
+  el.innerHTML = `<div class="allergy-banner"><strong>⚠ Allergies</strong>${lines.join('<br>')}</div>`;
 }
 
 const DOC_TYPE_LABELS = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
@@ -513,7 +654,7 @@ function renderNotes(notes) {
 async function saveNote() {
   const input = document.getElementById('noteInput');
   if (!input.value.trim()) return;
-  await fetch(`/api/doctor/bookings/${currentBookingId}/notes`, {
+  await doctorFetch(`/api/doctor/bookings/${currentBookingId}/notes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ noteText: input.value }),
@@ -541,7 +682,7 @@ function renderPrescriptions(prescriptions) {
 async function sendPrescription(rxId) {
   const toEmail = prompt("Pharmacy's email address (their @healthmail.ie address once you have Healthmail set up):");
   if (!toEmail) return;
-  const res = await fetch(`/api/doctor/prescriptions/${rxId}/send`, {
+  const res = await doctorFetch(`/api/doctor/prescriptions/${rxId}/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ toEmail }),
@@ -599,7 +740,7 @@ function docCard(d) {
 }
 
 async function sendSickCertToPatient(docId) {
-  const res = await fetch(`/api/doctor/documents/${docId}/send`, {
+  const res = await doctorFetch(`/api/doctor/documents/${docId}/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ toEmail: currentPatientEmail }),
@@ -613,7 +754,7 @@ async function sendSickCertToPatient(docId) {
 async function sendDocument(docId) {
   const toEmail = prompt('Recipient email address (hospital/specialist/Healthmail address):');
   if (!toEmail) return;
-  const res = await fetch(`/api/doctor/documents/${docId}/send`, {
+  const res = await doctorFetch(`/api/doctor/documents/${docId}/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ toEmail }),
@@ -625,7 +766,7 @@ async function sendDocument(docId) {
 }
 
 async function loadMedications() {
-  const res = await fetch('/api/doctor/medications');
+  const res = await doctorFetch('/api/doctor/medications');
   MEDICATIONS_LIST = await res.json();
   document.getElementById('medicationList').innerHTML = MEDICATIONS_LIST
     .map(m => `<option value="${m.name}">`).join('');
@@ -650,7 +791,7 @@ async function issuePrescription() {
     alert('Please fill in all prescription fields.');
     return;
   }
-  await fetch(`/api/doctor/bookings/${currentBookingId}/prescriptions`, {
+  await doctorFetch(`/api/doctor/bookings/${currentBookingId}/prescriptions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ medication, dose, frequency, duration, quantity, instructions }),
@@ -666,7 +807,7 @@ function toggleReferralFields() {
 }
 
 async function issueDocument(docType, fields) {
-  await fetch(`/api/doctor/bookings/${currentBookingId}/documents`, {
+  await doctorFetch(`/api/doctor/bookings/${currentBookingId}/documents`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ docType, fields }),
@@ -706,7 +847,7 @@ function collectReferralAndIssue() {
 }
 
 async function markComplete() {
-  await fetch(`/api/doctor/bookings/${currentBookingId}/complete`, { method: 'POST' });
+  await doctorFetch(`/api/doctor/bookings/${currentBookingId}/complete`, { method: 'POST' });
   if (activeTab === 'schedule') loadSchedule();
   if (activeTab === 'recent') loadRecent();
   openBooking(currentBookingId);
@@ -715,7 +856,7 @@ async function markComplete() {
 async function sendDoctorMessage() {
   const input = document.getElementById('doctorMessageInput');
   if (!input.value.trim()) return;
-  await fetch(`/api/doctor/bookings/${currentBookingId}/messages`, {
+  await doctorFetch(`/api/doctor/bookings/${currentBookingId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ body: input.value }),

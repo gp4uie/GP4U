@@ -20,7 +20,7 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['analytics', 'doctors', 'patients', 'rx'].forEach((t) => {
+  ['analytics', 'doctors', 'patients', 'rx', 'accesslog'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
@@ -28,6 +28,20 @@ function showAdminTab(tab) {
   if (tab === 'doctors') loadDoctors();
   if (tab === 'patients') loadPatients();
   if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
+  if (tab === 'accesslog') loadAccessLog();
+}
+
+async function loadAccessLog() {
+  const res = await fetch('/api/admin/access-log');
+  const log = await res.json();
+  document.getElementById('accessLogBody').innerHTML = log.length ? log.map((r) => `
+    <tr>
+      <td>${new Date(r.viewed_at).toLocaleString('en-IE')}</td>
+      <td>${r.doctor_name}</td>
+      <td>${r.patient_name}</td>
+      <td>${r.service_type.replace('_', ' ')}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No access recorded yet.</td></tr>';
 }
 
 async function loadAdminPrescriptions() {
@@ -100,10 +114,20 @@ async function loadDoctors() {
       <td>${d.name}</td>
       <td>${d.reg_number}</td>
       <td>${d.email}</td>
+      <td><span class="badge ${d.active ? 'badge-green' : 'badge-amber'}">${d.active ? 'Active' : 'Deactivated'}</span></td>
+      <td>${d.last_login_at ? new Date(d.last_login_at).toLocaleString('en-IE') : 'Never'}</td>
+      <td>${d.totp_enabled ? '<span class="badge badge-green">On</span>' : '—'}
+        ${d.totp_enabled ? `<button class="btn btn-secondary" style="padding:4px 10px;font-size:0.78rem;margin-left:6px;" onclick="disableDoctorTotp(${d.id})">Reset</button>` : ''}
+      </td>
       <td><button class="btn btn-secondary" onclick="openScheduleEditor(${d.id}, '${d.name.replace(/'/g, "\\'")}')">Edit Schedule</button></td>
-      <td><button class="btn btn-secondary" onclick="removeDoctor(${d.id})">Remove</button></td>
+      <td>
+        ${d.active
+          ? `<button class="btn btn-secondary" onclick="deactivateDoctor(${d.id})">Deactivate</button>`
+          : `<button class="btn btn-secondary" onclick="reactivateDoctor(${d.id})">Reactivate</button>`}
+        <button class="btn btn-secondary" onclick="removeDoctor(${d.id})">Delete</button>
+      </td>
     </tr>
-  `).join('') || '<tr><td colspan="5">No doctors yet.</td></tr>';
+  `).join('') || '<tr><td colspan="8">No doctors yet.</td></tr>';
 }
 
 async function addDoctor() {
@@ -129,8 +153,31 @@ async function addDoctor() {
 }
 
 async function removeDoctor(id) {
-  if (!confirm('Remove this doctor? They will no longer be able to log in.')) return;
+  if (!confirm('Permanently delete this doctor account? Prefer "Deactivate" unless this is a duplicate/mistaken account — deactivating blocks login while keeping the account on record.')) return;
   const res = await fetch('/api/admin/doctors/' + id, { method: 'DELETE' });
+  const data = await res.json();
+  if (res.ok) loadDoctors();
+  else alert(data.error);
+}
+
+async function deactivateDoctor(id) {
+  if (!confirm('Deactivate this doctor? They will be logged out and unable to log back in until reactivated.')) return;
+  const res = await fetch(`/api/admin/doctors/${id}/deactivate`, { method: 'POST' });
+  const data = await res.json();
+  if (res.ok) loadDoctors();
+  else alert(data.error);
+}
+
+async function reactivateDoctor(id) {
+  const res = await fetch(`/api/admin/doctors/${id}/reactivate`, { method: 'POST' });
+  const data = await res.json();
+  if (res.ok) loadDoctors();
+  else alert(data.error);
+}
+
+async function disableDoctorTotp(id) {
+  if (!confirm("Reset this doctor's two-factor authentication? They'll be able to log in with just their password until they set it up again.")) return;
+  const res = await fetch(`/api/admin/doctors/${id}/disable-totp`, { method: 'POST' });
   const data = await res.json();
   if (res.ok) loadDoctors();
   else alert(data.error);

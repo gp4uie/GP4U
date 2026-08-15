@@ -232,6 +232,18 @@ async function initSchema() {
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Migration for sites where `doctors` already existed before these were added.
+  // active: lets an admin revoke a doctor's access (login blocked) without deleting the account —
+  // historical notes/documents already survive account deletion via their own name/reg-number
+  // snapshot, but deletion still loses the account itself for reference and breaks the
+  // chart_access_log/tasks foreign keys, so deactivating is now the primary path in the admin UI.
+  await ensureColumn('doctors', 'active', 'TINYINT(1) NOT NULL DEFAULT 1');
+  await ensureColumn('doctors', 'last_login_at', 'DATETIME NULL');
+  // TOTP two-factor auth — secret is only set once a doctor completes enrollment (scans/enters it
+  // into an authenticator app and confirms a code), enabled flips on only after that confirmation
+  // so a half-finished enrollment can never lock a doctor out of their own account.
+  await ensureColumn('doctors', 'totp_secret', 'VARCHAR(64) NULL');
+  await ensureColumn('doctors', 'totp_enabled', 'TINYINT(1) NOT NULL DEFAULT 0');
 
   // Each doctor's own weekly working hours — any number of rows per day (e.g. a split shift
   // 12:00-13:00 and 19:00-23:00 on the same day), no rows means that doctor doesn't work that
@@ -350,6 +362,24 @@ async function initSchema() {
     CREATE TABLE IF NOT EXISTS consultation_summary_log (
       booking_id VARCHAR(32) PRIMARY KEY,
       sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // One row per chart opened by a doctor — complements notes/prescriptions/documents (which
+  // already record who wrote what) with a record of who *viewed* a patient's chart and when.
+  // Written by GET /api/doctor/bookings/:id (see routes/doctor.js); readable by admins via
+  // GET /api/admin/access-log.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS chart_access_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      doctor_id INT NOT NULL,
+      booking_id VARCHAR(32) NOT NULL,
+      viewed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (doctor_id) REFERENCES doctors(id),
+      FOREIGN KEY (booking_id) REFERENCES bookings(id),
+      INDEX idx_booking (booking_id),
+      INDEX idx_doctor (doctor_id),
+      INDEX idx_viewed_at (viewed_at)
     )
   `);
 

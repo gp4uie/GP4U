@@ -29,6 +29,7 @@
     <button class="tab-btn" id="tabBtn_doctors" onclick="showAdminTab('doctors')">Doctors</button>
     <button class="tab-btn" id="tabBtn_patients" onclick="showAdminTab('patients')">Patients</button>
     <button class="tab-btn" id="tabBtn_rx" onclick="showAdminTab('rx')">Prescriptions &amp; Summaries</button>
+    <button class="tab-btn" id="tabBtn_accesslog" onclick="showAdminTab('accesslog')">Access Log</button>
   </div>
 
   <div id="tab_analytics">
@@ -79,7 +80,7 @@
     <p style="color:var(--ink-500);">Onboard doctors and set each one's weekly working hours. A booking slot is only offered to patients if at least one doctor is available then.</p>
     <div class="table-scroll">
       <table class="bookings-table">
-        <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th></th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th>Status</th><th>Last login</th><th>2FA</th><th></th><th></th></tr></thead>
         <tbody id="doctorsBody"></tbody>
       </table>
     </div>
@@ -151,10 +152,21 @@
     <div id="adminSummariesList"></div>
   </div>
 
+  <div id="tab_accesslog" style="display:none;">
+    <h1>Access Log</h1>
+    <p style="color:var(--ink-500);">Every time a doctor opens a patient's chart — separate from the clinical records themselves, which already show who wrote what. The most recent 200 views.</p>
+    <div class="table-scroll">
+      <table class="bookings-table">
+        <thead><tr><th>When</th><th>Doctor</th><th>Patient</th><th>Service</th></tr></thead>
+        <tbody id="accessLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script src="/js/availability-editor.js"></script>
-<script src="/js/admin-dashboard.js"></script>
+<script src="/js/admin-dashboard.js?v=1"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>

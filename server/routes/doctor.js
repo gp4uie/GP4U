@@ -7,18 +7,32 @@ const { generateSickCertPdf, generateReferralPdf, generatePrescriptionPdf } = re
 const { DOCUMENT_TYPES } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
 const { getDayHoursRange } = require('../slots');
+const loginLimiter = require('../loginLimiter');
+const totp = require('../totp');
 
 const router = express.Router();
 
-// Also guards against a session referencing a doctor account that's since been removed
-// (e.g. an admin deleted a colleague while they were still logged in elsewhere).
+// The session cookie itself lasts 30 days ("remember me" on a personal device), but a doctor's
+// account being open and idle on a shared clinic machine is a different risk — this closes that
+// gap independently, by stamping req.session.lastActivityAt on every authenticated request and
+// rejecting once it's gone stale, without touching the cookie's own longer-lived expiry.
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+
+// Also guards against a session referencing a doctor account that's since been removed, or
+// deactivated by an admin while still logged in elsewhere.
 async function requireDoctor(req, res, next) {
   if (!req.session || !req.session.doctorId) return res.status(401).json({ error: 'Not logged in' });
-  const doctor = await db.get('SELECT id FROM doctors WHERE id = ?', [req.session.doctorId]);
-  if (!doctor) {
+  const now = Date.now();
+  if (req.session.lastActivityAt && now - req.session.lastActivityAt > IDLE_TIMEOUT_MS) {
+    req.session = null;
+    return res.status(401).json({ error: 'Session expired due to inactivity' });
+  }
+  const doctor = await db.get('SELECT id, active FROM doctors WHERE id = ?', [req.session.doctorId]);
+  if (!doctor || doctor.active === 0) {
     req.session = null;
     return res.status(401).json({ error: 'Not logged in' });
   }
+  req.session.lastActivityAt = now;
   next();
 }
 
@@ -31,11 +45,68 @@ async function getCurrentDoctor(req) {
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  const doctor = email && await db.get('SELECT * FROM doctors WHERE email = ?', [email.toLowerCase().trim()]);
+  const accountKey = (email || '').toLowerCase().trim();
+
+  const limit = loginLimiter.checkLimit(accountKey, req.ip);
+  if (limit.blocked) {
+    const minutes = Math.ceil(limit.retryAfterMs / 60000);
+    return res.status(429).json({
+      error: limit.reason === 'account'
+        ? `Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}, or use "Forgot your password?".`
+        : `Too many login attempts from this network. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+    });
+  }
+
+  const doctor = accountKey && await db.get('SELECT * FROM doctors WHERE email = ?', [accountKey]);
   if (!doctor || !bcrypt.compareSync(password || '', doctor.password_hash)) {
+    loginLimiter.recordFailure(accountKey, req.ip);
     return res.status(401).json({ error: 'Incorrect email or password' });
   }
+  if (doctor.active === 0) {
+    // Deliberately not rate-limited/recorded as a failure — the password was correct, this
+    // isn't a guessing attempt, just an access decision.
+    return res.status(403).json({ error: 'This account has been deactivated. Contact your practice administrator.' });
+  }
+  loginLimiter.recordSuccess(accountKey);
+
+  if (doctor.totp_enabled) {
+    // Password is correct but the session isn't authenticated yet — pendingDoctorId (not
+    // doctorId) is deliberately a different key so requireDoctor can't be satisfied by it; only
+    // POST /login/verify-totp promotes this to a real session.
+    req.session.pendingDoctorId = doctor.id;
+    return res.json({ ok: true, requiresTotp: true });
+  }
   req.session.doctorId = doctor.id;
+  req.session.lastActivityAt = Date.now();
+  await db.run('UPDATE doctors SET last_login_at = NOW() WHERE id = ?', [doctor.id]);
+  res.json({ ok: true });
+});
+
+router.post('/login/verify-totp', async (req, res) => {
+  const { code } = req.body;
+  if (!req.session || !req.session.pendingDoctorId) return res.status(401).json({ error: 'Not logged in' });
+  const doctor = await db.get('SELECT * FROM doctors WHERE id = ?', [req.session.pendingDoctorId]);
+  if (!doctor || !doctor.totp_enabled || doctor.active === 0) {
+    req.session = null;
+    return res.status(401).json({ error: 'Not logged in' });
+  }
+
+  const limitKey = 'totp:' + doctor.email;
+  const limit = loginLimiter.checkLimit(limitKey, req.ip);
+  if (limit.blocked) {
+    const minutes = Math.ceil(limit.retryAfterMs / 60000);
+    return res.status(429).json({ error: `Too many incorrect codes. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.` });
+  }
+
+  if (!totp.verifyTotp(doctor.totp_secret, code)) {
+    loginLimiter.recordFailure(limitKey, req.ip);
+    return res.status(401).json({ error: 'Incorrect code' });
+  }
+  loginLimiter.recordSuccess(limitKey);
+  req.session.doctorId = doctor.id;
+  req.session.pendingDoctorId = null;
+  req.session.lastActivityAt = Date.now();
+  await db.run('UPDATE doctors SET last_login_at = NOW() WHERE id = ?', [doctor.id]);
   res.json({ ok: true });
 });
 
@@ -46,18 +117,58 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', async (req, res) => {
   if (!req.session || !req.session.doctorId) return res.json({ loggedIn: false });
-  const doctor = await getCurrentDoctor(req);
-  if (!doctor) {
+  if (req.session.lastActivityAt && Date.now() - req.session.lastActivityAt > IDLE_TIMEOUT_MS) {
     req.session = null;
     return res.json({ loggedIn: false });
   }
+  const doctor = await getCurrentDoctor(req);
+  if (!doctor || doctor.active === 0) {
+    req.session = null;
+    return res.json({ loggedIn: false });
+  }
+  req.session.lastActivityAt = Date.now();
   res.json({
     loggedIn: true,
     doctorName: doctor.name,
     doctorRegNumber: doctor.reg_number,
+    doctorEmail: doctor.email,
     practiceName: process.env.PRACTICE_NAME,
     mailerConfigured: mailer.isConfigured(),
+    totpEnabled: !!doctor.totp_enabled,
   });
+});
+
+// --- Two-factor authentication (TOTP) ---
+// Enrollment is two steps on purpose: /totp/setup only stores the secret, /totp/confirm only
+// flips totp_enabled on after the doctor proves they can actually generate a valid code from it —
+// so a doctor who closes the tab mid-setup (never confirms) is never locked out by a secret they
+// don't have safely saved in an app yet.
+router.post('/totp/setup', requireDoctor, async (req, res) => {
+  const doctor = await getCurrentDoctor(req);
+  const secret = totp.generateSecret();
+  await db.run('UPDATE doctors SET totp_secret = ?, totp_enabled = 0 WHERE id = ?', [secret, doctor.id]);
+  res.json({ secret, otpauthUrl: totp.otpauthUrl(doctor.email, secret, process.env.PRACTICE_NAME || 'GP4U') });
+});
+
+router.post('/totp/confirm', requireDoctor, async (req, res) => {
+  const { code } = req.body;
+  const doctor = await getCurrentDoctor(req);
+  if (!doctor.totp_secret) return res.status(400).json({ error: 'Start setup first.' });
+  if (!totp.verifyTotp(doctor.totp_secret, code)) {
+    return res.status(400).json({ error: 'Incorrect code — check the time on your phone and try the newest code shown.' });
+  }
+  await db.run('UPDATE doctors SET totp_enabled = 1 WHERE id = ?', [doctor.id]);
+  res.json({ ok: true });
+});
+
+router.post('/totp/disable', requireDoctor, async (req, res) => {
+  const { password } = req.body;
+  const doctor = await getCurrentDoctor(req);
+  if (!bcrypt.compareSync(password || '', doctor.password_hash)) {
+    return res.status(401).json({ error: 'Incorrect password' });
+  }
+  await db.run('UPDATE doctors SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?', [doctor.id]);
+  res.json({ ok: true });
 });
 
 // --- Forgot / reset password ---
@@ -202,6 +313,19 @@ router.get('/search', requireDoctor, async (req, res) => {
 router.get('/bookings/:id', requireDoctor, async (req, res) => {
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Not found' });
+
+  // Record the access, but collapse repeats within a short window into one row — the dashboard
+  // polls this same endpoint every 20s while a chart stays open (see doctorFetch's background
+  // refresh in dashboard.js), and logging every poll would drown the "who opened this chart"
+  // signal in near-duplicates rather than capturing it.
+  const recentView = await db.get(
+    'SELECT id FROM chart_access_log WHERE doctor_id = ? AND booking_id = ? AND viewed_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)',
+    [req.session.doctorId, req.params.id]
+  );
+  if (!recentView) {
+    await db.run('INSERT INTO chart_access_log (doctor_id, booking_id) VALUES (?, ?)', [req.session.doctorId, req.params.id]);
+  }
+
   const messages = await db.all('SELECT sender, body, created_at FROM messages WHERE booking_id = ? ORDER BY created_at ASC', [req.params.id]);
   const prescriptions = await db.all('SELECT * FROM prescriptions WHERE booking_id = ? ORDER BY issued_at DESC', [req.params.id]);
   const notes = await db.all('SELECT * FROM clinical_notes WHERE booking_id = ? ORDER BY created_at DESC', [req.params.id]);

@@ -86,7 +86,9 @@ router.post('/reset-password', async (req, res) => {
 
 // --- Onboard / manage doctors ---
 router.get('/doctors', requireAdmin, async (req, res) => {
-  const doctors = await db.all('SELECT id, name, reg_number, email, created_at FROM doctors ORDER BY created_at ASC');
+  const doctors = await db.all(
+    'SELECT id, name, reg_number, email, active, last_login_at, totp_enabled, created_at FROM doctors ORDER BY created_at ASC'
+  );
   res.json(doctors);
 });
 
@@ -104,6 +106,30 @@ router.post('/doctors', requireAdmin, async (req, res) => {
     [name.trim(), regNumber.trim(), email.toLowerCase().trim(), hash]
   );
   res.json({ ok: true, id: info.lastInsertRowid });
+});
+
+// Deactivate is the primary way to remove a doctor's access now — it blocks login immediately
+// (requireDoctor/login both check `active`) while keeping the account itself, its schedule, and
+// its link in chart_access_log/tasks intact for reference. Hard delete (below) still exists for
+// genuine cleanup (e.g. a duplicate account created by mistake) but is no longer the first tool
+// reached for "this doctor left the practice".
+router.post('/doctors/:id/deactivate', requireAdmin, async (req, res) => {
+  const countRow = await db.get('SELECT COUNT(*) AS n FROM doctors WHERE active = 1 AND id != ?', [req.params.id]);
+  if (countRow.n < 1) return res.status(400).json({ error: 'Cannot deactivate the only remaining active doctor account' });
+  await db.run('UPDATE doctors SET active = 0 WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+router.post('/doctors/:id/reactivate', requireAdmin, async (req, res) => {
+  await db.run('UPDATE doctors SET active = 1 WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// Lost-device recovery for a doctor's 2FA — same pragmatic pattern as password resets elsewhere
+// in this app (an admin can always step in when the doctor's own recovery path is blocked).
+router.post('/doctors/:id/disable-totp', requireAdmin, async (req, res) => {
+  await db.run('UPDATE doctors SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
 });
 
 router.delete('/doctors/:id', requireAdmin, async (req, res) => {
@@ -355,6 +381,22 @@ router.get('/prescriptions', requireAdmin, async (req, res) => {
     ORDER BY p.issued_at DESC LIMIT 100
   `);
   res.json(prescriptions);
+});
+
+// Who opened which patient's chart, and when — complements the clinical tables (which already
+// record who wrote what) with a record of access itself. See chart_access_log in server/db.js
+// and the write side in routes/doctor.js's GET /bookings/:id.
+router.get('/access-log', requireAdmin, async (req, res) => {
+  const log = await db.all(`
+    SELECT cal.id, cal.viewed_at, d.name AS doctor_name, d.email AS doctor_email,
+           b.id AS booking_id, b.patient_name, b.service_type
+    FROM chart_access_log cal
+    JOIN doctors d ON d.id = cal.doctor_id
+    JOIN bookings b ON b.id = cal.booking_id
+    ORDER BY cal.viewed_at DESC
+    LIMIT 200
+  `);
+  res.json(log);
 });
 
 router.get('/completed-summaries', requireAdmin, async (req, res) => {

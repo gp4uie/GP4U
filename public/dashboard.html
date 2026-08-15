@@ -46,6 +46,18 @@
   </div>
 </div>
 
+<div id="totpBox" class="page-shell" style="max-width:380px; display:none;">
+  <h1>Authentication Code</h1>
+  <p style="color:var(--ink-500);">Enter the 6-digit code from your authenticator app.</p>
+  <div class="form-row">
+    <label>Code</label>
+    <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" id="totpCodeInput" style="letter-spacing:0.3em; font-size:1.3rem; text-align:center;">
+  </div>
+  <button class="btn btn-primary btn-block" onclick="verifyTotpLogin()">Verify</button>
+  <p id="totpError" style="color:#c0392b;"></p>
+  <p><a href="#" id="totpBackLink" onclick="cancelTotpLogin(); return false;">Back to login</a></p>
+</div>
+
 <div id="dashboardBox" class="wide-shell" style="display:none;">
 
   <div class="tab-bar">
@@ -53,6 +65,7 @@
     <button class="tab-btn" id="tabBtn_search" onclick="showTab('search')">Search Patients</button>
     <button class="tab-btn" id="tabBtn_recent" onclick="showTab('recent')">Recent Cases</button>
     <button class="tab-btn" id="tabBtn_tasks" onclick="showTab('tasks')">Tasks <span id="taskCount" class="side-badge" style="display:none;">0</span></button>
+    <button class="tab-btn" id="tabBtn_security" onclick="showTab('security')">Security</button>
   </div>
 
   <div id="tab_schedule">
@@ -89,6 +102,39 @@
     <h1>Tasks</h1>
     <p style="color:var(--ink-500);">Issuing a prescription automatically adds a task here. Mark it complete once you've sent it to the pharmacy — sending it through "Send to Pharmacy" also marks it complete automatically.</p>
     <div id="tasksList"></div>
+  </div>
+
+  <div id="tab_security" style="display:none;">
+    <h1>Security</h1>
+
+    <div class="card" style="max-width:520px;">
+      <h3 style="margin-top:0;">Two-factor authentication</h3>
+      <p id="totpStatusText" style="color:var(--ink-500);">Checking…</p>
+
+      <div id="totpEnableFlow" style="display:none;">
+        <p>Scan this into your authenticator app (Google Authenticator, Authy, 1Password, etc.), or enter the code manually:</p>
+        <p style="font-family:monospace; font-size:1rem; background:var(--bg-soft,#f6f9f9); padding:10px 14px; border-radius:8px; word-break:break-all;" id="totpSecretText"></p>
+        <p><a id="totpOtpauthLink" href="#" style="font-size:0.85rem;">Open in authenticator app</a></p>
+        <div class="form-row" style="max-width:220px;">
+          <label>Enter the 6-digit code to confirm</label>
+          <input type="text" inputmode="numeric" maxlength="6" id="totpConfirmInput" style="letter-spacing:0.2em; text-align:center;">
+        </div>
+        <button class="btn btn-primary" onclick="confirmTotpSetup()">Confirm &amp; Enable</button>
+        <button class="btn btn-secondary" onclick="cancelTotpSetup()">Cancel</button>
+        <p id="totpSetupMsg" style="color:#c0392b;"></p>
+      </div>
+
+      <button class="btn btn-primary" id="totpEnableBtn" onclick="startTotpSetup()" style="display:none;">Enable Two-Factor Authentication</button>
+
+      <div id="totpDisableFlow" style="display:none;">
+        <div class="form-row" style="max-width:260px;">
+          <label>Confirm your password to disable</label>
+          <input type="password" id="totpDisablePassword">
+        </div>
+        <button class="btn btn-secondary" onclick="disableTotp()">Disable Two-Factor Authentication</button>
+        <p id="totpDisableMsg" style="color:#c0392b;"></p>
+      </div>
+    </div>
   </div>
 
   <div id="detailPanel" style="display:none; margin-top:36px;">
@@ -160,6 +206,7 @@
           <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;">
             <div style="flex:2; min-width:280px;">
               <h3 style="margin-top:0;">Prescription</h3>
+              <div id="rxAllergyBanner"></div>
               <div class="notice">
                 <strong>Sending a prescription</strong>
                 A PDF copy is emailed to admin automatically the moment you issue it, so it can be
@@ -268,7 +315,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=1"></script>
+<script src="/js/dashboard.js?v=2"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>
