@@ -560,6 +560,23 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
 
 /* Doctor dashboard: tabs + notifications + schedule */
 .tab-bar { display: flex; gap: 6px; border-bottom: 2px solid var(--line); margin-bottom: 26px; flex-wrap: wrap; }
+
+/* Patient chart: opened as its own full page (list + tab-bar hidden behind it, see closeChart()
+   in dashboard.js) rather than an inline panel, and given more width than the rest of the
+   dashboard so the chart's own side-nav + two-column tabs (Notes, Prescription, Referral) have
+   real room — a cramped 980px chart was the main complaint driving this. */
+#dashboardBox.chart-open { max-width: 1320px; }
+.chart-view-header {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  height: 64px; margin-bottom: 6px;
+  border-bottom: 2px solid var(--line);
+  position: sticky; top: 96px; z-index: 15;
+  background: var(--bg);
+}
+.chart-view-header h2 { margin: 0; flex: 1; min-width: 220px; }
+/* The chart's own side-nav is sticky too (see .side-nav) — offset it below the sticky chart
+   header above it instead of both landing on the same top:96px and fighting over z-index. */
+.chart-view .side-nav { top: 162px; }
 .tab-btn {
   padding: 11px 20px; border: none; background: none; cursor: pointer;
   font-weight: 700; font-size: 0.95rem; color: var(--ink-500); font-family: inherit;

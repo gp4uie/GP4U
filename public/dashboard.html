@@ -67,7 +67,7 @@
 
 <div id="dashboardBox" class="wide-shell" style="display:none;">
 
-  <div class="tab-bar">
+  <div class="tab-bar" id="mainTabBar">
     <button class="tab-btn active" id="tabBtn_schedule" onclick="showTab('schedule')">Schedule</button>
     <button class="tab-btn" id="tabBtn_search" onclick="showTab('search')">Search Patients</button>
     <button class="tab-btn" id="tabBtn_recent" onclick="showTab('recent')">Recent Cases</button>
@@ -144,10 +144,10 @@
     </div>
   </div>
 
-  <div id="detailPanel" style="display:none; margin-top:36px;">
-    <hr>
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-      <h2 id="chartHeader" style="margin:0;">Booking Detail</h2>
+  <div id="detailPanel" class="chart-view" style="display:none;">
+    <div class="chart-view-header">
+      <button class="btn btn-secondary" id="chartBackBtn" onclick="closeChart()">← Back to <span id="chartBackLabel">List</span></button>
+      <h2 id="chartHeader">Booking Detail</h2>
       <div style="display:flex; gap:10px;">
         <button class="btn btn-secondary" onclick="navigateCase(-1)">◀ Previous Case</button>
         <button class="btn btn-secondary" onclick="navigateCase(1)">Next Case ▶</button>

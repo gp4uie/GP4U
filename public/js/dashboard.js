@@ -25,6 +25,11 @@ async function doctorFetch(url, options) {
 
 function showSessionExpired() {
   document.getElementById('detailPanel').style.display = 'none';
+  document.getElementById('dashboardBox').classList.remove('chart-open');
+  document.getElementById('mainTabBar').style.display = 'flex';
+  ['schedule', 'search', 'recent', 'tasks', 'security'].forEach((t) => {
+    document.getElementById('tab_' + t).style.display = t === 'schedule' ? 'block' : 'none';
+  });
   document.getElementById('dashboardBox').style.display = 'none';
   document.getElementById('notifWrap').style.display = 'none';
   document.getElementById('logoutLink').style.display = 'none';
@@ -426,6 +431,29 @@ function navigateCase(delta) {
   if (newIdx >= 0 && newIdx < list.length) openBooking(list[newIdx], currentListType, true);
 }
 
+const LIST_LABELS = { schedule: 'Schedule', search: 'Search Results', recent: 'Recent Cases' };
+
+// Opens the chart as its own full page — hides the tab bar and whichever list sits behind it, and
+// widens the shell — instead of an inline panel stacked under the list, which is what made the
+// chart feel cramped next to a proper EMR. See closeChart() for the reverse.
+function openChartView() {
+  document.getElementById('mainTabBar').style.display = 'none';
+  ['schedule', 'search', 'recent', 'tasks', 'security'].forEach((t) => {
+    document.getElementById('tab_' + t).style.display = 'none';
+  });
+  document.getElementById('dashboardBox').classList.add('chart-open');
+  document.getElementById('chartBackLabel').textContent = LIST_LABELS[currentListType] || 'List';
+}
+
+function closeChart() {
+  document.getElementById('detailPanel').style.display = 'none';
+  document.getElementById('dashboardBox').classList.remove('chart-open');
+  document.getElementById('mainTabBar').style.display = 'flex';
+  currentBookingId = null;
+  showTab(activeTab);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // --- Booking detail panel ---
 // keepTab: preserve whichever chart sub-tab (Notes, Prescription, ...) was already open instead
 // of jumping back to Overview. Used for same-booking refreshes (a save/issue action, the
@@ -493,9 +521,10 @@ async function openBooking(id, listType, keepTab) {
   renderAllDocuments(data.prescriptions, data.documents);
   renderPreviousSidePanels(data.previousConsultations);
   showChartTab((isSameBooking || keepTab) ? activeChartTab : 'overview');
+  openChartView();
   document.getElementById('detailPanel').style.display = 'block';
   if (!isSameBooking) {
-    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 
