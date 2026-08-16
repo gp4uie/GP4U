@@ -297,6 +297,16 @@ function chooseService(key) {
     reasonInput.placeholder = 'Please describe your symptoms or the reason for this consultation';
   }
 
+  // Home address: only guaranteed needed for a sick cert (which always needs one printed on it).
+  // Left optional everywhere else — a referral letter can also need it, but that's decided by
+  // the GP mid-consultation, not known at booking time, so it can't be enforced up front.
+  const addressInput = document.getElementById('addressInput');
+  const addressLabel = document.getElementById('addressLabel');
+  addressInput.required = isSickCert;
+  addressLabel.innerHTML = isSickCert
+    ? 'Home address <span style="color:#c0392b;">*</span>'
+    : 'Home address';
+
   // Pharmacy details: only guaranteed relevant when the booking is specifically for a
   // prescription. Required for those, optional (not hidden — a GP consultation can still end
   // in a prescription) for general consultations, and hidden entirely for a sick cert, which

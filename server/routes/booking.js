@@ -22,6 +22,18 @@ const upload = multer({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Mirrors PRESCRIPTION_SERVICE_KEYS in public/js/questionnaires.js — kept as a separate list here
+// since that file is browser-only. Update both if a condition-specific prescription page is
+// added or removed.
+const PRESCRIPTION_SERVICE_KEYS = [
+  'contraception', 'period_delay', 'uti', 'ed', 'hair_loss', 'acne', 'asthma',
+  'migraine', 'hypothyroidism', 'stop_smoking', 'hay_fever', 'cold_sores',
+  'eczema_psoriasis',
+];
+function isRxService(serviceType) {
+  return serviceType === 'repeat_rx' || PRESCRIPTION_SERVICE_KEYS.includes(serviceType);
+}
+
 // Plausibility check, not an identity check — just rejects the obviously-impossible dates a typo
 // or placeholder value produces (e.g. a test record with DOB "1111-11-11"). Mirrors the
 // min="1900-01-01" on the client's date input; enforced again here since the client check is
@@ -101,7 +113,13 @@ router.post('/bookings', async (req, res) => {
 
     const service = await getService(serviceType);
     if (!service) return res.status(400).json({ error: 'Unknown service type' });
-    if (!patientName || !patientPhone || !patientEmail || !pharmacyName || !reason || !patientDob || !slotStart || !slotEnd) {
+    const pharmacyRequired = isRxService(serviceType);
+    const addressRequired = serviceType === 'sick_cert';
+    if (
+      !patientName || !patientPhone || !patientEmail || !reason || !patientDob || !slotStart || !slotEnd
+      || (pharmacyRequired && !pharmacyName)
+      || (addressRequired && !patientAddress)
+    ) {
       return res.status(400).json({ error: 'Please fill in all required fields (marked with *).' });
     }
     if (!isPlausibleDob(patientDob)) {
