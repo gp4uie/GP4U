@@ -469,6 +469,10 @@ async function openBooking(id, listType, keepTab) {
   const b = data.booking;
   currentPatientEmail = b.patient_email;
   document.getElementById('chartHeader').textContent = `${b.patient_name} — ${b.service_type.replace('_', ' ')}`;
+  const dobLabel = b.patient_dob
+    ? new Date(b.patient_dob + 'T00:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'DOB not given';
+  document.getElementById('chartPatientMeta').textContent = `DOB: ${dobLabel} • ${b.patient_address || 'Address not given'}`;
   const pp = data.patientProfile || {};
   document.getElementById('patientProfileInfo').innerHTML = `
     <h3 style="margin-top:0;">Patient-Maintained Medical Profile</h3>

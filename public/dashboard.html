@@ -146,12 +146,15 @@
 
   <div id="detailPanel" class="chart-view" style="display:none;">
     <div class="chart-view-header">
-      <button class="btn btn-secondary" id="chartBackBtn" onclick="closeChart()">← Back to <span id="chartBackLabel">List</span></button>
-      <h2 id="chartHeader">Booking Detail</h2>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-secondary" onclick="navigateCase(-1)">◀ Previous Case</button>
-        <button class="btn btn-secondary" onclick="navigateCase(1)">Next Case ▶</button>
+      <div class="chart-view-header-row">
+        <button class="btn btn-secondary" id="chartBackBtn" onclick="closeChart()">← Back to <span id="chartBackLabel">List</span></button>
+        <h2 id="chartHeader">Booking Detail</h2>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="navigateCase(-1)">◀ Previous Case</button>
+          <button class="btn btn-secondary" onclick="navigateCase(1)">Next Case ▶</button>
+        </div>
       </div>
+      <p id="chartPatientMeta" class="chart-patient-meta"></p>
     </div>
 
     <div class="side-layout" style="margin-top:20px;">

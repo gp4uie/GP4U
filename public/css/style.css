@@ -566,17 +566,24 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
    dashboard so the chart's own side-nav + two-column tabs (Notes, Prescription, Referral) have
    real room — a cramped 980px chart was the main complaint driving this. */
 #dashboardBox.chart-open { max-width: 1320px; }
+/* Pinned for the whole time a chart is open — patient identity (name, DOB, address) needs to
+   stay visible no matter which chart tab (Notes, Prescription, ...) or scroll position the doctor
+   is at, not just on Overview. */
 .chart-view-header {
-  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-  height: 64px; margin-bottom: 6px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 0 12px; margin-bottom: 6px;
   border-bottom: 2px solid var(--line);
   position: sticky; top: 96px; z-index: 15;
   background: var(--bg);
 }
-.chart-view-header h2 { margin: 0; flex: 1; min-width: 220px; }
-/* The chart's own side-nav is sticky too (see .side-nav) — offset it below the sticky chart
-   header above it instead of both landing on the same top:96px and fighting over z-index. */
-.chart-view .side-nav { top: 162px; }
+.chart-view-header-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.chart-view-header-row h2 { margin: 0; flex: 1; min-width: 220px; }
+.chart-patient-meta { margin: 0; padding-left: 2px; color: var(--ink-500); font-size: 0.85rem; font-weight: 600; }
+/* The chart's own side-nav is sticky too (see .side-nav) by default, which would land it at the
+   same top:96px as the chart header above and fight it over z-index. The header's height varies
+   with content (patient meta can wrap), so rather than chase that with a matching pixel offset,
+   the side-nav simply scrolls with the page here — only the header needs to stay pinned. */
+.chart-view .side-nav { position: static; top: auto; }
 .tab-btn {
   padding: 11px 20px; border: none; background: none; cursor: pointer;
   font-weight: 700; font-size: 0.95rem; color: var(--ink-500); font-family: inherit;
