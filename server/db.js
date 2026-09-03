@@ -249,6 +249,11 @@ async function initSchema() {
   // so a half-finished enrollment can never lock a doctor out of their own account.
   await ensureColumn('doctors', 'totp_secret', 'VARCHAR(64) NULL');
   await ensureColumn('doctors', 'totp_enabled', 'TINYINT(1) NOT NULL DEFAULT 0');
+  // Heartbeat for the admin "who's online" view — stamped on every authenticated doctor request
+  // (see requireDoctor in routes/doctor.js), not just at login. "Online" is computed as recently
+  // active rather than stored as a boolean, since there's no reliable server-side signal for a
+  // browser tab closing without logging out.
+  await ensureColumn('doctors', 'last_active_at', 'DATETIME NULL');
 
   // Each doctor's own weekly working hours — any number of rows per day (e.g. a split shift
   // 12:00-13:00 and 19:00-23:00 on the same day), no rows means that doctor doesn't work that
@@ -291,6 +296,20 @@ async function initSchema() {
       password_hash VARCHAR(255) NOT NULL,
       reset_token VARCHAR(128) NULL,
       reset_token_expires DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Internal staff chat — a single shared board every admin and doctor can read and post to
+  // (not per-doctor DMs). Sender name is stored directly rather than a foreign key, same as
+  // prescriptions/documents snapshot doctor_name — the message still reads correctly even if
+  // that account is later deleted.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS internal_messages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      sender_type VARCHAR(16) NOT NULL,
+      sender_name VARCHAR(255) NOT NULL,
+      body TEXT NOT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);

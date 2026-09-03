@@ -10,6 +10,13 @@ async function checkAdminSession() {
   }
   document.getElementById('whoami').textContent = `${data.adminName} — ${data.practiceName}`;
   loadAnalytics();
+  // Keeps the "Online" column current without needing to leave/re-enter the Doctors tab, and
+  // keeps the team chat live while it's the visible tab — same "poll but only re-render the
+  // currently-visible tab" pattern used on the doctor dashboard.
+  setInterval(() => {
+    if (activeAdminTab === 'doctors') loadDoctors();
+    if (activeAdminTab === 'messages') loadStaffMessages();
+  }, 15000);
 }
 
 document.getElementById('logoutLink').addEventListener('click', async (e) => {
@@ -20,7 +27,7 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['analytics', 'doctors', 'patients', 'rx', 'accesslog'].forEach((t) => {
+  ['analytics', 'doctors', 'patients', 'rx', 'accesslog', 'messages'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
@@ -29,6 +36,7 @@ function showAdminTab(tab) {
   if (tab === 'patients') loadPatients();
   if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
   if (tab === 'accesslog') loadAccessLog();
+  if (tab === 'messages') loadStaffMessages();
 }
 
 async function loadAccessLog() {
@@ -115,6 +123,7 @@ async function loadDoctors() {
       <td>${d.reg_number}</td>
       <td>${d.email}</td>
       <td><span class="badge ${d.active ? 'badge-green' : 'badge-amber'}">${d.active ? 'Active' : 'Deactivated'}</span></td>
+      <td><span class="online-dot ${d.online ? 'online' : ''}"></span>${d.online ? 'Online' : 'Offline'}</td>
       <td>${d.last_login_at ? new Date(d.last_login_at).toLocaleString('en-IE') : 'Never'}</td>
       <td>${d.totp_enabled ? '<span class="badge badge-green">On</span>' : '—'}
         ${d.totp_enabled ? `<button class="btn btn-secondary" style="padding:4px 10px;font-size:0.78rem;margin-left:6px;" onclick="disableDoctorTotp(${d.id})">Reset</button>` : ''}
@@ -127,7 +136,7 @@ async function loadDoctors() {
         <button class="btn btn-secondary" onclick="removeDoctor(${d.id})">Delete</button>
       </td>
     </tr>
-  `).join('') || '<tr><td colspan="8">No doctors yet.</td></tr>';
+  `).join('') || '<tr><td colspan="9">No doctors yet.</td></tr>';
 }
 
 async function addDoctor() {
@@ -281,6 +290,33 @@ async function sendPatientSummary() {
 function closePatientSummary() {
   summaryPatientEmail = null;
   document.getElementById('patientSummary').style.display = 'none';
+}
+
+// --- Team Messages (shared board with all doctors, not patient-facing) ---
+async function loadStaffMessages() {
+  const res = await fetch('/api/admin/internal-messages');
+  const messages = await res.json();
+  const thread = document.getElementById('staffMessageThread');
+  thread.innerHTML = messages.length
+    ? messages.map((m) => `
+        <div class="msg ${m.sender_type === 'admin' ? 'staff-mine' : 'staff-other'}">
+          ${m.body}<small>${m.sender_name} (${m.sender_type === 'admin' ? 'Admin' : 'Doctor'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500);">No messages yet.</p>';
+  thread.scrollTop = thread.scrollHeight;
+}
+
+async function sendStaffMessage() {
+  const input = document.getElementById('staffMessageInput');
+  if (!input.value.trim()) return;
+  const res = await fetch('/api/admin/internal-messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body: input.value }),
+  });
+  if (res.ok) input.value = '';
+  loadStaffMessages();
 }
 
 checkAdminSession();

@@ -85,11 +85,18 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // --- Onboard / manage doctors ---
+// "Online" is derived from a recent heartbeat (see requireDoctor in routes/doctor.js) rather than
+// a stored boolean — there's no reliable server-side signal for a browser tab just closing.
+const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+
 router.get('/doctors', requireAdmin, async (req, res) => {
   const doctors = await db.all(
-    'SELECT id, name, reg_number, email, active, last_login_at, totp_enabled, created_at FROM doctors ORDER BY created_at ASC'
+    'SELECT id, name, reg_number, email, active, last_login_at, last_active_at, totp_enabled, created_at FROM doctors ORDER BY created_at ASC'
   );
-  res.json(doctors);
+  res.json(doctors.map((d) => ({
+    ...d,
+    online: !!d.last_active_at && (Date.now() - new Date(d.last_active_at).getTime()) < ONLINE_WINDOW_MS,
+  })));
 });
 
 router.post('/doctors', requireAdmin, async (req, res) => {
@@ -184,6 +191,20 @@ router.put('/doctors/:id/availability', requireAdmin, async (req, res) => {
 // --- Analytics: practice-level activity and revenue snapshot for the admin dashboard. Every
 // number here is computed fresh from live booking/clinical data — nothing is stored separately,
 // so it's always up to date. ---
+// --- Internal staff chat: one shared board between admins and doctors (not patient-facing) ---
+router.get('/internal-messages', requireAdmin, async (req, res) => {
+  const messages = await db.all('SELECT * FROM internal_messages ORDER BY created_at ASC');
+  res.json(messages);
+});
+
+router.post('/internal-messages', requireAdmin, async (req, res) => {
+  const { body } = req.body;
+  if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+  const admin = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
+  await db.run("INSERT INTO internal_messages (sender_type, sender_name, body) VALUES ('admin', ?, ?)", [admin.name, body.trim()]);
+  res.json({ ok: true });
+});
+
 router.get('/analytics', requireAdmin, async (req, res) => {
   // "Seen" = a consultation that actually happened (status completed), counted by the
   // appointment's own slot_start date, not by name/whether it's a repeat.

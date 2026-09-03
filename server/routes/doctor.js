@@ -34,6 +34,9 @@ async function requireDoctor(req, res, next) {
     return res.status(401).json({ error: 'Not logged in' });
   }
   req.session.lastActivityAt = now;
+  // Fire-and-forget heartbeat for the admin "who's online" view — never worth delaying or
+  // failing the actual request over.
+  db.run('UPDATE doctors SET last_active_at = NOW() WHERE id = ?', [req.session.doctorId]).catch(() => {});
   next();
 }
 
@@ -374,6 +377,20 @@ router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
   const { body } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
   await db.run("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'doctor', ?)", [req.params.id, body.trim()]);
+  res.json({ ok: true });
+});
+
+// --- Internal staff chat: one shared board between admins and doctors (not patient-facing) ---
+router.get('/internal-messages', requireDoctor, async (req, res) => {
+  const messages = await db.all('SELECT * FROM internal_messages ORDER BY created_at ASC');
+  res.json(messages);
+});
+
+router.post('/internal-messages', requireDoctor, async (req, res) => {
+  const { body } = req.body;
+  if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+  const doctor = await getCurrentDoctor(req);
+  await db.run("INSERT INTO internal_messages (sender_type, sender_name, body) VALUES ('doctor', ?, ?)", [doctor.name, body.trim()]);
   res.json({ ok: true });
 });
 

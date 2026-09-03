@@ -27,7 +27,7 @@ function showSessionExpired() {
   document.getElementById('detailPanel').style.display = 'none';
   document.getElementById('dashboardBox').classList.remove('chart-open');
   document.getElementById('mainTabBar').style.display = 'flex';
-  ['schedule', 'search', 'recent', 'tasks', 'security'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'tasks', 'security', 'teammsg'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === 'schedule' ? 'block' : 'none';
   });
   document.getElementById('dashboardBox').style.display = 'none';
@@ -64,6 +64,7 @@ async function checkSession() {
       const panelOpen = document.getElementById('detailPanel').style.display !== 'none';
       if (currentBookingId && panelOpen) openBooking(currentBookingId, null, true);
     }, 20000);
+    setInterval(() => { if (activeTab === 'teammsg') loadStaffMessages(); }, 15000);
   }
 }
 
@@ -138,7 +139,7 @@ async function submitForgot() {
 // --- Top-level tabs ---
 function showTab(tab) {
   activeTab = tab;
-  ['schedule', 'search', 'recent', 'tasks', 'security'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'tasks', 'security', 'teammsg'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
@@ -146,6 +147,34 @@ function showTab(tab) {
   if (tab === 'schedule') loadSchedule();
   if (tab === 'tasks') loadTasks();
   if (tab === 'security') renderSecurityTab();
+  if (tab === 'teammsg') loadStaffMessages();
+}
+
+// --- Team Messages (shared board with admin, not patient-facing) ---
+async function loadStaffMessages() {
+  const res = await doctorFetch('/api/doctor/internal-messages');
+  const messages = await res.json();
+  const thread = document.getElementById('staffMessageThread');
+  thread.innerHTML = messages.length
+    ? messages.map((m) => `
+        <div class="msg ${m.sender_type === 'doctor' ? 'staff-mine' : 'staff-other'}">
+          ${m.body}<small>${m.sender_name} (${m.sender_type === 'doctor' ? 'Doctor' : 'Admin'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
+        </div>
+      `).join('')
+    : '<p style="color:var(--ink-500);">No messages yet.</p>';
+  thread.scrollTop = thread.scrollHeight;
+}
+
+async function sendStaffMessage() {
+  const input = document.getElementById('staffMessageInput');
+  if (!input.value.trim()) return;
+  await doctorFetch('/api/doctor/internal-messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body: input.value }),
+  });
+  input.value = '';
+  loadStaffMessages();
 }
 
 // --- Two-factor authentication ---

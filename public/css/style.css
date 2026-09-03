@@ -550,6 +550,17 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
 .badge-green { background: #e2f5ea; color: #1c7a4b; }
 .badge-amber { background: #fdf1dc; color: #a9720b; }
 
+/* "Which doctor is online" indicator in the admin Doctors table — a plain grey dot until a
+   recent heartbeat (see requireDoctor in routes/doctor.js) makes it green. */
+.online-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ink-500); margin-right: 6px; }
+.online-dot.online { background: var(--green-500); box-shadow: 0 0 0 3px rgba(46, 158, 107, 0.18); }
+
+/* Internal admin/doctor chat bubbles — deliberately separate from .msg.patient/.msg.doctor
+   (patient-facing messaging) even though the visual treatment is similar, so nothing here reads
+   as if a patient were involved. */
+.msg.staff-mine { background: #e6f5f2; margin-left: auto; text-align: right; }
+.msg.staff-other { background: #fdf1dc; }
+
 .video-room { background: #0e1b1e; min-height: calc(100vh - 0px); display: flex; flex-direction: column; color: white; }
 .video-stage { flex: 1; display: flex; gap: 12px; padding: 16px; flex-wrap: wrap; align-items: center; justify-content: center; }
 .video-stage video { width: 100%; max-width: 640px; border-radius: 16px; background: #000; }

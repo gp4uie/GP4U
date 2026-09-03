@@ -73,6 +73,7 @@
     <button class="tab-btn" id="tabBtn_recent" onclick="showTab('recent')">Recent Cases</button>
     <button class="tab-btn" id="tabBtn_tasks" onclick="showTab('tasks')">Tasks <span id="taskCount" class="side-badge" style="display:none;">0</span></button>
     <button class="tab-btn" id="tabBtn_security" onclick="showTab('security')">Security</button>
+    <button class="tab-btn" id="tabBtn_teammsg" onclick="showTab('teammsg')">Team Messages</button>
   </div>
 
   <div id="tab_schedule">
@@ -142,6 +143,16 @@
         <p id="totpDisableMsg" style="color:#c0392b;"></p>
       </div>
     </div>
+  </div>
+
+  <div id="tab_teammsg" style="display:none;">
+    <h1>Team Messages</h1>
+    <p style="color:var(--ink-500);">A shared message board for all doctors and admin — not visible to patients. Everyone here can see the full history.</p>
+    <div class="message-thread" id="staffMessageThread" style="max-height:420px;"></div>
+    <div class="form-row">
+      <textarea id="staffMessageInput" placeholder="Write a message to the team…"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="sendStaffMessage()">Send</button>
   </div>
 
   <div id="detailPanel" class="chart-view" style="display:none;">

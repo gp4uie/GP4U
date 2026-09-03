@@ -30,6 +30,7 @@
     <button class="tab-btn" id="tabBtn_patients" onclick="showAdminTab('patients')">Patients</button>
     <button class="tab-btn" id="tabBtn_rx" onclick="showAdminTab('rx')">Prescriptions &amp; Summaries</button>
     <button class="tab-btn" id="tabBtn_accesslog" onclick="showAdminTab('accesslog')">Access Log</button>
+    <button class="tab-btn" id="tabBtn_messages" onclick="showAdminTab('messages')">Team Messages</button>
   </div>
 
   <div id="tab_analytics">
@@ -80,7 +81,7 @@
     <p style="color:var(--ink-500);">Onboard doctors and set each one's weekly working hours. A booking slot is only offered to patients if at least one doctor is available then.</p>
     <div class="table-scroll">
       <table class="bookings-table">
-        <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th>Status</th><th>Last login</th><th>2FA</th><th></th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>IMC Reg No</th><th>Email</th><th>Status</th><th>Online</th><th>Last login</th><th>2FA</th><th></th><th></th></tr></thead>
         <tbody id="doctorsBody"></tbody>
       </table>
     </div>
@@ -161,6 +162,16 @@
         <tbody id="accessLogBody"></tbody>
       </table>
     </div>
+  </div>
+
+  <div id="tab_messages" style="display:none;">
+    <h1>Team Messages</h1>
+    <p style="color:var(--ink-500);">A shared message board for admin and all doctors — not visible to patients. Everyone here can see the full history.</p>
+    <div class="message-thread" id="staffMessageThread" style="max-height:420px;"></div>
+    <div class="form-row">
+      <textarea id="staffMessageInput" placeholder="Write a message to the team…"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="sendStaffMessage()">Send</button>
   </div>
 
 </div>
