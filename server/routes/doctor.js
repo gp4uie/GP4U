@@ -11,6 +11,7 @@ const loginLimiter = require('../loginLimiter');
 const totp = require('../totp');
 
 const router = express.Router();
+const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
 
 // The session cookie itself lasts 30 days ("remember me" on a personal device), but a doctor's
 // account being open and idle on a shared clinic machine is a different risk — this closes that
@@ -373,6 +374,34 @@ router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
   const { body } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
   await db.run("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'doctor', ?)", [req.params.id, body.trim()]);
+  res.json({ ok: true });
+});
+
+// Only the doctor can start a call — the patient's consult page and confirmation page both poll
+// for call_started_at rather than connecting on their own (see public/js/consult.js,
+// public/confirmation.html). Called when the doctor clicks "Join Video/Audio Consultation" in
+// the dashboard, before their own call window opens.
+router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
+  const mode = req.body.mode === 'audio' ? 'audio' : 'video';
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  await db.run("UPDATE bookings SET call_started_at = NOW(), call_mode = ? WHERE id = ?", [mode, req.params.id]);
+
+  // Best-effort — reaches the patient even if they don't have the confirmation page open.
+  try {
+    const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+    await mailer.sendMail({
+      to: booking.patient_email,
+      subject: `${process.env.PRACTICE_NAME || 'GP4U'}: your GP is ready — join your call now`,
+      html: `
+        <p>Hi ${booking.patient_name},</p>
+        <p>Your GP has started your ${mode} consultation. Join now: <a href="${link}">${link}</a></p>
+      `,
+    });
+  } catch (err) {
+    console.log('Call-started email not sent:', err.message);
+  }
+
   res.json({ ok: true });
 });
 

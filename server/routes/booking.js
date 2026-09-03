@@ -286,6 +286,15 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Polled by the patient's confirmation page and consult page — the patient never starts a call
+// themselves, only reacts to the doctor having started one (see doctor.js's /start-call).
+router.get('/bookings/:id/call-status', requirePatientToken, async (req, res) => {
+  res.json({
+    started: !!req.booking.call_started_at,
+    mode: req.booking.call_mode || 'video',
+  });
+});
+
 router.get('/bookings/:id/account-status', requirePatientToken, async (req, res) => {
   const patient = await db.get('SELECT password_hash FROM patients WHERE email = ?', [req.booking.patient_email]);
   res.json({ hasPassword: !!(patient && patient.password_hash) });

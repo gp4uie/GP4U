@@ -43,8 +43,16 @@
 
     <h2 style="margin-top:32px;">Your consultation</h2>
     <p>Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
-    <a id="joinLink" class="btn btn-primary">Join Video Consultation</a>
-    <a id="joinAudioLink" class="btn btn-secondary">Join Audio Consultation</a>
+    <a id="joinLink" class="btn btn-primary" style="display:none;">Join Video Consultation</a>
+    <a id="joinAudioLink" class="btn btn-secondary" style="display:none;">Join Audio Consultation</a>
+    <div id="callWaitingNotice" class="notice" style="display:none;">
+      <strong>Waiting for your GP to start the call</strong>
+      This page updates automatically the moment your GP starts your consultation — no need to
+      refresh or keep checking back.
+      <div style="margin-top:10px;">
+        <button type="button" class="btn btn-secondary" id="enableNotifBtn" style="display:none;">Notify me on this device</button>
+      </div>
+    </div>
     <div id="callClosedNotice" class="notice" style="display:none;">
       <strong>This consultation is complete</strong>
       Your GP has marked this consultation as finished, so the call link is no longer active. If
@@ -85,6 +93,25 @@ const params = new URLSearchParams(location.search);
 const bookingId = params.get('id');
 const token = params.get('token');
 const docTypeLabels = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
+
+// Polls loadBooking() while waiting for the doctor to start the call, stops once it has (or the
+// consultation is closed) — see the callStarted/isCompleted checks at the end of loadBooking().
+let callPollTimer = null;
+let callStartNotified = false;
+
+function notifyCallStarted() {
+  try {
+    if (window.Notification && Notification.permission === 'granted') {
+      new Notification('Your GP is ready', { body: 'Join your consultation now.' });
+    }
+  } catch (err) { /* Notification API not available in this browser — the on-page banner still works */ }
+}
+
+if (window.Notification && Notification.permission === 'default') {
+  const btn = document.getElementById('enableNotifBtn');
+  btn.style.display = 'inline-block';
+  btn.onclick = () => Notification.requestPermission().then(() => { btn.style.display = 'none'; });
+}
 
 async function confirmAndLoad() {
   await fetch(`/api/bookings/${bookingId}/confirm-payment`, { method: 'POST' })
@@ -148,9 +175,24 @@ async function loadBooking() {
   const isCompleted = b.status === 'completed';
   document.getElementById('messageComposer').style.display = isCompleted ? 'none' : 'block';
   document.getElementById('messageClosedNotice').style.display = isCompleted ? 'block' : 'none';
-  document.getElementById('joinLink').style.display = isCompleted ? 'none' : 'inline-block';
-  document.getElementById('joinAudioLink').style.display = isCompleted ? 'none' : 'inline-block';
+
+  // Only the doctor can start a call — this page never lets the patient join early, it just
+  // waits (polling) until the doctor has started this booking's call, then reveals the buttons.
+  const callStarted = !!b.call_started_at;
+  document.getElementById('joinLink').style.display = (!isCompleted && callStarted) ? 'inline-block' : 'none';
+  document.getElementById('joinAudioLink').style.display = (!isCompleted && callStarted) ? 'inline-block' : 'none';
+  document.getElementById('callWaitingNotice').style.display = (!isCompleted && !callStarted) ? 'block' : 'none';
   document.getElementById('callClosedNotice').style.display = isCompleted ? 'block' : 'none';
+
+  if (!isCompleted && callStarted && !callStartNotified) {
+    callStartNotified = true;
+    notifyCallStarted();
+  }
+  if (isCompleted || callStarted) {
+    if (callPollTimer) { clearInterval(callPollTimer); callPollTimer = null; }
+  } else if (!callPollTimer) {
+    callPollTimer = setInterval(loadBooking, 6000);
+  }
 
   if (data.attachments.length) {
     document.getElementById('attachmentList').innerHTML = data.attachments.map(a => `

@@ -155,6 +155,11 @@ async function initSchema() {
   // Migration for sites where `bookings` already existed before the repeat-prescription safety
   // questionnaire (medication changes / taken-as-prescribed) was added.
   await ensureColumn('bookings', 'safety_answers', 'TEXT');
+  // Only the doctor can start a call — set when they click "Join" in the dashboard (see
+  // POST /api/doctor/bookings/:id/start-call). The patient's consult page and confirmation page
+  // both poll for this instead of connecting on their own.
+  await ensureColumn('bookings', 'call_started_at', 'DATETIME NULL');
+  await ensureColumn('bookings', 'call_mode', "VARCHAR(16) NULL");
 
   // Append-only clinical notes: real clinical records are never edited after saving,
   // only added to, so there is deliberately no update/delete on this table.

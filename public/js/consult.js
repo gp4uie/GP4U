@@ -31,6 +31,24 @@ async function verifyAccess() {
   return res.ok;
 }
 
+// Only the doctor can start a call (see the dashboard's startCall()) — the patient's side never
+// requests camera/microphone or connects on its own. It waits here, polling, until the doctor
+// has actually started this booking's call.
+async function waitForDoctorToStartCall() {
+  if (role !== 'patient') return;
+  while (true) {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/call-status?token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.started) return;
+      }
+    } catch (err) { /* transient network issue — just keep polling */ }
+    setStatus('Waiting for your GP to start the call. This page updates automatically — no need to refresh.');
+    await new Promise((r) => setTimeout(r, 4000));
+  }
+}
+
 async function start() {
   const allowed = await verifyAccess();
   if (!allowed) {
@@ -39,6 +57,9 @@ async function start() {
       : 'This link is invalid or has expired.');
     return;
   }
+
+  await waitForDoctorToStartCall();
+  setStatus(audioOnly ? 'Setting up your microphone…' : 'Setting up your camera and microphone…');
 
   try {
     localStream = await navigator.mediaDevices.getUserMedia({

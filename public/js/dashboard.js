@@ -498,6 +498,17 @@ async function openBooking(id, listType, keepTab) {
     ${b.safety_answers ? `<p><strong>Safety questionnaire:</strong><br>${b.safety_answers.replace(/\n/g, '<br>')}</p>` : ''}
     <p><strong>Status:</strong> <span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></p>
   `;
+  // The doctor starting a call is what makes it startable at all — this marks it started
+  // server-side (and emails the patient a join link) before the doctor's own call window opens.
+  // The patient's side never initiates; it only reacts to this (see consult.js, confirmation.html).
+  async function startCall(mode) {
+    await fetch(`/api/doctor/bookings/${id}/start-call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    });
+  }
+
   const joinCallBtn = document.getElementById('joinCallBtn');
   const callUrl = `/consult.html?id=${id}&role=doctor`;
   joinCallBtn.href = callUrl;
@@ -505,6 +516,7 @@ async function openBooking(id, listType, keepTab) {
   // prescriptions, etc.) stays open and usable in the original tab for the whole call.
   joinCallBtn.onclick = (e) => {
     e.preventDefault();
+    startCall('video');
     window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
   };
 
@@ -513,6 +525,7 @@ async function openBooking(id, listType, keepTab) {
   joinAudioCallBtn.href = audioCallUrl;
   joinAudioCallBtn.onclick = (e) => {
     e.preventDefault();
+    startCall('audio');
     window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
   };
   renderAttachments(data.attachments);
