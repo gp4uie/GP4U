@@ -10,11 +10,12 @@ let selectedRxCategory = null;
 const dobInput = document.getElementById('patientDobInput');
 if (dobInput) dobInput.max = new Date().toISOString().slice(0, 10);
 
+// Travel and Weight Loss used to have one generic free-text field here — replaced by proper
+// structured questions in questionnaires.js (see QUESTIONNAIRES.travel / .weight_loss), rendered
+// via renderConditionQuestions() instead.
 const extraFieldLabels = {
-  travel: 'Destination(s) and travel date(s)',
   repeat_rx: 'Name(s) of the medication you need repeated',
   sick_cert: "Employer name (if the cert is for work)",
-  weight_loss: 'Current weight, height, and your goal (e.g. lose 10kg by summer)',
 };
 
 function qs(name) {
@@ -156,24 +157,31 @@ function renderConditionQuestions(key) {
 function renderConditionQuestionsStep(key) {
   const container = document.getElementById('conditionQuestionsContainer');
   const config = typeof QUESTIONNAIRES !== 'undefined' ? QUESTIONNAIRES[key] : null;
-  if (!config || !config.redFlags.length) {
+  const hasInfoFields = !!(config && config.info && config.info.length);
+  // A service can have info-gathering questions with no safety red flags at all (e.g. travel,
+  // women's/men's health — already live consultations where the GP can explore anything
+  // concerning on the call itself, so there's nothing to gate/divert on). Only bail out to an
+  // empty container when there's truly nothing configured for this service.
+  if (!config || (!config.redFlags.length && !hasInfoFields)) {
     container.innerHTML = '';
     return;
   }
   const redFlags = config.redFlags;
 
-  // All questions answered with nothing triggered — show any free-text info fields (no
-  // right/wrong answer, so no step-through needed) and reveal the rest of the booking form.
+  // All safety questions answered with nothing triggered (or there were none to begin with) —
+  // show any free-text info fields (no right/wrong answer, so no step-through needed) and
+  // reveal the rest of the booking form.
   if (currentQuestionIndex >= redFlags.length) {
     container.innerHTML = `
+      ${redFlags.length ? `
       <div class="notice">
         <strong>Thanks — safety questions complete</strong>
         Nothing here needs a closer look. Just a few more details below.
-      </div>
+      </div>` : ''}
       ${(config.info || []).map((f) => `
         <div class="form-row">
           <label>${f.label} ${f.required ? '<span style="color:#c0392b;">*</span>' : ''}</label>
-          <input ${f.required ? 'required' : ''} name="info_${f.id}" class="info-input">
+          <input ${f.required ? 'required' : ''} type="${f.type || 'text'}" ${f.type === 'number' ? 'step="0.1" min="0"' : ''} name="info_${f.id}" class="info-input">
         </div>
       `).join('')}
     `;

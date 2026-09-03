@@ -26,6 +26,55 @@
 // =============================================================================
 
 const QUESTIONNAIRES = {
+  // Core consultation services below (travel, womens, mens, weight_loss) are already live
+  // 20-minute video/audio consultations, unlike the written-request condition services above —
+  // so there's nothing to divert to a "video consultation" if something concerning comes up; the
+  // GP explores it on the call itself. These have no redFlags, only info-gathering questions
+  // shown up front so the GP has real context before the call starts.
+  travel: {
+    redFlags: [],
+    info: [
+      { id: 'destinations', label: 'Which country/countries and specific region(s) are you travelling to?', required: true },
+      { id: 'travelDates', label: 'Departure date and return date (or total trip length)', required: true },
+      { id: 'purpose', label: 'Purpose of trip (e.g. tourism, business, visiting family/friends, backpacking, volunteering)', required: false },
+      { id: 'activities', label: 'Any rural travel, hiking/jungle, high altitude, animal contact, or diving planned?', required: false },
+      { id: 'vaccinationHistory', label: 'Any previous travel vaccinations, and roughly when (or attach a record as a photo below)?', required: false },
+      { id: 'pregnancyStatus', label: 'Are you pregnant, breastfeeding, or could you be pregnant? (relevant to some vaccines and antimalarial medications)', required: true },
+    ],
+  },
+
+  womens: {
+    redFlags: [],
+    info: [
+      { id: 'reasonCategory', label: "What best describes why you're booking? (e.g. contraception, period problems, menopause, pregnancy concern, STI concern, cervical screening query, other)", required: true },
+      { id: 'lmp', label: 'Date of your last menstrual period (approximate is fine)', required: false },
+      { id: 'pregnancyPossible', label: 'Is there any chance you could currently be pregnant?', required: true },
+      { id: 'currentContraception', label: 'What contraception, if any, are you currently using?', required: false },
+    ],
+  },
+
+  mens: {
+    redFlags: [],
+    info: [
+      { id: 'reasonCategory', label: "What best describes why you're booking? (e.g. erectile dysfunction, fertility, prostate symptoms, urinary symptoms, low mood/testosterone concern, other)", required: true },
+      { id: 'symptomOnset', label: 'How long has this been going on?', required: false },
+    ],
+  },
+
+  weight_loss: {
+    redFlags: [],
+    info: [
+      { id: 'weightKg', label: 'Current weight (kg)', required: true, type: 'number' },
+      { id: 'heightCm', label: 'Height (cm)', required: true, type: 'number' },
+      { id: 'goal', label: 'Your weight-loss goal (e.g. amount and timeframe)', required: false },
+      { id: 'thyroidCancerHistory', label: 'Do you, or a close family member, have a history of medullary thyroid cancer or Multiple Endocrine Neoplasia type 2 (MEN2)? Please answer Yes/No and give detail, or write "No".', required: true },
+      { id: 'pancreatitisGallbladder', label: 'Have you ever had pancreatitis or gallbladder disease? Yes/No, with detail if yes.', required: true },
+      { id: 'eatingDisorderHistory', label: 'Do you have a current or past history of an eating disorder?', required: true },
+      { id: 'pregnancyStatus', label: 'Are you pregnant, breastfeeding, or trying to conceive?', required: true },
+      { id: 'diabetesInsulin', label: 'Do you have diabetes, and if so, do you use insulin or other diabetes medication?', required: true },
+    ],
+  },
+
   contraception: {
     redFlags: [
       { id: 'pregnancyCheck', question: 'Is there any chance you could currently be pregnant?', bullet: 'Possible current pregnancy' },
@@ -109,6 +158,7 @@ const QUESTIONNAIRES = {
       { id: 'severeAcne', question: 'Do you have severe acne with painful lumps, nodules, or scarring?', bullet: 'Severe/nodular or scarring acne (may need dermatology referral)' },
       { id: 'priorDiagnosis', question: 'Has a doctor previously diagnosed you with acne?', bullet: 'No prior doctor diagnosis of acne', triggerOn: 'no' },
       { id: 'otherSkinCondition', question: 'Do you think this might be a different skin condition rather than acne (e.g. rosacea)?', bullet: 'Possible different underlying skin condition' },
+      { id: 'isotretinoinRequest', question: 'Are you requesting isotretinoin (Roaccutane), or has a specialist recommended it for you?', bullet: 'Requesting isotretinoin — needs dermatology-level assessment and monitoring, not a routine GP repeat prescription' },
     ],
     info: [
       { id: 'triedSoFar', label: "Please describe your acne and what you've tried so far", required: false },
@@ -166,9 +216,10 @@ const QUESTIONNAIRES = {
       { id: 'seizureHistory', question: 'Do you have a history of seizures, or a condition that increases seizure risk?', bullet: 'Seizure history or increased seizure risk' },
       { id: 'mentalHealthHistory', question: 'Have you ever been treated for a psychological or psychiatric condition (e.g. depression, anxiety, bipolar disorder, schizophrenia)?', bullet: 'History of psychological/psychiatric treatment — needs discussion, not automatic exclusion' },
       { id: 'multipleTherapies', question: 'Are you already using more than one stop-smoking treatment at the same time?', bullet: 'Already combining more than one stop-smoking treatment' },
+      { id: 'eatingDisorderOrMAOI', question: 'Do you have a current or past eating disorder, a history of alcohol-withdrawal seizures, or take a medication called an MAOI (monoamine oxidase inhibitor)?', bullet: 'Eating disorder history, alcohol-withdrawal seizure history, or MAOI use — relevant to certain stop-smoking medications' },
     ],
     info: [
-      { id: 'preference', label: 'Do you have a preferred treatment (patches, gum, tablets), if any?', required: false },
+      { id: 'preference', label: 'Which stop-smoking treatment are you requesting — nicotine replacement (patches/gum), varenicline (Champix), or bupropion (Zyban)?', required: true },
     ],
   },
 
