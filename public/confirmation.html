@@ -45,6 +45,11 @@
     <p>Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
     <a id="joinLink" class="btn btn-primary">Join Video Consultation</a>
     <a id="joinAudioLink" class="btn btn-secondary">Join Audio Consultation</a>
+    <div id="callClosedNotice" class="notice" style="display:none;">
+      <strong>This consultation is complete</strong>
+      Your GP has marked this consultation as finished, so the call link is no longer active. If
+      you need further care, please <a href="/book.html">book a new consultation</a>.
+    </div>
 
     <h2 style="margin-top:32px;">Prescriptions</h2>
     <div id="prescriptionList"><p style="color:var(--ink-500);">None issued yet — your GP will add one here after your consultation if needed.</p></div>
@@ -143,6 +148,9 @@ async function loadBooking() {
   const isCompleted = b.status === 'completed';
   document.getElementById('messageComposer').style.display = isCompleted ? 'none' : 'block';
   document.getElementById('messageClosedNotice').style.display = isCompleted ? 'block' : 'none';
+  document.getElementById('joinLink').style.display = isCompleted ? 'none' : 'inline-block';
+  document.getElementById('joinAudioLink').style.display = isCompleted ? 'none' : 'inline-block';
+  document.getElementById('callClosedNotice').style.display = isCompleted ? 'block' : 'none';
 
   if (data.attachments.length) {
     document.getElementById('attachmentList').innerHTML = data.attachments.map(a => `
