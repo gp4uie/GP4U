@@ -8,14 +8,15 @@ async function checkAdminSession() {
     window.location.href = '/admin-login.html';
     return;
   }
+  myStaffId = data.adminId;
   document.getElementById('whoami').textContent = `${data.adminName} — ${data.practiceName}`;
   loadAnalytics();
   // Keeps the "Online" column current without needing to leave/re-enter the Doctors tab, and
-  // keeps the team chat live while it's the visible tab — same "poll but only re-render the
-  // currently-visible tab" pattern used on the doctor dashboard.
+  // keeps the team chat + presence live while Messages is the visible tab — same "poll but only
+  // re-render the currently-visible tab" pattern used on the doctor dashboard.
   setInterval(() => {
     if (activeAdminTab === 'doctors') loadDoctors();
-    if (activeAdminTab === 'messages') loadStaffMessages();
+    if (activeAdminTab === 'messages') { loadStaffDirectory(); loadStaffMessages(); }
   }, 15000);
 }
 
@@ -36,7 +37,7 @@ function showAdminTab(tab) {
   if (tab === 'patients') loadPatients();
   if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
   if (tab === 'accesslog') loadAccessLog();
-  if (tab === 'messages') loadStaffMessages();
+  if (tab === 'messages') { loadStaffDirectory(); loadStaffMessages(); }
 }
 
 async function loadAccessLog() {
@@ -292,14 +293,53 @@ function closePatientSummary() {
   document.getElementById('patientSummary').style.display = 'none';
 }
 
-// --- Team Messages (shared board with all doctors, not patient-facing) ---
+// --- Team Messages: "Everyone" broadcast board, or a 1:1 DM with one admin/doctor ---
+let myStaffId = null;
+let staffConversation = 'everyone'; // 'everyone' | '<type>:<id>'
+let staffDirectoryCache = [];
+
+async function loadStaffDirectory() {
+  const res = await fetch('/api/admin/staff-directory');
+  staffDirectoryCache = await res.json();
+  renderStaffContactList();
+}
+
+function renderStaffContactList() {
+  const list = document.getElementById('staffContactList');
+  const others = staffDirectoryCache.filter((p) => !(p.type === 'admin' && p.id === myStaffId));
+  list.innerHTML = `
+    <button class="${staffConversation === 'everyone' ? 'active' : ''}" onclick="selectStaffConversation('everyone')">Everyone (Team Board)</button>
+    ${others.map((p) => `
+      <button class="${staffConversation === `${p.type}:${p.id}` ? 'active' : ''}" onclick="selectStaffConversation('${p.type}:${p.id}')">
+        <span><span class="online-dot ${p.online ? 'online' : ''}"></span>${p.name}${p.type === 'admin' ? ' (Admin)' : ''}</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+function selectStaffConversation(key) {
+  staffConversation = key;
+  renderStaffContactList();
+  if (key === 'everyone') {
+    document.getElementById('staffConversationHeader').textContent = 'Everyone (Team Board)';
+  } else {
+    const person = staffDirectoryCache.find((p) => `${p.type}:${p.id}` === key);
+    document.getElementById('staffConversationHeader').textContent = person
+      ? `${person.name}${person.type === 'admin' ? ' (Admin)' : ''}` : 'Conversation';
+  }
+  loadStaffMessages();
+}
+
 async function loadStaffMessages() {
-  const res = await fetch('/api/admin/internal-messages');
+  const url = staffConversation === 'everyone'
+    ? '/api/admin/internal-messages'
+    : `/api/admin/internal-messages?with=${encodeURIComponent(staffConversation)}`;
+  const res = await fetch(url);
   const messages = await res.json();
   const thread = document.getElementById('staffMessageThread');
   thread.innerHTML = messages.length
     ? messages.map((m) => `
-        <div class="msg ${m.sender_type === 'admin' ? 'staff-mine' : 'staff-other'}">
+        <div class="msg ${m.sender_type === 'admin' && m.sender_id === myStaffId ? 'staff-mine' : 'staff-other'}">
           ${m.body}<small>${m.sender_name} (${m.sender_type === 'admin' ? 'Admin' : 'Doctor'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
         </div>
       `).join('')
@@ -313,7 +353,7 @@ async function sendStaffMessage() {
   const res = await fetch('/api/admin/internal-messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body: input.value }),
+    body: JSON.stringify({ body: input.value, with: staffConversation === 'everyone' ? null : staffConversation }),
   });
   if (res.ok) input.value = '';
   loadStaffMessages();

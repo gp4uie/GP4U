@@ -13,6 +13,15 @@ const totp = require('../totp');
 const router = express.Router();
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
 
+// Shared "recently active" presence window — used for both doctors and admins so the two sides
+// of the Team Messages contact list agree on what "online" means. Kept in sync with the copy in
+// routes/admin.js since these are separate route files with no shared config module (see that
+// file's comment for why).
+const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+function isOnline(lastActiveAt) {
+  return !!lastActiveAt && (Date.now() - new Date(lastActiveAt).getTime()) < ONLINE_WINDOW_MS;
+}
+
 // The session cookie itself lasts 30 days ("remember me" on a personal device), but a doctor's
 // account being open and idle on a shared clinic machine is a different risk — this closes that
 // gap independently, by stamping req.session.lastActivityAt on every authenticated request and
@@ -133,6 +142,7 @@ router.get('/me', async (req, res) => {
   req.session.lastActivityAt = Date.now();
   res.json({
     loggedIn: true,
+    doctorId: doctor.id,
     doctorName: doctor.name,
     doctorRegNumber: doctor.reg_number,
     doctorEmail: doctor.email,
@@ -380,17 +390,53 @@ router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Internal staff chat: one shared board between admins and doctors (not patient-facing) ---
+// --- Internal staff chat: a broadcast "Everyone" board plus 1:1 DMs between admins and doctors
+// (never patient-facing). `with=<type>:<id>` (e.g. "admin:3") selects a private conversation with
+// one person; omitted means the broadcast board. ---
+
+// Presence + contact list for the "message individually" picker — every active doctor and every
+// admin, each with an online/offline flag from the same heartbeat used for the admin's own
+// "who's online" view.
+router.get('/staff-directory', requireDoctor, async (req, res) => {
+  const doctors = await db.all('SELECT id, name, last_active_at FROM doctors WHERE active = 1 ORDER BY name ASC');
+  const admins = await db.all('SELECT id, name, last_active_at FROM admins ORDER BY name ASC');
+  res.json([
+    ...admins.map((a) => ({ type: 'admin', id: a.id, name: a.name, online: isOnline(a.last_active_at) })),
+    ...doctors.map((d) => ({ type: 'doctor', id: d.id, name: d.name, online: isOnline(d.last_active_at) })),
+  ]);
+});
+
 router.get('/internal-messages', requireDoctor, async (req, res) => {
-  const messages = await db.all('SELECT * FROM internal_messages ORDER BY created_at ASC');
+  const myId = req.session.doctorId;
+  if (!req.query.with) {
+    const messages = await db.all('SELECT * FROM internal_messages WHERE recipient_type IS NULL ORDER BY created_at ASC');
+    return res.json(messages);
+  }
+  const [otherType, otherIdStr] = String(req.query.with).split(':');
+  const otherId = Number(otherIdStr);
+  const messages = await db.all(`
+    SELECT * FROM internal_messages
+    WHERE (sender_type = 'doctor' AND sender_id = ? AND recipient_type = ? AND recipient_id = ?)
+       OR (sender_type = ? AND sender_id = ? AND recipient_type = 'doctor' AND recipient_id = ?)
+    ORDER BY created_at ASC
+  `, [myId, otherType, otherId, otherType, otherId, myId]);
   res.json(messages);
 });
 
 router.post('/internal-messages', requireDoctor, async (req, res) => {
-  const { body } = req.body;
+  const { body, with: withParam } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
   const doctor = await getCurrentDoctor(req);
-  await db.run("INSERT INTO internal_messages (sender_type, sender_name, body) VALUES ('doctor', ?, ?)", [doctor.name, body.trim()]);
+  let recipientType = null, recipientId = null;
+  if (withParam) {
+    const [rt, ridStr] = String(withParam).split(':');
+    recipientType = rt;
+    recipientId = Number(ridStr);
+  }
+  await db.run(
+    'INSERT INTO internal_messages (sender_type, sender_id, sender_name, recipient_type, recipient_id, body) VALUES (?,?,?,?,?,?)',
+    ['doctor', doctor.id, doctor.name, recipientType, recipientId, body.trim()]
+  );
   res.json({ ok: true });
 });
 

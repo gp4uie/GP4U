@@ -14,7 +14,16 @@ async function requireAdmin(req, res, next) {
     req.session = null;
     return res.status(401).json({ error: 'Not logged in' });
   }
+  // Fire-and-forget heartbeat for the "who's online" view on the doctor side's Team Messages tab.
+  db.run('UPDATE admins SET last_active_at = NOW() WHERE id = ?', [req.session.adminId]).catch(() => {});
   next();
+}
+
+// Shared "recently active" presence window — kept in sync with the identical copy in
+// routes/doctor.js (see that file's comment for why it isn't a shared module).
+const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+function isOnline(lastActiveAt) {
+  return !!lastActiveAt && (Date.now() - new Date(lastActiveAt).getTime()) < ONLINE_WINDOW_MS;
 }
 
 router.post('/login', async (req, res) => {
@@ -39,7 +48,7 @@ router.get('/me', async (req, res) => {
     req.session = null;
     return res.json({ loggedIn: false });
   }
-  res.json({ loggedIn: true, adminName: admin.name, practiceName: process.env.PRACTICE_NAME });
+  res.json({ loggedIn: true, adminId: admin.id, adminName: admin.name, practiceName: process.env.PRACTICE_NAME });
 });
 
 // --- Forgot / reset password ---
@@ -85,18 +94,11 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // --- Onboard / manage doctors ---
-// "Online" is derived from a recent heartbeat (see requireDoctor in routes/doctor.js) rather than
-// a stored boolean — there's no reliable server-side signal for a browser tab just closing.
-const ONLINE_WINDOW_MS = 3 * 60 * 1000;
-
 router.get('/doctors', requireAdmin, async (req, res) => {
   const doctors = await db.all(
     'SELECT id, name, reg_number, email, active, last_login_at, last_active_at, totp_enabled, created_at FROM doctors ORDER BY created_at ASC'
   );
-  res.json(doctors.map((d) => ({
-    ...d,
-    online: !!d.last_active_at && (Date.now() - new Date(d.last_active_at).getTime()) < ONLINE_WINDOW_MS,
-  })));
+  res.json(doctors.map((d) => ({ ...d, online: isOnline(d.last_active_at) })));
 });
 
 router.post('/doctors', requireAdmin, async (req, res) => {
@@ -191,17 +193,49 @@ router.put('/doctors/:id/availability', requireAdmin, async (req, res) => {
 // --- Analytics: practice-level activity and revenue snapshot for the admin dashboard. Every
 // number here is computed fresh from live booking/clinical data — nothing is stored separately,
 // so it's always up to date. ---
-// --- Internal staff chat: one shared board between admins and doctors (not patient-facing) ---
+// --- Internal staff chat: a broadcast "Everyone" board plus 1:1 DMs between admins and doctors
+// (never patient-facing). `with=<type>:<id>` (e.g. "doctor:5") selects a private conversation with
+// one person; omitted means the broadcast board. See routes/doctor.js for the doctor-side mirror. ---
+router.get('/staff-directory', requireAdmin, async (req, res) => {
+  const doctors = await db.all('SELECT id, name, last_active_at FROM doctors WHERE active = 1 ORDER BY name ASC');
+  const admins = await db.all('SELECT id, name, last_active_at FROM admins ORDER BY name ASC');
+  res.json([
+    ...admins.map((a) => ({ type: 'admin', id: a.id, name: a.name, online: isOnline(a.last_active_at) })),
+    ...doctors.map((d) => ({ type: 'doctor', id: d.id, name: d.name, online: isOnline(d.last_active_at) })),
+  ]);
+});
+
 router.get('/internal-messages', requireAdmin, async (req, res) => {
-  const messages = await db.all('SELECT * FROM internal_messages ORDER BY created_at ASC');
+  const myId = req.session.adminId;
+  if (!req.query.with) {
+    const messages = await db.all('SELECT * FROM internal_messages WHERE recipient_type IS NULL ORDER BY created_at ASC');
+    return res.json(messages);
+  }
+  const [otherType, otherIdStr] = String(req.query.with).split(':');
+  const otherId = Number(otherIdStr);
+  const messages = await db.all(`
+    SELECT * FROM internal_messages
+    WHERE (sender_type = 'admin' AND sender_id = ? AND recipient_type = ? AND recipient_id = ?)
+       OR (sender_type = ? AND sender_id = ? AND recipient_type = 'admin' AND recipient_id = ?)
+    ORDER BY created_at ASC
+  `, [myId, otherType, otherId, otherType, otherId, myId]);
   res.json(messages);
 });
 
 router.post('/internal-messages', requireAdmin, async (req, res) => {
-  const { body } = req.body;
+  const { body, with: withParam } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
-  const admin = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
-  await db.run("INSERT INTO internal_messages (sender_type, sender_name, body) VALUES ('admin', ?, ?)", [admin.name, body.trim()]);
+  const admin = await db.get('SELECT * FROM admins WHERE id = ?', [req.session.adminId]);
+  let recipientType = null, recipientId = null;
+  if (withParam) {
+    const [rt, ridStr] = String(withParam).split(':');
+    recipientType = rt;
+    recipientId = Number(ridStr);
+  }
+  await db.run(
+    'INSERT INTO internal_messages (sender_type, sender_id, sender_name, recipient_type, recipient_id, body) VALUES (?,?,?,?,?,?)',
+    ['admin', admin.id, admin.name, recipientType, recipientId, body.trim()]
+  );
   res.json({ ok: true });
 });
 

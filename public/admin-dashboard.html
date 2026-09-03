@@ -166,12 +166,18 @@
 
   <div id="tab_messages" style="display:none;">
     <h1>Team Messages</h1>
-    <p style="color:var(--ink-500);">A shared message board for admin and all doctors — not visible to patients. Everyone here can see the full history.</p>
-    <div class="message-thread" id="staffMessageThread" style="max-height:420px;"></div>
-    <div class="form-row">
-      <textarea id="staffMessageInput" placeholder="Write a message to the team…"></textarea>
+    <p style="color:var(--ink-500);">Message the whole team, or an individual doctor directly — not visible to patients.</p>
+    <div class="side-layout">
+      <div class="side-nav" id="staffContactList"></div>
+      <div class="side-content">
+        <h3 id="staffConversationHeader" style="margin-top:0;">Everyone (Team Board)</h3>
+        <div class="message-thread" id="staffMessageThread" style="max-height:420px;"></div>
+        <div class="form-row">
+          <textarea id="staffMessageInput" placeholder="Write a message…"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="sendStaffMessage()">Send</button>
+      </div>
     </div>
-    <button class="btn btn-primary" onclick="sendStaffMessage()">Send</button>
   </div>
 
 </div>

@@ -299,20 +299,34 @@ async function initSchema() {
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Same online-heartbeat idea as doctors.last_active_at (see requireAdmin in routes/admin.js).
+  await ensureColumn('admins', 'last_active_at', 'DATETIME NULL');
 
-  // Internal staff chat — a single shared board every admin and doctor can read and post to
-  // (not per-doctor DMs). Sender name is stored directly rather than a foreign key, same as
-  // prescriptions/documents snapshot doctor_name — the message still reads correctly even if
-  // that account is later deleted.
+  // Internal staff chat: either a broadcast to the whole team (recipient_type/recipient_id NULL,
+  // the "Everyone" board) or a private 1:1 message between one admin and one doctor
+  // (recipient_type/recipient_id identify who it's addressed to; a row also shows in the sender's
+  // own view of that conversation). sender_name is stored directly rather than only as a foreign
+  // key, same as prescriptions/documents snapshotting doctor_name — the message still reads
+  // correctly even if that account is later deleted.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS internal_messages (
       id INT AUTO_INCREMENT PRIMARY KEY,
       sender_type VARCHAR(16) NOT NULL,
+      sender_id INT NOT NULL,
       sender_name VARCHAR(255) NOT NULL,
+      recipient_type VARCHAR(16) NULL,
+      recipient_id INT NULL,
       body TEXT NOT NULL,
-      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_recipient (recipient_type, recipient_id),
+      INDEX idx_sender (sender_type, sender_id)
     )
   `);
+  // Migration for sites where internal_messages already existed as a broadcast-only board
+  // (before individual DMs were added) — ensureColumn no-ops if these already exist.
+  await ensureColumn('internal_messages', 'sender_id', 'INT NOT NULL DEFAULT 0');
+  await ensureColumn('internal_messages', 'recipient_type', 'VARCHAR(16) NULL');
+  await ensureColumn('internal_messages', 'recipient_id', 'INT NULL');
 
   // Audit trail every time an admin emails a patient's compiled summary to an external GP —
   // the summary itself is always compiled fresh from live clinical data (see routes/admin.js),

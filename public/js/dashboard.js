@@ -47,6 +47,7 @@ async function checkSession() {
     document.getElementById('totpBox').style.display = 'none';
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('dashboardBox').style.display = 'block';
+    myStaffId = data.doctorId;
     document.getElementById('whoami').textContent = `${data.doctorName} — ${data.practiceName}`;
     document.getElementById('logoutLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
@@ -64,7 +65,7 @@ async function checkSession() {
       const panelOpen = document.getElementById('detailPanel').style.display !== 'none';
       if (currentBookingId && panelOpen) openBooking(currentBookingId, null, true);
     }, 20000);
-    setInterval(() => { if (activeTab === 'teammsg') loadStaffMessages(); }, 15000);
+    setInterval(() => { if (activeTab === 'teammsg') { loadStaffDirectory(); loadStaffMessages(); } }, 15000);
   }
 }
 
@@ -147,17 +148,56 @@ function showTab(tab) {
   if (tab === 'schedule') loadSchedule();
   if (tab === 'tasks') loadTasks();
   if (tab === 'security') renderSecurityTab();
-  if (tab === 'teammsg') loadStaffMessages();
+  if (tab === 'teammsg') { loadStaffDirectory(); loadStaffMessages(); }
 }
 
-// --- Team Messages (shared board with admin, not patient-facing) ---
+// --- Team Messages: "Everyone" broadcast board, or a 1:1 DM with one admin/doctor ---
+let myStaffId = null;
+let staffConversation = 'everyone'; // 'everyone' | '<type>:<id>'
+let staffDirectoryCache = [];
+
+async function loadStaffDirectory() {
+  const res = await doctorFetch('/api/doctor/staff-directory');
+  staffDirectoryCache = await res.json();
+  renderStaffContactList();
+}
+
+function renderStaffContactList() {
+  const list = document.getElementById('staffContactList');
+  const others = staffDirectoryCache.filter((p) => !(p.type === 'doctor' && p.id === myStaffId));
+  list.innerHTML = `
+    <button class="${staffConversation === 'everyone' ? 'active' : ''}" onclick="selectStaffConversation('everyone')">Everyone (Team Board)</button>
+    ${others.map((p) => `
+      <button class="${staffConversation === `${p.type}:${p.id}` ? 'active' : ''}" onclick="selectStaffConversation('${p.type}:${p.id}')">
+        <span><span class="online-dot ${p.online ? 'online' : ''}"></span>${p.name}${p.type === 'admin' ? ' (Admin)' : ''}</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+function selectStaffConversation(key) {
+  staffConversation = key;
+  renderStaffContactList();
+  if (key === 'everyone') {
+    document.getElementById('staffConversationHeader').textContent = 'Everyone (Team Board)';
+  } else {
+    const person = staffDirectoryCache.find((p) => `${p.type}:${p.id}` === key);
+    document.getElementById('staffConversationHeader').textContent = person
+      ? `${person.name}${person.type === 'admin' ? ' (Admin)' : ''}` : 'Conversation';
+  }
+  loadStaffMessages();
+}
+
 async function loadStaffMessages() {
-  const res = await doctorFetch('/api/doctor/internal-messages');
+  const url = staffConversation === 'everyone'
+    ? '/api/doctor/internal-messages'
+    : `/api/doctor/internal-messages?with=${encodeURIComponent(staffConversation)}`;
+  const res = await doctorFetch(url);
   const messages = await res.json();
   const thread = document.getElementById('staffMessageThread');
   thread.innerHTML = messages.length
     ? messages.map((m) => `
-        <div class="msg ${m.sender_type === 'doctor' ? 'staff-mine' : 'staff-other'}">
+        <div class="msg ${m.sender_type === 'doctor' && m.sender_id === myStaffId ? 'staff-mine' : 'staff-other'}">
           ${m.body}<small>${m.sender_name} (${m.sender_type === 'doctor' ? 'Doctor' : 'Admin'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
         </div>
       `).join('')
@@ -171,7 +211,7 @@ async function sendStaffMessage() {
   await doctorFetch('/api/doctor/internal-messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body: input.value }),
+    body: JSON.stringify({ body: input.value, with: staffConversation === 'everyone' ? null : staffConversation }),
   });
   input.value = '';
   loadStaffMessages();
