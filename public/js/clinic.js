@@ -6,7 +6,7 @@
  *   streetAddress, phone, eircode, companyName, companyNumber, registeredOffice
  *
  * The street address is deliberately blank for now: the site shows just "Newbridge, Co. Kildare" and
- * hides every "Get directions" button. When you're ready, type the street here (e.g. 'George Street')
+ * hides every "Get directions" button. When you're ready, type the street here (just the street name)
  * and the full address, the directions buttons and the map links all appear automatically.
  */
 const CLINIC = {
