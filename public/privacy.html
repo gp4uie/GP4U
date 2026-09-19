@@ -13,26 +13,26 @@
 
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U</a>
+    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
     <button class="nav-toggle" aria-label="Toggle menu">☰</button>
     <nav class="main-nav">
-      <a href="/index.html#services">Services</a>
-      <a href="/index.html#how-it-works">How it works</a>
-      <a href="/blog.html">Health Info</a>
-      <a href="/index.html#about">About</a>
-      <a href="/privacy.html">Privacy</a>
+      <a href="/walk-in.html">Walk-In</a>
+      <a href="/services.html">Services</a>
+      <a href="/new-patients.html">New Patients</a>
+      <a href="/contact.html">Contact</a>
       <a href="/patient-login.html" class="doctor-link">Patient Login</a>
-      <a href="/book.html" class="btn btn-primary">Book a GP</a>
+      <a href="/online.html" class="btn btn-primary">See a GP Online</a>
     </nav>
   </div>
 </header>
 
 <div class="page-shell">
   <h1>Privacy &amp; GDPR Notice</h1>
-  <p><strong>Data controller:</strong> GP4U (contact: admin@gp4u.ie)</p>
+  <p><strong>Data controller:</strong> GP4U Clinic, George Street, Newbridge, Co. Kildare (contact: admin@gp4u.ie)</p>
+  <p>This notice covers patients seen in person at our walk-in clinic and family practice as well as patients who use our online consultation service.</p>
 
   <h3>What we collect</h3>
-  <p>When you book a consultation we collect your name, date of birth, contact details, and the health
+  <p>When you register, walk in, or book a consultation we collect your name, date of birth, contact details, and the health
   information you provide in your intake questionnaire and during your consultation. This is "special
   category" data under GDPR, and we only process it to provide you with medical care, which is a lawful
   basis under Article 9(2)(h) (health care provided by a health professional).</p>
@@ -72,8 +72,53 @@
 </div>
 
 <footer class="site-footer">
-  <div class="container footer-legal">GP4U — Not for use in a medical emergency.</div>
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <h4>GP4U Clinic</h4>
+        <ul>
+          <li data-clinic-address></li>
+          <li class="contact-item" data-clinic-phone></li>
+          <li data-clinic-email></li>
+        </ul>
+      </div>
+      <div class="footer-hours-col">
+        <h4>Opening hours</h4>
+        <div data-clinic-hours></div>
+      </div>
+      <div>
+        <h4>The clinic</h4>
+        <ul>
+          <li><a href="/walk-in.html">Walk-In Clinic</a></li>
+          <li><a href="/services.html">Services</a></li>
+          <li><a href="/new-patients.html">New patients</a></li>
+          <li><a href="/contact.html">Contact &amp; directions</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Online</h4>
+        <ul>
+          <li><a href="/online.html">See a GP online</a></li>
+          <li><a href="/blog.html">Health info</a></li>
+          <li><a href="/patient-login.html">Patient login</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
+          <li><a href="/privacy.html#terms">Terms of Use</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-legal">
+      Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+      Online consultations do not replace in-person examination where one is clinically necessary.
+      <div class="footer-company" data-clinic-company></div>
+    </div>
+  </div>
 </footer>
+<script src="/js/clinic.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>

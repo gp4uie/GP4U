@@ -749,3 +749,95 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
 @media print {
   header, footer, .no-print { display: none !important; }
 }
+
+/* ---------- Clinic pages (homepage, walk-in, services, new patients, contact) ---------- */
+
+/* "Open now / Closed" pill, filled in by clinic.js from the hours configured there. */
+.open-status {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 8px 16px; border-radius: 999px;
+  font-size: 0.88rem; font-weight: 700;
+  margin-bottom: 22px;
+}
+.open-status:empty { display: none; }
+.open-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+.open-status.is-open { background: rgba(46, 158, 107, 0.16); color: #4ade9a; border: 1px solid rgba(74, 222, 154, 0.4); }
+.open-status.is-closed { background: rgba(240, 185, 60, 0.14); color: var(--gold-500); border: 1px solid rgba(240, 185, 60, 0.4); }
+.open-status.is-open .open-dot { animation: pulseDot 2s ease-in-out infinite; }
+@keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+/* On light backgrounds (walk-in / contact pages) the pill needs darker text. */
+.on-light .open-status.is-open { color: #1c7a4b; background: #e6f6ee; border-color: #b6e3cb; }
+.on-light .open-status.is-closed { color: #9a6a0a; background: #fff6e5; border-color: var(--warn-border); }
+
+.hours-table { width: 100%; border-collapse: collapse; font-size: 0.98rem; }
+.hours-table th, .hours-table td { padding: 9px 0; text-align: left; border-bottom: 1px solid var(--line); }
+.hours-table th { font-weight: 600; color: var(--ink-700); }
+.hours-table td { text-align: right; font-variant-numeric: tabular-nums; }
+.hours-table tr:last-child th, .hours-table tr:last-child td { border-bottom: 0; }
+.hours-table tr.today th, .hours-table tr.today td { color: var(--teal-700); font-weight: 800; }
+.hours-note { color: var(--ink-500); font-size: 0.82rem; margin: 12px 0 0; }
+
+.btn-ghost {
+  background: transparent; color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+}
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-address { margin: 0 0 26px; font-weight: 600; opacity: 0.9; }
+
+/* "Three ways to see a GP" cards */
+.path-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; }
+.path-card { display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.path-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--teal-600), var(--teal-bright)); }
+.path-card:nth-child(2)::before { background: linear-gradient(90deg, var(--blue-600), var(--blue-500)); }
+.path-card:nth-child(3)::before { background: linear-gradient(90deg, var(--green-500), var(--teal-bright)); }
+.path-card h3 { margin: 6px 0 8px; font-size: 1.2rem; }
+.path-card p { color: var(--ink-500); font-size: 0.95rem; flex: 1; }
+.path-card .btn { margin-top: 10px; }
+.path-tag { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal-700); }
+
+/* Simple tick lists */
+.tick-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 28px; }
+.tick-list li { position: relative; padding-left: 30px; color: var(--ink-700); }
+.tick-list li::before {
+  content: ""; position: absolute; left: 0; top: 4px; width: 18px; height: 18px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-600), var(--blue-500));
+}
+.tick-list li::after {
+  content: ""; position: absolute; left: 6px; top: 8px; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0.8); transform-origin: center;
+}
+.tick-list.emergency li::before { background: #c0392b; }
+
+/* Emergency / not-for-emergencies notice */
+.notice-strip { background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--radius); padding: 16px 20px; color: #6b4a06; font-size: 0.95rem; }
+.notice-strip strong { color: #4d3404; }
+
+.two-col { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+.two-col > * { flex: 1 1 320px; min-width: 0; }
+.info-block h3 { margin-top: 0; }
+.info-block p { color: var(--ink-700); }
+
+/* "See a GP online" banner */
+.online-banner {
+  background: radial-gradient(circle at 15% 30%, #0f3d3a 0%, #0a0e14 75%);
+  color: #fff; border-radius: var(--radius-xl);
+  padding: clamp(28px, 5vw, 48px);
+  display: flex; gap: 28px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+.online-banner h2 { margin: 0 0 8px; font-size: clamp(1.4rem, 3.4vw, 1.9rem); letter-spacing: -0.02em; }
+.online-banner p { margin: 0; opacity: 0.88; max-width: 560px; }
+.online-banner .btn-primary { background: linear-gradient(120deg, var(--teal-bright), var(--blue-500)); color: #0a0e14; }
+
+.page-hero-light { padding-top: clamp(40px, 7vw, 64px); padding-bottom: 12px; }
+.page-hero-light h1 { font-size: clamp(2rem, 5vw, 2.6rem); font-weight: 800; letter-spacing: -0.03em; margin: 0 0 12px; }
+.page-hero-light p.lead { color: var(--ink-700); font-size: 1.1rem; max-width: 640px; margin: 0; }
+
+.footer-company { font-size: 0.78rem; opacity: 0.7; margin-top: 10px; }
+
+/* Opening-hours table inside the dark footer */
+footer.site-footer .hours-table { font-size: 0.85rem; }
+footer.site-footer .hours-table th, footer.site-footer .hours-table td { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.14); padding: 5px 0; }
+footer.site-footer .hours-table tr.today th, footer.site-footer .hours-table tr.today td { color: var(--teal-bright); }
+footer.site-footer [data-clinic-address] { line-height: 1.5; }
+footer.site-footer .hours-table th { padding-right: 18px; white-space: nowrap; }

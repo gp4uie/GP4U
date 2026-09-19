@@ -367,3 +367,28 @@ telling anyone the site is live.
 - Re-read **Section 5** — going live technically is not the same as being ready for real patients
 - Submit `https://www.gp4u.ie/sitemap.xml` to Google Search Console (Section 8)
 - Every time you push new code changes to GitHub, redeploy from hPanel to update the live site
+
+## 10. The clinic website (Newbridge walk-in clinic & family practice)
+
+From September 2026 the main site (`gp4u.ie`) presents **GP4U Clinic** — a walk-in clinic and family
+practice at George Street, Newbridge, Co. Kildare — with online consultations as one section of it.
+
+**Page map**
+- `index.html` — clinic homepage (open-now badge, hours, three ways to see a GP, services, how walk-in works)
+- `walk-in.html`, `services.html`, `new-patients.html`, `contact.html` — clinic pages
+- `online.html` — everything telemedicine (previously the homepage). The "See a GP Online" button in the
+  header on every page leads here. The booking flow, condition pages, patient portal and doctor dashboard are unchanged.
+
+**Editing clinic details — one file: `public/js/clinic.js`.** Address, phone, Eircode, opening hours, and
+company details are all in the `CLINIC` block at the top. Every page (header, footer, hours tables, "Open now"
+badge, directions button) reads from it. Anything left blank is simply not shown.
+
+**Still to fill in before going live:**
+- `phone` and `eircode` in `clinic.js`
+- `companyName`, `companyNumber`, `registeredOffice` in `clinic.js` — Irish company law requires these on a
+  company website; they appear in the footer once filled in
+- Review the service lists on `index.html`, `walk-in.html` and `services.html` — they are a draft of typical
+  walk-in / family-practice services and must match what the clinic actually offers
+- `new-patients.html` — confirm the registration process (and medical card / GP Visit Card policy) and update the text
+- Add doctor profiles / photos, and fees, when ready
+- Review `privacy.html` for in-person patients (e.g. CCTV, paper records, reception check-in)
