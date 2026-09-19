@@ -32,6 +32,8 @@ const ENCRYPTED_COLUMNS = new Set([
   'note_text', 'medication', 'dose', 'frequency', 'duration', 'instructions', 'fields',
   'reason', 'symptoms_duration', 'current_medications', 'allergies', 'extra_details',
   'patient_address', 'address', 'safety_answers', 'known_conditions',
+  // Clinic sign-up forms (patient_registrations / walkin_checkins) — see routes/clinic.js.
+  'next_of_kin', 'family_members', 'reg_notes',
 ]);
 
 function reviveDates(row) {
@@ -442,6 +444,52 @@ async function initSchema() {
       data LONGBLOB NOT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    )
+  `);
+
+  // New-patient registrations submitted from the public "New Patients" form for the walk-in clinic /
+  // family practice. Separate from `patients` (which are online-booking accounts keyed by email):
+  // this is a sign-up request for staff to review and process, not a login. Address, medical
+  // history, next of kin and family members are encrypted at rest like other health content.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS patient_registrations (
+      id VARCHAR(32) PRIMARY KEY,
+      status VARCHAR(16) NOT NULL DEFAULT 'new',
+      full_name VARCHAR(255) NOT NULL,
+      dob VARCHAR(20) NOT NULL,
+      sex VARCHAR(32),
+      email VARCHAR(255) NOT NULL,
+      phone VARCHAR(64) NOT NULL,
+      address TEXT,
+      eircode VARCHAR(16),
+      medical_card VARCHAR(24),
+      previous_gp VARCHAR(255),
+      known_conditions TEXT,
+      current_medications TEXT,
+      allergies TEXT,
+      next_of_kin TEXT,
+      family_members TEXT,
+      reg_notes TEXT,
+      consent_at DATETIME NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processed_at DATETIME NULL
+    )
+  `);
+
+  // "Book in for walk-in" check-ins: a heads-up that someone is on their way, shown to staff as
+  // the day's walk-in list. status: expected -> arrived -> seen, or cancelled.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS walkin_checkins (
+      id VARCHAR(32) PRIMARY KEY,
+      status VARCHAR(16) NOT NULL DEFAULT 'expected',
+      full_name VARCHAR(255) NOT NULL,
+      dob VARCHAR(20) NOT NULL,
+      phone VARCHAR(64) NOT NULL,
+      email VARCHAR(255) NULL,
+      reason TEXT NOT NULL,
+      arrival_minutes INT NOT NULL DEFAULT 0,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NULL
     )
   `);
 

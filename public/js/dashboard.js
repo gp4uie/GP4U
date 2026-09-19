@@ -27,7 +27,7 @@ function showSessionExpired() {
   document.getElementById('detailPanel').style.display = 'none';
   document.getElementById('dashboardBox').classList.remove('chart-open');
   document.getElementById('mainTabBar').style.display = 'flex';
-  ['schedule', 'search', 'recent', 'tasks', 'security', 'teammsg'].forEach((t) => {
+  ['schedule', 'search', 'recent', 'clinic', 'tasks', 'security', 'teammsg'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === 'schedule' ? 'block' : 'none';
   });
   document.getElementById('dashboardBox').style.display = 'none';
@@ -56,7 +56,11 @@ async function checkSession() {
     loadNotifications();
     loadMedications();
     loadTasks();
+    loadClinicSummary();
     setInterval(loadNotifications, 15000);
+    // Walk-in list stays live while the Clinic tab is open; the registrations list is left alone
+    // on the timer so an expanded registration doesn't collapse while it's being read.
+    setInterval(() => { loadClinicSummary(); if (activeTab === 'clinic') loadWalkIns(); }, 15000);
     // Keep an open chart current — e.g. a new patient message — without disturbing whatever
     // sub-tab, scroll position, or in-progress typing the doctor currently has (openBooking only
     // re-renders read-only display lists, never the live form fields; see keepTab/isSameBooking
@@ -147,6 +151,7 @@ function showTab(tab) {
   if (tab === 'recent') loadRecent();
   if (tab === 'schedule') loadSchedule();
   if (tab === 'tasks') loadTasks();
+  if (tab === 'clinic') loadClinic();
   if (tab === 'security') renderSecurityTab();
   if (tab === 'teammsg') { loadStaffDirectory(); loadStaffMessages(); }
 }

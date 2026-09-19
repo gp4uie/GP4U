@@ -35,8 +35,57 @@
 <div class="container page-hero-light">
   <div data-open-status></div>
   <h1>Walk-In Clinic</h1>
-  <p class="lead">See a GP in Newbridge without an appointment. Come in any day of the week during opening hours.</p>
+  <p class="lead">See a GP in Newbridge without an appointment. Come in any day of the week during opening hours — or <a href="#book-in">book in online</a> so we know you're coming.</p>
 </div>
+
+<section id="book-in" style="padding-bottom:24px;">
+  <div class="container" style="max-width:820px;">
+    <div class="card" id="bookInCard">
+      <span class="path-tag">Walk-in</span>
+      <h2 style="margin:6px 0 8px;">Book in for walk-in</h2>
+      <p style="color:var(--ink-700);">Let us know you're on your way so your details are ready when you arrive. Waiting times vary depending on how busy we are — booking in doesn't reserve a set appointment time. When you arrive, just tell reception your name.</p>
+      <div class="notice" id="bookInClosed" hidden><strong>We're closed right now</strong><span id="bookInClosedText"></span></div>
+
+      <form id="bookInForm" novalidate>
+        <fieldset id="bookInFields" style="border:0;padding:0;margin:0;min-width:0;">
+          <div class="form-grid">
+            <div class="form-row"><label for="wiName">Full name <span style="color:#c0392b;">*</span></label><input id="wiName" autocomplete="name" maxlength="255"></div>
+            <div class="form-row"><label for="wiDob">Date of birth <span style="color:#c0392b;">*</span></label><input id="wiDob" type="date" min="1900-01-01" autocomplete="bday"></div>
+            <div class="form-row"><label for="wiPhone">Mobile / phone <span style="color:#c0392b;">*</span></label><input id="wiPhone" type="tel" autocomplete="tel" maxlength="64"></div>
+            <div class="form-row"><label for="wiEmail">Email (optional)</label><input id="wiEmail" type="email" autocomplete="email" maxlength="255"></div>
+          </div>
+          <div class="form-row"><label for="wiReason">What do you need to be seen for? <span style="color:#c0392b;">*</span></label><textarea id="wiReason" maxlength="500" style="min-height:80px;" placeholder="A few words, e.g. sore throat and fever for 3 days"></textarea></div>
+          <div class="form-row"><label for="wiArrival">When will you arrive?</label>
+            <select id="wiArrival">
+              <option value="0">I'm here now / very shortly</option>
+              <option value="15">In about 15 minutes</option>
+              <option value="30">In about 30 minutes</option>
+              <option value="60">In about an hour</option>
+            </select></div>
+
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin:6px 0 12px;">
+            <input type="checkbox" id="wiNotEmergency" style="width:auto;margin-top:4px;">
+            <span>This is <strong>not an emergency</strong>. (For chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding or loss of consciousness, call <strong>112 or 999</strong>.) <span style="color:#c0392b;">*</span></span>
+          </label>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin:0 0 18px;">
+            <input type="checkbox" id="wiConsent" style="width:auto;margin-top:4px;">
+            <span>I've read the <a href="/privacy.html" target="_blank" rel="noopener">Privacy &amp; GDPR Notice</a>. <span style="color:#c0392b;">*</span></span>
+          </label>
+
+          <p id="bookInError" role="alert" style="color:#c0392b;font-weight:600;"></p>
+          <button type="submit" class="btn btn-primary btn-block" id="bookInSubmit">Book in</button>
+        </fieldset>
+      </form>
+    </div>
+
+    <div class="card" id="bookInDone" hidden>
+      <h2 style="margin-top:0;">You're booked in</h2>
+      <p>Thanks, <strong id="bookInDoneName"></strong>. Your reference is <strong id="bookInRef"></strong>. When you arrive, tell reception your name.</p>
+      <p style="color:var(--ink-700);">If your symptoms get worse before you arrive, or you feel unsafe, call <strong>112 or 999</strong>.</p>
+      <p><a href="#" data-clinic-directions class="btn btn-primary">Get directions</a></p>
+    </div>
+  </div>
+</section>
 
 <section>
   <div class="container two-col">
@@ -156,6 +205,7 @@
 </footer>
 
 <script src="/js/clinic.js"></script>
+<script src="/js/walkin.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>
 </html>

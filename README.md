@@ -392,3 +392,20 @@ badge, directions button) reads from it. Anything left blank is simply not shown
 - `new-patients.html` — confirm the registration process (and medical card / GP Visit Card policy) and update the text
 - Add doctor profiles / photos, and fees, when ready
 - Review `privacy.html` for in-person patients (e.g. CCTV, paper records, reception check-in)
+
+### Sign-up forms and the staff "Clinic" tab
+
+- **New Patients page** (`new-patients.html`) has a full registration form — the patient's details, medical
+  history, next of kin, and up to 8 family members registered together. Saved in the `patient_registrations`
+  table; address, medical history, next of kin and family members are encrypted at rest like other health data.
+- **Walk-In page** (`walk-in.html#book-in`) has a "Book in for walk-in" form (name, DOB, phone, reason, arrival
+  time, "not an emergency" confirmation). It is only usable while the clinic is open (per `clinic.js` hours).
+  Saved in `walkin_checkins`; the reason is encrypted.
+- **Doctor dashboard → Clinic tab** shows the live walk-in list (mark arrived / seen / cancelled) and the new-patient
+  registrations (expand for full details, mark processed). A badge on the tab shows how many need attention.
+  Only logged-in doctors can see this data. Admin accounts do not yet have a view of it.
+- Both public forms are limited to 10 submissions per hour per network address to stop spam.
+- If `DOCTOR_EMAIL` and SMTP are configured, a new registration emails the doctor (no health details in the email) and
+  the patient gets a confirmation. Without email set up, everything still works — it just doesn't send.
+- Registration is a *request* — it does not create an online-booking patient account or clinical record; staff set
+  the patient up from the Clinic tab.

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Register as a New Patient — Family Practice Newbridge | GP4U Clinic</title>
-<meta name="description" content="Register with GP4U Clinic, a family practice on George Street, Newbridge, Co. Kildare. How to join and what to bring.">
+<title>Register as a New Patient — Comprehensive Family Practice, Newbridge | GP4U Clinic</title>
+<meta name="description" content="Register with GP4U Clinic, a comprehensive family practice on George Street, Newbridge, Co. Kildare. Register yourself and your whole family online.">
 <link rel="canonical" href="https://www.gp4u.ie/new-patients.html">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Register as a New Patient — Family Practice Newbridge | GP4U Clinic">
-<meta property="og:description" content="Register with GP4U Clinic, a family practice on George Street, Newbridge, Co. Kildare. How to join and what to bring.">
+<meta property="og:title" content="Register as a New Patient — Comprehensive Family Practice, Newbridge | GP4U Clinic">
+<meta property="og:description" content="Register with GP4U Clinic, a comprehensive family practice on George Street, Newbridge, Co. Kildare. Register yourself and your whole family online.">
 <meta property="og:url" content="https://www.gp4u.ie/new-patients.html">
 <meta property="og:image" content="https://www.gp4u.ie/img/gp4u-logo-card.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -33,30 +33,84 @@
 </header>
 
 <div class="container page-hero-light">
-  <h1>New Patients</h1>
-  <p class="lead">Register with GP4U Clinic for ongoing care from a GP who knows you and your family.</p>
+  <h1>Join our comprehensive family practice</h1>
+  <p class="lead">Register with GP4U Clinic for continuing care for you and your whole family — from babies and children to older adults.</p>
 </div>
 
-<section>
-  <div class="container two-col">
-    <div class="info-block">
-      <h2 class="section-title section-title-left">How to register</h2>
-      <!-- TODO: once the registration process is decided (online form / in-person only, medical card and
-           GP Visit Card policy, whether new patients are being accepted), update the text below. -->
-      <div class="steps">
-        <div class="step"><div class="step-num">1</div><div><strong>Get in touch</strong><p>Contact us or call in to reception to ask about registering with the practice.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div><strong>Complete registration</strong><p>We'll take your name, date of birth, address and contact details, plus your medical history and current medicines.</p></div></div>
-        <div class="step"><div class="step-num">3</div><div><strong>See your GP</strong><p>Once you're registered, you can book appointments with the practice.</p></div></div>
-      </div>
+<section style="padding-bottom:24px;">
+  <div class="container">
+    <ul class="tick-list">
+      <li>Care for every age, all in one practice</li>
+      <li>Asthma, diabetes and blood pressure reviews</li>
+      <li>Child health</li>
+      <li>Women's health and contraception</li>
+      <li>Men's health</li>
+      <li>Health checks</li>
+      <li>Repeat prescriptions</li>
+      <li>Referrals to specialists</li>
+    </ul>
+  </div>
+</section>
+
+<section id="register" style="padding-top:24px;">
+  <div class="container" style="max-width:820px;">
+    <div class="card" id="registerCard">
+      <h2 style="margin-top:0;">Register as a new patient</h2>
+      <p style="color:var(--ink-700);">Takes about five minutes. Fields marked <span style="color:#c0392b;">*</span> are required. You can add your family members at the bottom so everyone is registered together.</p>
+      <div class="notice"><strong>Need to be seen today?</strong>You don't need to register online first — <a href="/walk-in.html#book-in">book in for our walk-in clinic</a> or just come in. If it's an emergency, call 112 or 999.</div>
+
+      <form id="registerForm" novalidate>
+        <h3>About you</h3>
+        <div class="form-grid">
+          <div class="form-row"><label for="fullName">Full name <span style="color:#c0392b;">*</span></label><input id="fullName" autocomplete="name" maxlength="255"></div>
+          <div class="form-row"><label for="dob">Date of birth <span style="color:#c0392b;">*</span></label><input id="dob" type="date" min="1900-01-01" autocomplete="bday"></div>
+          <div class="form-row"><label for="sex">Sex</label>
+            <select id="sex"><option value="">Prefer not to say</option><option>Female</option><option>Male</option><option>Other</option></select></div>
+          <div class="form-row"><label for="phone">Mobile / phone <span style="color:#c0392b;">*</span></label><input id="phone" type="tel" autocomplete="tel" maxlength="64"></div>
+          <div class="form-row" style="grid-column:1/-1;"><label for="email">Email <span style="color:#c0392b;">*</span></label><input id="email" type="email" autocomplete="email" maxlength="255"></div>
+          <div class="form-row" style="grid-column:1/-1;"><label for="address">Home address <span style="color:#c0392b;">*</span></label><textarea id="address" style="min-height:70px;" maxlength="1000" autocomplete="street-address"></textarea></div>
+          <div class="form-row"><label for="eircode">Eircode</label><input id="eircode" maxlength="16" autocomplete="postal-code"></div>
+        </div>
+
+        <h3 style="margin-top:14px;">Your health</h3>
+        <div class="form-grid">
+          <div class="form-row"><label for="medicalCard">Do you have a medical card or GP Visit Card?</label>
+            <select id="medicalCard"><option value="unsure">Not sure</option><option value="none">No</option><option value="medical_card">Medical card</option><option value="gp_visit_card">GP Visit Card</option></select></div>
+          <div class="form-row"><label for="previousGp">Previous GP / practice</label><input id="previousGp" maxlength="255"></div>
+        </div>
+        <div class="form-row"><label for="knownConditions">Long-term conditions</label><textarea id="knownConditions" maxlength="2000" placeholder="e.g. asthma, diabetes, high blood pressure — or 'none'"></textarea></div>
+        <div class="form-row"><label for="currentMedications">Current medicines</label><textarea id="currentMedications" maxlength="2000" placeholder="Name and dose if you know it — or 'none'"></textarea></div>
+        <div class="form-row"><label for="allergies">Allergies</label><input id="allergies" maxlength="1000" placeholder="Medicines or other allergies — or 'none'"></div>
+
+        <h3 style="margin-top:14px;">Next of kin</h3>
+        <div class="form-grid">
+          <div class="form-row"><label for="nokName">Name</label><input id="nokName" maxlength="255"></div>
+          <div class="form-row"><label for="nokRelationship">Relationship</label><input id="nokRelationship" maxlength="64"></div>
+          <div class="form-row"><label for="nokPhone">Phone</label><input id="nokPhone" type="tel" maxlength="64"></div>
+        </div>
+
+        <h3 style="margin-top:14px;">Family members</h3>
+        <p style="color:var(--ink-700);margin-top:0;">Registering your partner, children or other family members too? Add each person here (up to 8). You can share their health details when you first see us.</p>
+        <div id="familyRows"></div>
+        <button type="button" class="btn btn-secondary" id="addFamilyBtn">+ Add a family member</button>
+
+        <div class="form-row" style="margin-top:22px;"><label for="notes">Anything else we should know?</label><textarea id="notes" maxlength="2000"></textarea></div>
+
+        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin:6px 0 18px;">
+          <input type="checkbox" id="consent" style="width:auto;margin-top:4px;">
+          <span>I confirm the details I've given are correct, and I've read the <a href="/privacy.html" target="_blank" rel="noopener">Privacy &amp; GDPR Notice</a>. <span style="color:#c0392b;">*</span></span>
+        </label>
+
+        <p id="registerError" role="alert" style="color:#c0392b;font-weight:600;"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="registerSubmit">Submit registration</button>
+      </form>
     </div>
-    <div class="card">
-      <h3 style="margin-top:0;">Contact us to register</h3>
-      <p><strong>GP4U Clinic</strong><br><span data-clinic-address></span></p>
-      <p class="contact-item" data-clinic-phone></p>
-      <p data-clinic-email></p>
-      <p><a href="#" data-clinic-directions class="btn btn-primary btn-block">Get directions</a></p>
-      <div data-clinic-hours></div>
-      <p class="hours-note" data-clinic-hours-note></p>
+
+    <div class="card" id="registerDone" hidden>
+      <h2 style="margin-top:0;">Thank you — we've received your registration</h2>
+      <p>Your reference is <strong id="registerRef"></strong>. Our team will review your details and be in touch. We'll also send a confirmation to the email address you gave (check your spam folder if it doesn't arrive).</p>
+      <p>Need to be seen today? <a href="/walk-in.html#book-in">Book in for our walk-in clinic</a>, or just come in.</p>
+      <p><a href="/index.html" class="btn btn-secondary">Back to home</a></p>
     </div>
   </div>
 </section>
@@ -121,6 +175,7 @@
   </div>
 </footer>
 
+<script src="/js/register.js"></script>
 <script src="/js/clinic.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>

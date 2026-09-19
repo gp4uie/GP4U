@@ -7,7 +7,7 @@
  */
 const CLINIC = {
   name: 'GP4U Clinic',
-  tagline: 'Walk-In Clinic & Family Practice',
+  tagline: 'Walk-In Clinic & Comprehensive Family Practice',
   addressLines: ['George Street', 'Newbridge', 'Co. Kildare'],
   eircode: '',
   phone: '',
@@ -69,6 +69,8 @@ const CLINIC = {
     }
     return { open: false, text: 'Closed' };
   }
+
+  window.clinicStatus = status;
 
   function hoursTable() {
     const { day } = dublinNow();

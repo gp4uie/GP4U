@@ -9,6 +9,7 @@ const { router: doctorRoutes } = require('./routes/doctor');
 const { router: patientRoutes } = require('./routes/patient');
 const { router: adminRoutes } = require('./routes/admin');
 const contentRoutes = require('./routes/content');
+const clinicRoutes = require('./routes/clinic');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -67,6 +68,7 @@ app.get('/api/config', (req, res) => {
 });
 
 app.use('/api', bookingRoutes);
+app.use('/api', clinicRoutes);
 app.use('/api/doctor', doctorRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/admin', adminRoutes);
