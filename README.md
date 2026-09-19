@@ -371,7 +371,7 @@ telling anyone the site is live.
 ## 10. The clinic website (Newbridge walk-in clinic & family practice)
 
 From September 2026 the main site (`gp4u.ie`) presents **GP4U Clinic** — a walk-in clinic and family
-practice at George Street, Newbridge, Co. Kildare — with online consultations as one section of it.
+practice in Newbridge, Co. Kildare — with online consultations as one section of it.
 
 **Page map**
 - `index.html` — clinic homepage (open-now badge, hours, three ways to see a GP, services, how walk-in works)
@@ -409,3 +409,17 @@ badge, directions button) reads from it. Anything left blank is simply not shown
   the patient gets a confirmation. Without email set up, everything still works — it just doesn't send.
 - Registration is a *request* — it does not create an online-booking patient account or clinical record; staff set
   the patient up from the Clinic tab.
+
+### Site look, photos and the address (September 2026 redesign)
+
+- The clinic pages (home, walk-in, services, new patients, contact) use `public/css/clinic.css` — a warm cream/teal
+  design with photography. It is scoped to those pages only, so booking, patient portal and dashboard look as before.
+- **Street address is hidden for now.** In `public/js/clinic.js` set `streetAddress: 'George Street'` (or whatever it
+  is) and the full address, "Get directions" buttons and map links appear everywhere automatically. Until then the site
+  says "Newbridge, Co. Kildare" and "full address coming shortly".
+- **Photos** are in `public/img/clinic/`. They are free-to-use stock photos from Unsplash (Unsplash License — free for
+  commercial use, no attribution required): Vitaly Gariev (family-sofa, doctor-family, doctor-consult, doctor-video,
+  doctor-desk) and Zach Lucero (mother-baby). They show models, **not your team** — replace them with real photos of
+  the clinic and doctors once you have them (keep the same filenames, or edit the `<img>` tags).
+- The service lists and wording on these pages are a draft of typical walk-in / family-practice services; confirm they
+  match what the clinic actually offers.

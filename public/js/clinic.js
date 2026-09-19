@@ -3,12 +3,18 @@
  * Every page reads from here, so a change made below shows up across the whole site.
  *
  * Anything left as '' is simply not shown on the website. Fill these in when you have them:
- *   phone, eircode, companyName, companyNumber, registeredOffice
+ *   streetAddress, phone, eircode, companyName, companyNumber, registeredOffice
+ *
+ * The street address is deliberately blank for now: the site shows just "Newbridge, Co. Kildare" and
+ * hides every "Get directions" button. When you're ready, type the street here (e.g. 'George Street')
+ * and the full address, the directions buttons and the map links all appear automatically.
  */
 const CLINIC = {
   name: 'GP4U Clinic',
   tagline: 'Walk-In Clinic & Comprehensive Family Practice',
-  addressLines: ['George Street', 'Newbridge', 'Co. Kildare'],
+  streetAddress: '',
+  town: 'Newbridge',
+  county: 'Co. Kildare',
   eircode: '',
   phone: '',
   email: 'admin@gp4u.ie',
@@ -81,23 +87,45 @@ const CLINIC = {
     return `<table class="hours-table"><tbody>${rows}</tbody></table>`;
   }
 
+  // Compact "Mon–Fri 10am – 9pm / Sat–Sun 12pm – 7pm" summary, built from the same hours.
+  function hoursSummary() {
+    const SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const groups = [];
+    DISPLAY_ORDER.forEach((d) => {
+      const h = CLINIC.hours[d];
+      const key = h ? h.join('-') : 'closed';
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.days.push(d); else groups.push({ key, days: [d], h });
+    });
+    return groups.map((g) => {
+      const label = g.days.length > 1 ? `${SHORT[g.days[0]]}–${SHORT[g.days[g.days.length - 1]]}` : SHORT[g.days[0]];
+      return `<div class="hs-row"><strong>${label}</strong><span>${g.h ? `${fmt(g.h[0])} – ${fmt(g.h[1])}` : 'Closed'}</span></div>`;
+    }).join('');
+  }
+
   function fill() {
-    const addr = CLINIC.addressLines.concat(CLINIC.eircode ? [CLINIC.eircode] : []);
+    const addr = [CLINIC.streetAddress, CLINIC.town, CLINIC.county, CLINIC.eircode].filter(Boolean);
+    const hasStreet = !!CLINIC.streetAddress;
 
     document.querySelectorAll('[data-open-status]').forEach((el) => {
       const s = status();
       el.className = `open-status ${s.open ? 'is-open' : 'is-closed'}`;
       el.innerHTML = `<span class="open-dot"></span>${s.text}`;
     });
+    document.querySelectorAll('[data-clinic-hours-summary]').forEach((el) => { el.innerHTML = hoursSummary(); });
     document.querySelectorAll('[data-clinic-hours]').forEach((el) => { el.innerHTML = hoursTable(); });
     document.querySelectorAll('[data-clinic-hours-note]').forEach((el) => { el.textContent = CLINIC.hoursNote; });
     document.querySelectorAll('[data-clinic-address]').forEach((el) => { el.innerHTML = addr.join('<br>'); });
     document.querySelectorAll('[data-clinic-address-inline]').forEach((el) => { el.textContent = addr.join(', '); });
+    // Directions only make sense once there's a real street address to point at.
     document.querySelectorAll('[data-clinic-directions]').forEach((el) => {
+      if (!hasStreet) { el.hidden = true; return; }
+      el.hidden = false;
       el.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(`${CLINIC.name}, ${addr.join(', ')}`);
       el.target = '_blank';
       el.rel = 'noopener';
     });
+    document.querySelectorAll('[data-if-no-street]').forEach((el) => { el.hidden = hasStreet; });
     document.querySelectorAll('[data-clinic-phone]').forEach((el) => {
       if (CLINIC.phone) {
         el.innerHTML = `<a href="tel:${CLINIC.phone.replace(/[^+\d]/g, '')}">${CLINIC.phone}</a>`;

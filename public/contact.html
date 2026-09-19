@@ -3,20 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contact &amp; Directions — GP4U Clinic, George Street, Newbridge, Co. Kildare</title>
-<meta name="description" content="Find GP4U Clinic on George Street, Newbridge, Co. Kildare. Opening hours, directions and contact details.">
+<title>Contact GP4U Clinic — Newbridge, Co. Kildare</title>
+<meta name="description" content="Contact GP4U Clinic, a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare. Opening hours and contact details.">
 <link rel="canonical" href="https://www.gp4u.ie/contact.html">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Contact &amp; Directions — GP4U Clinic, George Street, Newbridge, Co. Kildare">
-<meta property="og:description" content="Find GP4U Clinic on George Street, Newbridge, Co. Kildare. Opening hours, directions and contact details.">
+<meta property="og:title" content="Contact GP4U Clinic — Newbridge, Co. Kildare">
+<meta property="og:description" content="Contact GP4U Clinic, a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare. Opening hours and contact details.">
 <meta property="og:url" content="https://www.gp4u.ie/contact.html">
-<meta property="og:image" content="https://www.gp4u.ie/img/gp4u-logo-card.png">
+<meta property="og:image" content="https://www.gp4u.ie/img/clinic/family-sofa.webp">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/clinic.css">
 </head>
-<body class="on-light">
+<body class="clinic-page on-light">
 
+<div class="topbar"><div class="container"><span data-open-status></span><span>Emergency? Call <strong>112</strong> or <strong>999</strong></span></div></div>
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
@@ -32,45 +34,63 @@
   </div>
 </header>
 
-<div class="container page-hero-light">
-  <div data-open-status></div>
-  <h1>Contact &amp; Directions</h1>
-  <p class="lead">Find us in Newbridge, or get in touch.</p>
-</div>
+<section class="phero phero-simple">
+  <div class="container">
+    <div data-open-status style="display:inline-flex;"></div>
+    <p class="eyebrow">Contact</p>
+    <h1>Get in touch</h1>
+    <p class="lead">We're based in Newbridge, Co. Kildare. Walk in during opening hours, or contact us using the details below.</p>
+  </div>
+</section>
 
-<section>
-  <div class="container two-col">
-    <div class="info-block">
-      <h3>Address</h3>
-      <p><strong>GP4U Clinic</strong><br><span data-clinic-address></span></p>
-      <p><a href="#" data-clinic-directions class="btn btn-primary">Get directions</a></p>
-      <div class="contact-item" data-clinic-phone-wrap>
-        <h3>Phone</h3>
-        <p data-clinic-phone></p>
-      </div>
-      <h3>Email</h3>
-      <p data-clinic-email></p>
+<section class="sec sec-tight" style="padding-top:24px;">
+  <div class="container grid-3">
+    <div class="info-card">
+      <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+      <h3 style="margin-top:16px;">Location</h3>
+      <p style="margin:0 0 6px;"><strong style="color:var(--ink);">GP4U Clinic</strong><br><span data-clinic-address></span></p>
+      <p style="margin:0;" data-if-no-street>Our full address and directions will be added here shortly.</p>
+      <p style="margin:14px 0 0;"><a href="#" data-clinic-directions class="btn btn-primary">Get directions</a></p>
     </div>
-    <div class="card">
-      <h3 style="margin-top:0;">Opening hours</h3>
+    <div class="info-card">
+      <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+      <h3 style="margin-top:16px;">Opening hours</h3>
       <div data-clinic-hours></div>
       <p class="hours-note" data-clinic-hours-note></p>
+    </div>
+    <div class="info-card">
+      <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+      <h3 style="margin-top:16px;">Get in touch</h3>
+      <div class="contact-item"><p style="margin:0 0 4px;"><strong style="color:var(--ink);">Phone</strong></p><p style="margin:0 0 14px;" data-clinic-phone></p></div>
+      <p style="margin:0 0 4px;"><strong style="color:var(--ink);">Email</strong></p>
+      <p style="margin:0;" data-clinic-email></p>
     </div>
   </div>
 </section>
 
-<section style="padding-top:0;">
+<section class="sec sec-tight">
   <div class="container"><div class="notice-strip"><strong>In an emergency, call 112 or 999</strong> or go to your nearest Emergency Department. This clinic is not an emergency service.</div></div>
 </section>
 
-<section>
+<section class="sec sec-tight" style="padding-bottom:0;">
   <div class="container">
-    <div class="online-banner">
-      <div>
-        <h2>Can't get to the clinic? See a GP online.</h2>
-        <p>Video and audio consultations, repeat prescriptions and sick certs — book in minutes and speak to an Irish-registered GP from home.</p>
+    <div class="pcards" style="grid-template-columns:1fr 1fr;">
+      <article class="pcard"><div class="pcard-body"><p class="eyebrow">No appointment</p><h3>Walk-in clinic</h3><p>See a GP without an appointment, seven days a week.</p><a class="link-arrow" href="/walk-in.html#book-in">Book in for walk-in →</a></div></article>
+      <article class="pcard"><div class="pcard-body"><p class="eyebrow">Comprehensive family practice</p><h3>Register your family</h3><p>Join our practice for continuing care for you and your family.</p><a class="link-arrow" href="/new-patients.html">Register online →</a></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="container">
+    <div class="band">
+      <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
+      <div class="band-inner">
+        <p class="eyebrow">Online consultations</p>
+        <h2>Can't get to the clinic? See a GP from home.</h2>
+        <p>Video and audio consultations, repeat prescriptions and sick certs — book in minutes and speak to an Irish-registered GP wherever you are.</p>
+        <a href="/online.html" class="btn btn-light btn-lg">See a GP online →</a>
       </div>
-      <a href="/online.html" class="btn btn-primary">See a GP Online →</a>
     </div>
   </div>
 </section>
@@ -96,7 +116,7 @@
           <li><a href="/walk-in.html">Walk-In Clinic</a></li>
           <li><a href="/services.html">Services</a></li>
           <li><a href="/new-patients.html">New patients</a></li>
-          <li><a href="/contact.html">Contact &amp; directions</a></li>
+          <li><a href="/contact.html">Contact</a></li>
         </ul>
       </div>
       <div>

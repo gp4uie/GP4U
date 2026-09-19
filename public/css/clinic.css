@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
+
+/*
+ * GP4U Clinic — public clinic pages (home, walk-in, services, new patients, contact).
+ * Everything is scoped to body.clinic-page so the booking flow, patient portal and doctor
+ * dashboard keep their own look. Loaded AFTER style.css.
+ */
+body.clinic-page {
+  --cream: #fbf7f0;
+  --sand: #f3ecdf;
+  --line-warm: #eadfcd;
+  --ink: #12303a;
+  --muted: #58707a;
+  --teal: #0f6e6e;
+  --teal-deep: #0a4d4d;
+  --teal-soft: #e2f1ef;
+  --warm: #c8742b;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.6;
+}
+.clinic-page .container { max-width: 1180px; }
+.clinic-page h1, .clinic-page h2 {
+  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+}
+.clinic-page h3 { color: var(--ink); }
+.clinic-page p { color: var(--muted); }
+.clinic-page a { color: var(--teal); }
+
+/* ---------- top bar ---------- */
+.topbar { background: var(--teal-deep); color: #dcefec; font-size: 0.82rem; }
+.topbar .container { display: flex; justify-content: space-between; gap: 16px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+.topbar strong { color: #fff; }
+.topbar .open-status { margin: 0; padding: 0; background: none; border: 0; font-size: 0.82rem; }
+.topbar .open-status.is-open { color: #86e7b6; }
+.topbar .open-status.is-closed { color: #f4c976; }
+
+/* ---------- header (clinic pages) ---------- */
+.clinic-page header.site-header { background: rgba(255, 255, 255, 0.96); border-bottom: 1px solid var(--line-warm); box-shadow: none; }
+.clinic-page header.site-header::after { display: none; }
+.clinic-page nav.main-nav a { font-size: 0.97rem; }
+
+/* ---------- shared bits ---------- */
+.sec { padding: clamp(56px, 8vw, 104px) 0; }
+.sec-white { background: #fff; }
+.sec-alt { background: var(--sand); }
+.sec-tight { padding-top: 0; }
+.eyebrow { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--teal); margin: 0; }
+.sec-head { max-width: 640px; margin: 0 0 40px; }
+.sec-head.center { margin-left: auto; margin-right: auto; text-align: center; }
+.sec-head h2 { font-size: clamp(1.9rem, 3.6vw, 2.7rem); line-height: 1.12; margin: 10px 0 14px; }
+.sec-head p { font-size: 1.08rem; margin: 0; }
+.btn-lg { padding: 15px 28px; font-size: 1rem; }
+.clinic-page .btn-secondary { background: transparent; color: var(--teal-deep); border: 1.5px solid var(--teal); }
+.clinic-page .btn-secondary:hover { background: var(--teal-soft); }
+.btn-light { background: #fff; color: var(--teal-deep); border: 0; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18); }
+.btn-light:hover { transform: translateY(-2px); background: #fff; }
+.link-arrow { font-weight: 700; text-decoration: none; display: inline-flex; gap: 8px; align-items: center; margin-top: auto; }
+.link-arrow:hover { text-decoration: underline; }
+.ico { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ico-chip { width: 46px; height: 46px; border-radius: 14px; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; flex: none; }
+.clinic-page .card { border-color: var(--line-warm); border-radius: 22px; box-shadow: 0 1px 2px rgba(60, 40, 10, 0.04); }
+
+/* ---------- hero ---------- */
+.hero2 { padding: clamp(36px, 5vw, 72px) 0 clamp(72px, 8vw, 110px); }
+.hero2-grid { display: grid; grid-template-columns: 1.04fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+.hero2 h1 { font-size: clamp(2.5rem, 5.3vw, 4rem); line-height: 1.06; margin: 14px 0 20px; }
+.hero2 .lead { font-size: 1.18rem; max-width: 33em; margin: 0; }
+.hero2-actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 30px 0 30px; }
+.trust-row { display: flex; gap: 12px 26px; flex-wrap: wrap; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.trust-row span { display: inline-flex; align-items: center; gap: 9px; }
+.trust-row .ico { width: 19px; height: 19px; color: var(--teal); }
+.hero2-media { position: relative; }
+.hero2-media > img { display: block; width: 100%; aspect-ratio: 5 / 4.2; object-fit: cover; object-position: 50% 40%; border-radius: 30px; box-shadow: 0 34px 60px -26px rgba(10, 60, 60, 0.45); }
+.hero2-card {
+  position: absolute; left: -20px; bottom: 30px; background: #fff; border-radius: 18px; padding: 15px 20px 15px 16px;
+  box-shadow: 0 16px 38px rgba(10, 50, 50, 0.2); display: flex; gap: 14px; align-items: center; max-width: calc(100% - 24px);
+}
+.hero2-card strong { display: block; color: var(--ink); line-height: 1.25; }
+.hero2-card span.sub { color: var(--muted); font-size: 0.86rem; }
+.hero2-card .open-status { margin: 0 0 3px; padding: 0; background: none; border: 0; font-size: 0.86rem; }
+.hero2-card .open-status.is-open { color: #1c7a4b; }
+.hero2-card .open-status.is-closed { color: #9a6a0a; }
+
+/* ---------- facts strip ---------- */
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); background: #fff; border: 1px solid var(--line-warm); border-radius: 24px; box-shadow: 0 24px 50px -30px rgba(60, 40, 10, 0.3); margin-top: -64px; position: relative; z-index: 2; }
+.fact { padding: 26px 30px; display: flex; gap: 16px; align-items: flex-start; }
+.fact + .fact { border-left: 1px solid var(--line-warm); }
+.fact h3 { margin: 0 0 4px; font-size: 1.02rem; }
+.fact p { margin: 0; font-size: 0.93rem; }
+.fact .hours-table { font-size: 0.88rem; margin-top: 2px; }
+.fact .hours-table th, .fact .hours-table td { padding: 3px 0; border: 0; }
+
+/* ---------- photo cards ---------- */
+.pcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+.pcard { background: #fff; border: 1px solid var(--line-warm); border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease); }
+.pcard:hover { transform: translateY(-4px); box-shadow: 0 26px 44px -26px rgba(60, 40, 10, 0.35); }
+.pcard > img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; display: block; }
+.pcard-body { padding: 24px 26px 28px; display: flex; flex-direction: column; flex: 1; }
+.pcard-body .eyebrow { margin-bottom: 6px; }
+.pcard-body h3 { font-size: 1.32rem; margin: 0 0 8px; }
+.pcard-body p { margin: 0 0 18px; font-size: 0.97rem; }
+
+/* ---------- split (image + text) ---------- */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 84px); align-items: center; }
+.split.rev .split-media { order: 2; }
+.split-media img { display: block; width: 100%; aspect-ratio: 4 / 3.2; object-fit: cover; border-radius: 28px; box-shadow: 0 30px 56px -30px rgba(10, 60, 60, 0.45); }
+.split h2 { font-size: clamp(1.9rem, 3.4vw, 2.6rem); line-height: 1.12; margin: 10px 0 16px; }
+.split p.lead { font-size: 1.08rem; margin: 0 0 6px; }
+.feat-list { list-style: none; padding: 0; margin: 24px 0 28px; display: grid; gap: 16px; }
+.feat-list li { display: flex; gap: 14px; align-items: flex-start; }
+.feat-list h4 { margin: 0 0 2px; font-size: 1rem; color: var(--ink); }
+.feat-list p { margin: 0; font-size: 0.93rem; }
+.feat-list .ico-chip { width: 40px; height: 40px; border-radius: 12px; }
+.feat-list .ico { width: 19px; height: 19px; }
+
+/* ---------- services grid ---------- */
+.svc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.svc { background: #fff; border: 1px solid var(--line-warm); border-radius: 20px; padding: 24px 22px; }
+.svc .ico-chip { margin-bottom: 16px; }
+.svc h3 { margin: 0 0 6px; font-size: 1.04rem; }
+.svc p { margin: 0; font-size: 0.9rem; }
+
+/* ---------- steps ---------- */
+.steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.step3 .num { width: 52px; height: 52px; border-radius: 50%; background: #fff; border: 1.5px solid var(--teal); color: var(--teal-deep); font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.35rem; display: grid; place-items: center; margin-bottom: 16px; }
+.step3 h3 { margin: 0 0 6px; font-size: 1.15rem; }
+.step3 p { margin: 0; font-size: 0.97rem; }
+
+/* ---------- photo band ---------- */
+.band { position: relative; border-radius: 32px; overflow: hidden; color: #fff; min-height: 360px; display: flex; align-items: center; }
+.band > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 50%; }
+.band::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8, 42, 44, 0.93) 0%, rgba(8, 42, 44, 0.78) 46%, rgba(8, 42, 44, 0.12) 100%); }
+.band-inner { position: relative; z-index: 1; padding: clamp(28px, 5vw, 64px); max-width: 600px; }
+.band .eyebrow { color: #86e7d4; }
+.band h2 { color: #fff; font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.12; margin: 10px 0 14px; }
+.band p { color: #d3e7e4; margin: 0 0 26px; font-size: 1.05rem; }
+
+/* ---------- FAQ ---------- */
+.faq { max-width: 780px; margin: 0 auto; }
+.faq details { background: #fff; border: 1px solid var(--line-warm); border-radius: 16px; padding: 0 24px; margin-bottom: 12px; }
+.faq summary { cursor: pointer; padding: 19px 0; font-weight: 700; color: var(--ink); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-size: 1.5rem; line-height: 1; color: var(--teal); transition: transform 0.2s var(--ease); }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 0 0 20px; }
+
+/* ---------- inner page hero ---------- */
+.phero { padding: clamp(36px, 5vw, 72px) 0 clamp(40px, 5vw, 64px); }
+.phero-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(28px, 5vw, 64px); align-items: center; }
+.phero h1 { font-size: clamp(2.2rem, 4.6vw, 3.3rem); line-height: 1.08; margin: 12px 0 16px; }
+.phero .lead { font-size: 1.14rem; margin: 0; max-width: 32em; }
+.phero .hero2-actions { margin-bottom: 0; }
+.phero-media img { display: block; width: 100%; aspect-ratio: 4 / 3.2; object-fit: cover; border-radius: 28px; box-shadow: 0 30px 56px -30px rgba(10, 60, 60, 0.45); }
+.phero .open-status { margin-bottom: 16px; }
+.phero-simple { text-align: center; }
+.phero-simple .lead { margin: 0 auto; }
+
+/* ---------- misc cards ---------- */
+.info-card { background: #fff; border: 1px solid var(--line-warm); border-radius: 24px; padding: 28px 30px; }
+.info-card h3 { margin: 0 0 10px; }
+.info-card .hours-table { margin-top: 4px; }
+.emergency-card { background: #fff5f3; border: 1px solid #f0c9c2; border-radius: 24px; padding: 28px 30px; }
+.emergency-card h3 { color: #a5321f; margin: 0 0 8px; }
+.emergency-card p { color: #6b3a32; }
+.emergency-card .tick-list { grid-template-columns: 1fr; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.clinic-page .notice-strip { background: #fff8e9; border-color: #f0d89a; border-radius: 16px; }
+.form-wrap { max-width: 840px; margin: 0 auto; }
+.clinic-page .form-wrap .card { padding: clamp(24px, 4vw, 40px); border-radius: 26px; box-shadow: 0 30px 56px -36px rgba(60, 40, 10, 0.35); }
+.clinic-page .form-row input, .clinic-page .form-row select, .clinic-page .form-row textarea { border-color: #ddd2bf; background: #fffdf9; }
+.clinic-page .form-row input:focus, .clinic-page .form-row select:focus, .clinic-page .form-row textarea:focus { background: #fff; }
+
+/* ---------- footer (clinic pages) ---------- */
+.clinic-page footer.site-footer { background: #0b3a3b; margin-top: 0; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 980px) {
+  .svc-grid { grid-template-columns: repeat(2, 1fr); }
+  .pcards { grid-template-columns: 1fr 1fr; }
+  .pcards .pcard:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  .hero2-grid, .phero-grid, .split { grid-template-columns: 1fr; }
+  .split.rev .split-media { order: 0; }
+  .hero2-media { order: -1; }
+  .phero-media { order: -1; }
+  .hero2-card { left: 12px; bottom: 14px; }
+  .facts { grid-template-columns: 1fr; margin-top: -40px; }
+  .fact + .fact { border-left: 0; border-top: 1px solid var(--line-warm); }
+  .steps3, .grid-3 { grid-template-columns: 1fr; }
+  .band::after { background: linear-gradient(180deg, rgba(8, 42, 44, 0.9) 0%, rgba(8, 42, 44, 0.8) 100%); }
+  .hero2 { padding-bottom: 88px; }
+}
+@media (max-width: 600px) {
+  .pcards, .svc-grid { grid-template-columns: 1fr; }
+  .pcards .pcard:last-child { grid-column: auto; }
+  .topbar .container { justify-content: center; text-align: center; }
+  .hero2-actions .btn { flex: 1 1 100%; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pcard, .btn { transition: none; }
+}
+
+.hs-row { display: flex; justify-content: space-between; gap: 18px; font-size: 0.94rem; line-height: 1.55; }
+.hs-row strong { color: var(--ink); }
+.hs-row span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hero2-card .hs-row { justify-content: flex-start; gap: 12px; }
+.hero2-card .hs-row strong { min-width: 66px; }
+.fact .hs-row { max-width: 260px; }
+
+/* ---------- fixes: image ratios, link-vs-button colours, top bar badge ---------- */
+/* width/height attributes on <img> (kept for layout stability) must not override aspect-ratio */
+.hero2-media > img, .pcard > img, .split-media img, .phero-media img, .band > img { height: auto; }
+.band > img { height: 100%; }
+.clinic-page a.btn-primary, .clinic-page a.btn-primary:hover { color: var(--teal-bright); }
+.clinic-page a.btn-secondary, .clinic-page a.btn-secondary:hover { color: var(--teal-deep); }
+.clinic-page a.btn-light, .clinic-page a.btn-light:hover { color: var(--teal-deep); }
+body.clinic-page .topbar .open-status { background: none !important; border: 0 !important; padding: 0; margin: 0; }
+body.clinic-page .topbar .open-status.is-open { color: #86e7b6; }
+body.clinic-page .topbar .open-status.is-closed { color: #f4c976; }
+.clinic-page p.eyebrow { font-size: 0.78rem; color: var(--teal); letter-spacing: 0.13em; }
+.band p.eyebrow { color: #86e7d4; }
+body.clinic-page .hero2-card .open-status { background: none !important; border: 0 !important; }
+.clinic-page footer.site-footer a { text-decoration: none; color: rgba(255, 255, 255, 0.9); }
+.clinic-page footer.site-footer a:hover { text-decoration: underline; color: #fff; }

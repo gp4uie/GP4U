@@ -841,3 +841,6 @@ footer.site-footer .hours-table th, footer.site-footer .hours-table td { color: 
 footer.site-footer .hours-table tr.today th, footer.site-footer .hours-table tr.today td { color: var(--teal-bright); }
 footer.site-footer [data-clinic-address] { line-height: 1.5; }
 footer.site-footer .hours-table th { padding-right: 18px; white-space: nowrap; }
+
+/* The HTML [hidden] attribute must win over classes like .btn that set their own display. */
+[hidden] { display: none !important; }
