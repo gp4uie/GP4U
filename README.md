@@ -414,7 +414,7 @@ badge, directions button) reads from it. Anything left blank is simply not shown
 
 - The clinic pages (home, walk-in, services, new patients, contact) use `public/css/clinic.css` — a warm cream/teal
   design with photography. It is scoped to those pages only, so booking, patient portal and dashboard look as before.
-- **Street address is hidden for now.** In `public/js/clinic.js` set `streetAddress: 'George Street'` (or whatever it
+- **Street address is hidden for now.** In `public/js/clinic.js` set `streetAddress: '<street name>'` (or whatever it
   is) and the full address, "Get directions" buttons and map links appear everywhere automatically. Until then the site
   says "Newbridge, Co. Kildare" and "full address coming shortly".
 - **Photos** are in `public/img/clinic/`. They are free-to-use stock photos from Unsplash (Unsplash License — free for
