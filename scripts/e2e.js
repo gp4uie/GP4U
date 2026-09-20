@@ -57,6 +57,8 @@ class Tab {
   async shot(name) {
     if (!process.env.E2E_SHOTS) return;
     fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true });
+    await this.ev("document.querySelectorAll('.reveal').forEach((e) => e.classList.add('in'))").catch(() => {});
+    await new Promise((res) => setTimeout(res, 800)); // let the scroll-reveal fades finish so the picture shows everything
     const r = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
     fs.writeFileSync(path.join(process.env.E2E_SHOTS, name + '.png'), Buffer.from(r.data, 'base64'));
   }
@@ -179,16 +181,18 @@ async function main() {
       assert((await tab.ev('location.pathname + location.hash')) === '/walk-in.html#book-in', 'wrong destination');
       assert(await tab.ev(`!!document.getElementById('bookInForm')`), 'walk-in form missing');
     });
-    await test('homepage: hero (Register first), "Need to see a GP today?" cards', async () => {
+    await test('homepage: hero with three equal buttons (Online, Walk-in, Register), three photo columns', async () => {
       await tab.goto('/');
       const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), meta: (document.querySelector('.hero2-meta') || {}).textContent, cards: [...document.querySelectorAll('.choose-card')].map((c) => c.querySelector('h3').textContent.trim() + ' | ' + [...c.querySelectorAll('a.btn')].map((a) => a.textContent.trim()).join(' / ')), heading: (document.querySelector('#choose h2') || {}).textContent, tiles: document.querySelectorAll('.tile').length })`);
       assert(r.h1 === 'GP care, when you need it.', 'hero headline wrong: ' + r.h1);
-      assert(r.ctas.length === 3 && r.ctas[0] === 'Register with us' && r.ctas[1] === 'Walk-In Clinic' && r.ctas[2] === 'See a GP Online', 'hero actions wrong: ' + r.ctas.join(' | '));
+      assert(r.ctas.join(' | ') === 'Online GP | Walk-In Clinic | Register with GP', 'hero actions wrong: ' + r.ctas.join(' | '));
+      assert(await tab.ev(`[...document.querySelectorAll('.hero2-actions a')].every((a) => a.className === 'btn btn-primary btn-lg')`), 'the three hero buttons should look identical (equal importance)');
       assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
-      assert(r.heading === 'Need to see a GP today?', 'central section heading wrong');
-      assert(r.cards.length === 2 && r.cards[0].startsWith('Visit our clinic | Visit the Walk-In Clinic') && r.cards[1].startsWith('See a GP online | Book Online'), 'the two choice cards are wrong: ' + r.cards.join(' || '));
+      assert(r.heading === 'How can we help you today?', 'central section heading wrong');
+      assert(r.cards.length === 3 && r.cards[0].startsWith('Online GP | Book Online') && r.cards[1].startsWith('Walk-in clinic | Visit the Walk-In Clinic') && r.cards[2].startsWith('Register with GP | Register as a new patient'), 'the three columns should be Online, Walk-in, Register (right): ' + r.cards.join(' || '));
+      assert(await tab.ev(`[...document.querySelectorAll('.choose-card')].every((c) => !!c.querySelector('img'))`), 'each column needs an image');
     });
-    await test('homepage flow: trust bar, 8 services, 01-02-03 steps, location, 4 FAQs (no repeated sections)', async () => {
+    await test('homepage flow: trust bar, 01-02-03 steps, location — no services list, no FAQ', async () => {
       await tab.goto('/');
       await tab.waitFor(`document.querySelectorAll('[data-open-status]').length > 0 && !!document.querySelector('.loc .hours-table')`, 6000, 'location component');
       const r = await tab.ev(`({
@@ -206,12 +210,12 @@ async function main() {
         explain: (document.querySelector('.explain') || {}).textContent,
       })`);
       assert(r.trust.length === 5 && /GP-led care/.test(r.trust[0]) && /Secure/.test(r.trust[4]), 'trust bar wrong: ' + r.trust.join(' | '));
-      assert(r.whyHead.includes('How can we help?') && r.services.length === 8, 'expected 8 service cards, got ' + r.services.length);
+      assert(r.services.length === 0 && !r.whyHead.includes('How can we help?'), 'the services list should not be on the homepage, got ' + r.services.length);
       assert(r.steps.join(',') === '01,02,03', 'how-it-works steps wrong: ' + r.steps.join(','));
       assert(/No appointment is required\./.test(r.explain) && /does not reserve a specific appointment time/.test(r.explain), 'walk-in explanation wording is missing');
       assert(r.addr === 'Address coming soon', 'location should say the address is coming soon: ' + r.addr);
       assert(r.hoursRows === 7, 'opening hours should list 7 days');
-      assert(r.faq === 4, 'expected 4 homepage FAQs, got ' + r.faq);
+      assert(r.faq === 0, 'the FAQ should not be on the homepage, got ' + r.faq);
       assert(await tab.ev(`!document.querySelector('a[href="/blog.html"]')`), 'Health Info should not be in the navigation or footer');
     });
     await test('current page is marked in the navigation', async () => {
@@ -303,22 +307,17 @@ async function main() {
       assert(/^WI-/.test(ctx.walkinRef), 'bad reference ' + ctx.walkinRef);
       assert(await tab.ev(`window.__xss === undefined`), 'script in the form text was executed');
     });
-    await test('homepage: registering for family practice is prominent, and nothing is repeated', async () => {
+    await test('homepage: short, nothing repeated, Register present in hero, right-hand column and menu', async () => {
       await tab.goto('/');
       const r = await tab.ev(`({
-        heroRegister: !!document.querySelector('.hero2 a.btn-primary[href="/new-patients.html"]'),
-        feature: !!document.querySelector('#register .family-feature a.btn-primary[href="/new-patients.html"]'),
+        heroRegister: !!document.querySelector('.hero2 a[href="/new-patients.html"]'),
+        rightColumn: (() => { const cards = [...document.querySelectorAll('.choose-grid.three .choose-card')]; return cards.length === 3 && !!cards[2].querySelector('a[href="/new-patients.html"]'); })(),
         navRegister: !!document.querySelector('nav.main-nav a[href="/new-patients.html"]'),
         sections: document.querySelectorAll('main > section').length,
-        repeated: ['.why-grid', '.cta-band', '.online-sec'].filter((q) => document.querySelector(q)),
-        faqs: document.querySelectorAll('.faq details').length,
-        walkInButtons: [...document.querySelectorAll('main a')].filter((a) => /^\\s*(visit the )?walk-in clinic\\s*$/i.test(a.textContent)).length,
-        featureAboveChoose: (document.getElementById('register').compareDocumentPosition(document.getElementById('choose')) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+        removed: ['.why-grid', '.cta-band', '.online-sec', '.faq', '#services', '.family-feature'].filter((q) => document.querySelector(q)),
       })`);
-      assert(r.heroRegister && r.feature && r.navRegister, 'Register should be in the hero, a featured section and the menu: ' + JSON.stringify(r));
-      assert(r.featureAboveChoose, 'the register section should come before the walk-in / online choice');
-      assert(r.repeated.length === 0 && r.sections <= 9 && r.faqs <= 4, 'homepage still has repeated or extra sections: ' + JSON.stringify(r));
-      assert(r.walkInButtons <= 2, 'the walk-in button is repeated too often: ' + r.walkInButtons);
+      assert(r.heroRegister && r.rightColumn && r.navRegister, 'Register should be in the hero, the right-hand column and the menu: ' + JSON.stringify(r));
+      assert(r.removed.length === 0 && r.sections <= 6, 'homepage still has repeated or removed sections: ' + JSON.stringify(r));
     });
     await test('registration form has no medical card / GP Visit Card question', async () => {
       await tab.goto('/new-patients.html');

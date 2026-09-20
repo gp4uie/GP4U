@@ -853,3 +853,11 @@ body.staff-page { background: var(--cream); }
   .ff-media img { min-height: 0; aspect-ratio: 16 / 9; }
   .ff-actions .btn { flex: 1 1 100%; text-align: center; }
 }
+
+/* Homepage: Online GP | Walk-in clinic | Register with GP */
+.choose-grid.three { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.choose-grid.three .choose-body h3 { font-size: clamp(1.4rem, 2vw, 1.75rem); }
+.choose-grid.three .choose-body p { font-size: 1rem; }
+.choose-grid.three .choose-media .badge-chip { left: 14px; top: 14px; font-size: .74rem; padding: 6px 12px; }
+.choose-grid.three .choose-actions .btn-lg { padding-left: 22px; padding-right: 22px; }
+@media (max-width: 1000px) { .choose-grid.three { grid-template-columns: 1fr; } .choose-grid.three .choose-actions .btn { flex: 1 1 100%; } }

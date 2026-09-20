@@ -248,9 +248,9 @@ write('index.html', page({
       <h1>GP care, when you need it.</h1>
       <p class="lead">A walk-in clinic and comprehensive family practice in Newbridge — plus online GP consultations from home.</p>
       <div class="hero2-actions">
-        <a href="/new-patients.html" class="btn btn-primary btn-lg">Register with us</a>
-        <a href="/walk-in.html" class="btn btn-secondary btn-lg">Walk-In Clinic</a>
-        <a href="/online.html" class="btn btn-tertiary">See a GP Online</a>
+        <a href="/online.html" class="btn btn-primary btn-lg">Online GP</a>
+        <a href="/walk-in.html" class="btn btn-primary btn-lg">Walk-In Clinic</a>
+        <a href="/new-patients.html" class="btn btn-primary btn-lg">Register with GP</a>
       </div>
       <p class="hero2-meta">Open 7 days <span class="dot">·</span> No appointment needed <span class="dot">·</span> Irish-registered GPs</p>
     </div>
@@ -267,42 +267,34 @@ write('index.html', page({
   </div>
 </section>
 
-<section class="sec" id="register" style="padding-top:8px;">
-  <div class="container">
-    <div class="family-feature">
-      <div class="ff-media"><img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son" loading="lazy" width="1300" height="731"></div>
-      <div class="ff-body">
-        <p class="eyebrow">Comprehensive family practice</p>
-        <h2>Register with GP4U for care that stays with you and your family.</h2>
-        <p>Join our family practice in Newbridge for ongoing, joined-up GP care — not just one-off visits.</p>
-        <ul class="check-list">
-          <li>Register your whole family in one go — up to eight people</li>
-          <li>Ongoing care and reviews for long-term conditions</li>
-          <li>One record across your walk-in and online visits</li>
-          <li>Takes just a few minutes</li>
-        </ul>
-        <div class="ff-actions">
-          <a href="/new-patients.html" class="btn btn-primary btn-lg">Register as a new patient</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="sec" id="choose" style="padding-top:8px;">
   <div class="container">
     <div class="sec-head center">
-      <h2>Need to see a GP today?</h2>
-      <p>Choose what suits you — the same GP-led care, either way.</p>
+      <h2>How can we help you today?</h2>
+      <p>Choose what suits you — the same GP-led care, whichever way you start.</p>
     </div>
-    <div class="choose-grid">
+    <div class="choose-grid three">
+      <article class="choose-card">
+        <div class="choose-media">
+          <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
+          <span class="badge-chip">${ico('video')} Online · from home</span>
+        </div>
+        <div class="choose-body">
+          <h3>Online GP</h3>
+          <p><strong>Speak to an Irish-registered GP from the comfort of home.</strong><br>Video or phone consultation.</p>
+          <div class="choose-actions">
+            <a href="/book.html" class="btn btn-primary btn-lg">Book Online</a>
+            <span class="soft"><span data-min-price hidden></span></span>
+          </div>
+        </div>
+      </article>
       <article class="choose-card">
         <div class="choose-media">
           <img src="/img/clinic/doctor-consult.webp" alt="A GP listening carefully to a patient during a consultation at the clinic" loading="lazy" width="1300" height="731">
-          <span class="badge-chip is-inperson">${ico('pin')} In person · Newbridge, Co. Kildare</span>
+          <span class="badge-chip is-inperson">${ico('pin')} In person · Newbridge</span>
         </div>
         <div class="choose-body">
-          <h3>Visit our clinic</h3>
+          <h3>Walk-in clinic</h3>
           <p><strong>Walk-in GP care in Newbridge, Co. Kildare.</strong><br>No appointment required.</p>
           <div class="choose-actions">
             <a href="/walk-in.html" class="btn btn-primary btn-lg">Visit the Walk-In Clinic</a>
@@ -311,22 +303,20 @@ write('index.html', page({
           </div>
         </div>
       </article>
-      <article class="choose-card">
+      <article class="choose-card" id="register">
         <div class="choose-media">
-          <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
-          <span class="badge-chip">${ico('video')} Online · from home</span>
+          <img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son" loading="lazy" width="1300" height="731">
+          <span class="badge-chip is-inperson">${ico('users')} Family practice · Newbridge</span>
         </div>
         <div class="choose-body">
-          <h3>See a GP online</h3>
-          <p><strong>Speak to an Irish-registered GP from the comfort of home.</strong><br>Video or phone consultation.</p>
+          <h3>Register with GP</h3>
+          <p><strong>Comprehensive family practice.</strong><br>Register yourself and your family — up to eight people — for ongoing care.</p>
           <div class="choose-actions">
-            <a href="/book.html" class="btn btn-primary btn-lg">Book Online</a>
-            <span class="soft"><span data-min-price hidden></span></span>
+            <a href="/new-patients.html" class="btn btn-primary btn-lg">Register as a new patient</a>
           </div>
         </div>
       </article>
     </div>
-    <p class="choose-note">Not sure which to choose? If you need to be examined in person, visit the walk-in clinic.</p>
   </div>
 </section>
 
@@ -339,18 +329,6 @@ write('index.html', page({
       <li>${ico('card')} Clear pricing</li>
       <li>${ico('lock')} Secure &amp; private</li>
     </ul>
-  </div>
-</section>
-
-<section class="sec sec-alt" id="services">
-  <div class="container">
-    <div class="sec-head center">
-      <p class="eyebrow">Our services</p>
-      <h2>How can we help?</h2>
-    </div>
-    <div class="svc-grid svc-12">${serviceCards(true, ['coughs', 'children', 'womens', 'mens', 'skin', 'long-term', 'prescriptions', 'certificates'])}
-    </div>
-    <p class="svc-foot"><a href="/services.html" class="btn btn-tertiary">See all services</a></p>
   </div>
 </section>
 
@@ -377,17 +355,6 @@ write('index.html', page({
       <h2>Your local GP clinic</h2>
     </div>
     ${locationBlock()}
-  </div>
-</section>
-
-<section class="sec sec-white">
-  <div class="container">
-    <div class="sec-head center">
-      <p class="eyebrow">Good to know</p>
-      <h2>Common questions</h2>
-    </div>
-    ${faqHtml(pick(['Do I need an appointment?', 'Can I see a GP online', 'How much does a consultation cost', 'Can I register my family']))}
-    <p style="text-align:center;margin:28px 0 0;"><a class="btn btn-tertiary" href="/faq.html">See all FAQs</a></p>
   </div>
 </section>
 
