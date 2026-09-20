@@ -469,3 +469,9 @@ in the summary as policy-dependent (children online, cancellations, test results
 the app + database running and a **local-only** test doctor (`E2E_DOCTOR_EMAIL` / `E2E_DOCTOR_PASSWORD`).
 `node scripts/e2e.js --live https://www.gp4u.ie` runs a safe subset against the live site (pages, links, navigation, both forms —
 it creates two clearly-labelled "ZZ TEST" records that you can mark as processed/seen in the Clinic tab).
+
+### Cache-busting (why pages can never show stale styling)
+Hostinger's CDN serves CSS/JS without telling browsers how long to keep them, so a visitor could keep an old stylesheet after a
+deploy (symptom: an unstyled "Skip to main content" link at the top left). Every page therefore links its CSS/JS with a
+content-based version stamp (`/css/clinic.css?v=1a2b3c4d`). **After changing any file in `public/css` or `public/js`, run
+`npm run pages` and commit the updated HTML** — the end-to-end tests fail if a stamp is missing.

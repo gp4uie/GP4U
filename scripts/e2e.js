@@ -113,6 +113,8 @@ async function main() {
             return { status: nav && nav.responseStatus, title: document.title, h1: document.querySelectorAll('h1').length, main: !!document.querySelector('main#main'),
               overflow: d.scrollWidth - d.clientWidth, text: document.body.innerText, footerAddr: (document.querySelector('footer [data-clinic-address]') || {}).textContent,
               brokenImgs: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.currentSrc).map((i) => i.currentSrc.slice(-40)),
+              styled: !document.body.classList.contains('clinic-page') || (getComputedStyle(document.body).backgroundColor === 'rgb(251, 247, 240)' && (!document.querySelector('.skip-link') || document.querySelector('.skip-link').getBoundingClientRect().bottom <= 0)),
+              unversioned: [...document.querySelectorAll('link[rel=stylesheet][href^="/css/"], script[src^="/js/"]')].map((e) => e.getAttribute('href') || e.getAttribute('src')).filter((u) => !u.includes('?v=')),
               stickyOk: document.body.dataset.sticky === 'off' || !document.querySelector('.sticky-cta') || getComputedStyle(document.querySelector('.sticky-cta')).display !== 'none',
               hrefs: [...(window.__h || [])] }; })()`);
           info.hrefs.forEach((h) => hrefs.add(h));
@@ -124,6 +126,8 @@ async function main() {
           assert(!/George Street/i.test(info.text), 'street name is visible');
           if (info.footerAddr !== undefined) assert(info.footerAddr === 'Address coming soon', `footer address shows "${info.footerAddr}"`);
           assert(info.brokenImgs.length === 0, 'broken images: ' + info.brokenImgs.join(', '));
+          assert(info.styled, 'page is not styled correctly (stylesheet missing/stale — "Skip to main content" would show at top left)');
+          assert(info.unversioned.length === 0, 'CSS/JS links without a version stamp (browsers may show stale files): ' + info.unversioned.join(', ') + ' — run: npm run pages');
           if (mobile) assert(info.stickyOk, 'mobile booking bar is not visible');
           assert(tab.errors.length === 0, 'browser errors: ' + tab.errors.join(' | '));
         });
