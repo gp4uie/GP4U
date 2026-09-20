@@ -988,3 +988,15 @@ body.staff-page { background: var(--cream); }
   .banner-card::after { background: linear-gradient(180deg, rgba(255, 255, 255, .9) 0%, rgba(255, 255, 255, .5) 55%, rgba(255, 255, 255, 0) 100%); }
 }
 .clinic-page .cta-strip .btn-primary, .clinic-page .cta-strip .btn-primary:hover { background: linear-gradient(120deg, var(--teal-bright), #5eead4); color: #062a2a; box-shadow: none; }
+
+/* Homepage hero fits the first screen on a laptop: photo, heading, text, buttons and chips all visible without scrolling */
+@media (min-width: 861px) {
+  .hero3 { min-height: 0; height: clamp(430px, calc(100vh - 118px), 560px); }
+  .hero3-inner { padding-top: 16px; padding-bottom: 16px; }
+  .hero3 h1 { font-size: clamp(2.1rem, 3.6vw, 3.1rem); margin: 14px 0 10px; }
+  .hero3 .lead { font-size: 1.02rem; }
+  .hero3 .hero2-actions { margin: 18px 0 16px; }
+  .hero3 .hero2-actions .btn { padding: 11px 22px; min-height: 46px; font-size: .95rem; }
+  .trust-chips { gap: 6px 18px; }
+  .trust-chips li { font-size: .84rem; }
+}

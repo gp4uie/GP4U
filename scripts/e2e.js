@@ -321,6 +321,16 @@ async function main() {
       assert(r.heroRegister && r.rightColumn && r.navRegister, 'Register should be in the hero, the right-hand column and the menu: ' + JSON.stringify(r));
       assert(r.removed.length === 0 && r.sections <= 10, 'homepage still has repeated or removed sections: ' + JSON.stringify(r));
     });
+    await test('homepage first screen (1366x680 laptop): photo, heading, text, buttons and chips are all visible without scrolling', async () => {
+      await tab.send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 680, deviceScaleFactor: 1, mobile: false });
+      try {
+        await tab.goto('/');
+        await sleep(600);
+        const r = await tab.ev(`(() => { const b = (q) => document.querySelector(q).getBoundingClientRect(); const chips = [...document.querySelectorAll('.hero3 .trust-chips li')].map((l) => l.getBoundingClientRect().bottom); return { vh: window.innerHeight, scrollY: window.scrollY, hero: b('.hero3').bottom, photo: b('.hero3-photo img').bottom, photoTop: b('.hero3-photo img').top, buttons: b('.hero3 .hero2-actions').bottom, chips: Math.max(...chips), h1: b('.hero3 h1').top }; })()`);
+        assert(r.scrollY === 0 && r.hero <= r.vh + 1 && r.photo <= r.vh + 1 && r.buttons <= r.vh && r.chips <= r.vh && r.h1 > 0, 'the hero should fit the first screen: ' + JSON.stringify(r));
+        if (process.env.E2E_SHOTS) { const p = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'home-first-screen.png'), Buffer.from(p.data, 'base64')); }
+      } finally { await tab.mobile(false); }
+    });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
       await tab.goto('/');
       await tab.waitFor(`document.querySelectorAll('.hs-card [data-open-status]').length > 0 && !!document.querySelector('.hs-card .hs-row')`, 6000, 'hours strip');
