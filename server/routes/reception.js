@@ -21,7 +21,6 @@ const { ensureWalkInBooking, applyWalkInStatus } = require('../walkins');
 const router = express.Router();
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const WALKIN_STATUSES = ['expected', 'arrived', 'seen', 'cancelled'];
-const MEDICAL_CARD_VALUES = ['none', 'medical_card', 'gp_visit_card', 'unsure'];
 const MAX_FAMILY_MEMBERS = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -172,7 +171,7 @@ router.get('/schedule', requireReceptionist, async (req, res) => {
 router.get('/registrations', requireReceptionist, async (req, res) => {
   const source = req.query.source === 'desk' ? 'desk' : 'online';
   const rows = await db.all(`
-    SELECT id, status, source, registered_by, full_name, dob, sex, email, phone, address, eircode, medical_card, previous_gp,
+    SELECT id, status, source, registered_by, full_name, dob, sex, email, phone, address, eircode, previous_gp,
            known_conditions, current_medications, allergies, next_of_kin, family_members, reg_notes, created_at
     FROM patient_registrations
     WHERE source = ?
@@ -206,16 +205,15 @@ router.post('/registrations', requireReceptionist, async (req, res) => {
     }
     const kinParts = { name: clean(b.nextOfKinName, 255), relationship: clean(b.nextOfKinRelationship, 64), phone: clean(b.nextOfKinPhone, 64) };
     const nextOfKin = Object.values(kinParts).some(Boolean) ? JSON.stringify(kinParts) : '';
-    const medicalCard = MEDICAL_CARD_VALUES.includes(b.medicalCard) ? b.medicalCard : 'unsure';
 
     const id = newId('REG');
     await db.run(`
       INSERT INTO patient_registrations
-        (id, source, registered_by, full_name, dob, sex, email, phone, address, eircode, medical_card, previous_gp,
+        (id, source, registered_by, full_name, dob, sex, email, phone, address, eircode, previous_gp,
          known_conditions, current_medications, allergies, next_of_kin, family_members, reg_notes, consent_at)
-      VALUES (?, 'desk', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      VALUES (?, 'desk', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [id, req.receptionist.name, fullName, dob, clean(b.sex, 32), email, phone, db.encrypt(address), clean(b.eircode, 16).toUpperCase(),
-      medicalCard, clean(b.previousGp, 255), db.encrypt(clean(b.knownConditions, 2000)), db.encrypt(clean(b.currentMedications, 2000)),
+      clean(b.previousGp, 255), db.encrypt(clean(b.knownConditions, 2000)), db.encrypt(clean(b.currentMedications, 2000)),
       db.encrypt(clean(b.allergies, 1000)), db.encrypt(nextOfKin), db.encrypt(family.length ? JSON.stringify(family) : ''),
       db.encrypt(clean(b.notes, 2000))]);
 

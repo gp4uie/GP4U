@@ -389,7 +389,7 @@ badge, directions button) reads from it. Anything left blank is simply not shown
   company website; they appear in the footer once filled in
 - Review the service lists on `index.html`, `walk-in.html` and `services.html` — they are a draft of typical
   walk-in / family-practice services and must match what the clinic actually offers
-- `new-patients.html` — confirm the registration process (and medical card / GP Visit Card policy) and update the text
+- `new-patients.html` — confirm the registration process and update the text
 - Add doctor profiles / photos, and fees, when ready
 - Review `privacy.html` for in-person patients (e.g. CCTV, paper records, reception check-in)
 

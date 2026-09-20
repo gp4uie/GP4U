@@ -9,7 +9,6 @@ const { applyWalkInStatus, ensureWalkInBooking } = require('../walkins');
 const router = express.Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MEDICAL_CARD_VALUES = ['none', 'medical_card', 'gp_visit_card', 'unsure'];
 const ARRIVAL_MINUTES = [0, 15, 30, 60];
 const WALKIN_STATUSES = ['expected', 'arrived', 'seen', 'cancelled'];
 const MAX_FAMILY_MEMBERS = 8;
@@ -50,8 +49,6 @@ router.post('/register-patient', formLimiter.limit('register'), async (req, res)
       return res.status(400).json({ error: 'Please tick the box to confirm your details and agree to the Privacy Notice.' });
     }
 
-    const medicalCard = MEDICAL_CARD_VALUES.includes(b.medicalCard) ? b.medicalCard : 'unsure';
-
     const familyMembers = [];
     for (const m of (Array.isArray(b.familyMembers) ? b.familyMembers : []).slice(0, MAX_FAMILY_MEMBERS)) {
       const name = clean(m && m.name, 255);
@@ -76,12 +73,12 @@ router.post('/register-patient', formLimiter.limit('register'), async (req, res)
     const id = newId('REG');
     await db.run(`
       INSERT INTO patient_registrations
-        (id, full_name, dob, sex, email, phone, address, eircode, medical_card, previous_gp,
+        (id, full_name, dob, sex, email, phone, address, eircode, previous_gp,
          known_conditions, current_medications, allergies, next_of_kin, family_members, reg_notes, consent_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       id, fullName, dob, clean(b.sex, 32), email, phone,
-      db.encrypt(address), clean(b.eircode, 16).toUpperCase(), medicalCard, clean(b.previousGp, 255),
+      db.encrypt(address), clean(b.eircode, 16).toUpperCase(), clean(b.previousGp, 255),
       db.encrypt(clean(b.knownConditions, 2000)), db.encrypt(clean(b.currentMedications, 2000)),
       db.encrypt(clean(b.allergies, 1000)),
       db.encrypt(nextOfKin), db.encrypt(familyMembers.length ? JSON.stringify(familyMembers) : ''),

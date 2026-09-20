@@ -156,7 +156,7 @@
     const body = {
       fullName: val('fullName'), dob: document.getElementById('dob').value, sex: val('sex'),
       email: val('email'), phone: val('phone'), address: val('address'), eircode: val('eircode'),
-      medicalCard: val('medicalCard'), previousGp: val('previousGp'),
+      previousGp: val('previousGp'),
       knownConditions: val('knownConditions'), currentMedications: val('currentMedications'), allergies: val('allergies'),
       nextOfKinName: val('nokName'), nextOfKinRelationship: val('nokRelationship'), nextOfKinPhone: val('nokPhone'),
       familyMembers: familyMembers(), notes: val('notes'),

@@ -7,7 +7,6 @@ function clinicEsc(value) {
 }
 
 const WALKIN_STATUS_LABEL = { expected: 'Expected', arrived: 'Arrived', seen: 'Seen', cancelled: 'Cancelled' };
-const MEDICAL_CARD_LABEL = { none: 'No card', medical_card: 'Medical card', gp_visit_card: 'GP Visit Card', unsure: 'Not sure' };
 
 function clinicFmtTime(iso) {
   return new Date(iso).toLocaleString('en-IE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -155,7 +154,7 @@ function renderRegistrations() {
         </summary>
         <dl class="review-list">
           ${field('Date of birth', `${r.dob} (${clinicAge(r.dob)})`)}${field('Sex', r.sex)}${field('Phone', r.phone)}${field('Email', r.email)}
-          ${field('Address', [r.address, r.eircode].filter(Boolean).join(', '))}${field('Medical / GP Visit Card', MEDICAL_CARD_LABEL[r.medical_card] || r.medical_card)}
+          ${field('Address', [r.address, r.eircode].filter(Boolean).join(', '))}
           ${field('Previous GP', r.previous_gp)}${field('Next of kin', kin)}${family}
           ${r.registered_by ? field('Registered by', r.registered_by) : ''}${field('Reference', r.id)}
         </dl>

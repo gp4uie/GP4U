@@ -195,7 +195,7 @@ const SERVICES12 = [
   ['letters', 'clipboard', 'Medical letters', 'Medical letters written by your GP, where clinically appropriate.'],
   ['referrals', 'send', 'Referrals', 'Referral letters to specialist and hospital services, where your GP considers it appropriate.'],
 ];
-const serviceCards = (withLinks) => SERVICES12.map(([id, icon, name, text]) => `
+const serviceCards = (withLinks, ids) => SERVICES12.filter(([id]) => !ids || ids.includes(id)).map(([id, icon, name, text]) => `
       <div class="svc" id="${id}">${chip(icon)}<h3>${name}</h3><p>${text}</p>${withLinks ? `<a class="learn" href="/services.html#${id}" aria-label="Learn more about ${name}">Learn more →</a>` : ''}</div>`).join('');
 
 // Clinic location + opening hours. Address, phone, map and directions fill in from public/js/clinic.js.
@@ -246,10 +246,11 @@ write('index.html', page({
     <div class="hero2-text">
       <p class="eyebrow">GP4U Clinic · Newbridge, Co. Kildare</p>
       <h1>GP care, when you need it.</h1>
-      <p class="lead">Walk in and see a GP in Newbridge, or speak to an Irish-registered GP online from home.</p>
+      <p class="lead">A walk-in clinic and comprehensive family practice in Newbridge — plus online GP consultations from home.</p>
       <div class="hero2-actions">
-        <a href="/walk-in.html" class="btn btn-primary btn-lg">Walk-In Clinic</a>
-        <a href="/online.html" class="btn btn-secondary btn-lg">See a GP Online</a>
+        <a href="/new-patients.html" class="btn btn-primary btn-lg">Register with us</a>
+        <a href="/walk-in.html" class="btn btn-secondary btn-lg">Walk-In Clinic</a>
+        <a href="/online.html" class="btn btn-tertiary">See a GP Online</a>
       </div>
       <p class="hero2-meta">Open 7 days <span class="dot">·</span> No appointment needed <span class="dot">·</span> Irish-registered GPs</p>
     </div>
@@ -266,10 +267,32 @@ write('index.html', page({
   </div>
 </section>
 
+<section class="sec" id="register" style="padding-top:8px;">
+  <div class="container">
+    <div class="family-feature">
+      <div class="ff-media"><img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son" loading="lazy" width="1300" height="731"></div>
+      <div class="ff-body">
+        <p class="eyebrow">Comprehensive family practice</p>
+        <h2>Register with GP4U for care that stays with you and your family.</h2>
+        <p>Join our family practice in Newbridge for ongoing, joined-up GP care — not just one-off visits.</p>
+        <ul class="check-list">
+          <li>Register your whole family in one go — up to eight people</li>
+          <li>Ongoing care and reviews for long-term conditions</li>
+          <li>One record across your walk-in and online visits</li>
+          <li>Takes just a few minutes</li>
+        </ul>
+        <div class="ff-actions">
+          <a href="/new-patients.html" class="btn btn-primary btn-lg">Register as a new patient</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="sec" id="choose" style="padding-top:8px;">
   <div class="container">
     <div class="sec-head center">
-      <h2>How would you like to see a GP?</h2>
+      <h2>Need to see a GP today?</h2>
       <p>Choose what suits you — the same GP-led care, either way.</p>
     </div>
     <div class="choose-grid">
@@ -319,30 +342,15 @@ write('index.html', page({
   </div>
 </section>
 
-<section class="sec">
-  <div class="container">
-    <div class="sec-head center">
-      <p class="eyebrow">Why GP4U</p>
-      <h2>Healthcare designed around you.</h2>
-    </div>
-    <div class="why-grid">
-      <div class="why-item">${chip('badge')}<h3>GP-led</h3><p>Built around the needs of patients.</p></div>
-      <div class="why-item">${chip('pin')}<h3>Local care</h3><p>A physical GP clinic in Newbridge.</p></div>
-      <div class="why-item">${chip('video')}<h3>Online access</h3><p>See a GP from anywhere in Ireland.</p></div>
-      <div class="why-item">${chip('check')}<h3>Simple</h3><p>Clear services, transparent pricing and straightforward booking.</p></div>
-    </div>
-  </div>
-</section>
-
 <section class="sec sec-alt" id="services">
   <div class="container">
     <div class="sec-head center">
       <p class="eyebrow">Our services</p>
       <h2>How can we help?</h2>
     </div>
-    <div class="svc-grid svc-12">${serviceCards(true)}
+    <div class="svc-grid svc-12">${serviceCards(true, ['coughs', 'children', 'womens', 'mens', 'skin', 'long-term', 'prescriptions', 'certificates'])}
     </div>
-    <p class="svc-foot"><a href="/new-patients.html" class="btn btn-secondary btn-lg">Register your family</a> <a href="/services.html" class="btn btn-tertiary">See all services</a></p>
+    <p class="svc-foot"><a href="/services.html" class="btn btn-tertiary">See all services</a></p>
   </div>
 </section>
 
@@ -362,27 +370,6 @@ write('index.html', page({
   </div>
 </section>
 
-<section class="sec sec-alt online-sec">
-  <div class="container split">
-    <div>
-      <p class="eyebrow">Online GP</p>
-      <h2>See a GP from home.</h2>
-      <p class="lead">Video or phone consultations with Irish-registered GPs.</p>
-      <ul class="check-list">
-        <li>Easy online booking</li>
-        <li>Video consultation</li>
-        <li>Phone consultation where available</li>
-        <li>Prescription support where appropriate</li>
-        <li>Medical certificates where appropriate</li>
-        <li>Referral and clinical advice where appropriate</li>
-      </ul>
-      <a href="/online.html" class="btn btn-primary btn-lg">See a GP Online</a>
-      <a href="/fees.html" class="btn btn-tertiary" style="margin-left:14px;">See our fees</a>
-    </div>
-    <div class="split-media"><img src="/img/clinic/doctor-desk.webp" alt="A GP seated at her desk in a bright consulting room" loading="lazy" width="1100" height="619"></div>
-  </div>
-</section>
-
 <section class="sec" id="find-us">
   <div class="container">
     <div class="sec-head center">
@@ -399,12 +386,10 @@ write('index.html', page({
       <p class="eyebrow">Good to know</p>
       <h2>Common questions</h2>
     </div>
-    ${faqHtml(pick(['Do I need an appointment?', 'How does the walk-in clinic work', 'Can I see a GP online', 'How much does a consultation cost', 'What happens during an online consultation', 'Can I register my family', 'What should I bring to the clinic', 'Can I get a prescription', 'Can I get a medical certificate', 'What should I do in an emergency']))}
+    ${faqHtml(pick(['Do I need an appointment?', 'Can I see a GP online', 'How much does a consultation cost', 'Can I register my family']))}
     <p style="text-align:center;margin:28px 0 0;"><a class="btn btn-tertiary" href="/faq.html">See all FAQs</a></p>
   </div>
 </section>
-
-${seeAGpBand}
 
 <section class="sec sec-tight"><div class="container">${EMERGENCY}</div></section>`,
   scripts: '<script src="/js/questionnaires.js"></script>\n<script src="/js/services-list.js"></script>\n',

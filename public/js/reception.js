@@ -6,7 +6,6 @@
   const esc = (v) => String(v === null || v === undefined ? '' : v)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const STATUS = { expected: 'Expected', arrived: 'Arrived', seen: 'Seen', cancelled: 'Cancelled' };
-  const CARD = { none: 'No card', medical_card: 'Medical card', gp_visit_card: 'GP Visit Card', unsure: 'Not sure' };
   let timer = null;
   let day = new Date();
 
@@ -169,7 +168,7 @@
         <span class="reg-when">${esc(stamp(r.created_at))} <span class="badge ${done ? 'badge-green' : 'badge-amber'}">${done ? 'Processed' : 'New'}</span></span></summary>
       <dl class="review-list">
         ${line('Date of birth', `${r.dob} (${age(r.dob)})`)}${line('Sex', r.sex)}${line('Phone', r.phone)}${line('Email', r.email)}
-        ${line('Address', [r.address, r.eircode].filter(Boolean).join(', '))}${line('Medical / GP Visit Card', CARD[r.medical_card] || r.medical_card)}
+        ${line('Address', [r.address, r.eircode].filter(Boolean).join(', '))}
         ${line('Previous GP', r.previous_gp)}${line('Next of kin', kin)}${family}
         ${r.registered_by ? line('Registered by', r.registered_by) : ''}${line('Reference', r.id)}
       </dl>
@@ -217,7 +216,7 @@
     const v = (id) => $(id).value.trim();
     const body = {
       fullName: v('drName'), dob: $('drDob').value, sex: $('drSex').value, phone: v('drPhone'), email: v('drEmail'), address: v('drAddress'),
-      eircode: v('drEircode'), medicalCard: $('drCard').value, previousGp: v('drPrevGp'), knownConditions: v('drConditions'),
+      eircode: v('drEircode'), previousGp: v('drPrevGp'), knownConditions: v('drConditions'),
       currentMedications: v('drMeds'), allergies: v('drAllergies'), notes: v('drNotes'),
       nextOfKinName: v('drKinName'), nextOfKinRelationship: v('drKinRel'), nextOfKinPhone: v('drKinPhone'),
       familyMembers: [...$('drFamily').querySelectorAll('.fam-row')].map((r) => ({

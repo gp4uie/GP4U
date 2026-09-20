@@ -123,6 +123,7 @@ async function main() {
               unversioned: [...document.querySelectorAll('link[rel=stylesheet][href^="/css/"], script[src^="/js/"]')].map((e) => e.getAttribute('href') || e.getAttribute('src')).filter((u) => !u.includes('?v=')),
               stickyOk: document.body.dataset.sticky === 'off' || !document.querySelector('.sticky-cta') || getComputedStyle(document.querySelector('.sticky-cta')).display !== 'none',
               hrefs: [...(window.__h || [])] }; })()`);
+          if (p === '/') await tab.shot('home-' + (mobile ? 'phone' : 'desktop'));
           info.hrefs.forEach((h) => hrefs.add(h));
           assert(info.status === 200, 'HTTP ' + info.status);
           assert(info.title && info.title.length > 5, 'missing <title>');
@@ -178,16 +179,16 @@ async function main() {
       assert((await tab.ev('location.pathname + location.hash')) === '/walk-in.html#book-in', 'wrong destination');
       assert(await tab.ev(`!!document.getElementById('bookInForm')`), 'walk-in form missing');
     });
-    await test('homepage: hero, "How would you like to see a GP?" cards, pathway tiles', async () => {
+    await test('homepage: hero (Register first), "Need to see a GP today?" cards', async () => {
       await tab.goto('/');
       const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), meta: (document.querySelector('.hero2-meta') || {}).textContent, cards: [...document.querySelectorAll('.choose-card')].map((c) => c.querySelector('h3').textContent.trim() + ' | ' + [...c.querySelectorAll('a.btn')].map((a) => a.textContent.trim()).join(' / ')), heading: (document.querySelector('#choose h2') || {}).textContent, tiles: document.querySelectorAll('.tile').length })`);
       assert(r.h1 === 'GP care, when you need it.', 'hero headline wrong: ' + r.h1);
-      assert(r.ctas.length === 2 && r.ctas[0] === 'Walk-In Clinic' && r.ctas[1] === 'See a GP Online', 'hero actions wrong: ' + r.ctas.join(' | '));
+      assert(r.ctas.length === 3 && r.ctas[0] === 'Register with us' && r.ctas[1] === 'Walk-In Clinic' && r.ctas[2] === 'See a GP Online', 'hero actions wrong: ' + r.ctas.join(' | '));
       assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
-      assert(r.heading === 'How would you like to see a GP?', 'central section heading wrong');
+      assert(r.heading === 'Need to see a GP today?', 'central section heading wrong');
       assert(r.cards.length === 2 && r.cards[0].startsWith('Visit our clinic | Visit the Walk-In Clinic') && r.cards[1].startsWith('See a GP online | Book Online'), 'the two choice cards are wrong: ' + r.cards.join(' || '));
     });
-    await test('homepage flow: trust bar, Why GP4U, 12 services, 01-02-03 steps, online section, location, FAQ, closing CTA', async () => {
+    await test('homepage flow: trust bar, 8 services, 01-02-03 steps, location, 4 FAQs (no repeated sections)', async () => {
       await tab.goto('/');
       await tab.waitFor(`document.querySelectorAll('[data-open-status]').length > 0 && !!document.querySelector('.loc .hours-table')`, 6000, 'location component');
       const r = await tab.ev(`({
@@ -205,15 +206,12 @@ async function main() {
         explain: (document.querySelector('.explain') || {}).textContent,
       })`);
       assert(r.trust.length === 5 && /GP-led care/.test(r.trust[0]) && /Secure/.test(r.trust[4]), 'trust bar wrong: ' + r.trust.join(' | '));
-      assert(r.whyHead.includes('Healthcare designed around you.') && r.why.join(',') === 'GP-led,Local care,Online access,Simple', 'Why GP4U section wrong: ' + r.why.join(','));
-      assert(r.whyHead.includes('How can we help?') && r.services.length === 12, 'expected 12 service cards, got ' + r.services.length);
+      assert(r.whyHead.includes('How can we help?') && r.services.length === 8, 'expected 8 service cards, got ' + r.services.length);
       assert(r.steps.join(',') === '01,02,03', 'how-it-works steps wrong: ' + r.steps.join(','));
-      assert(r.online === 'See a GP from home.' && r.onlineCta.includes('See a GP Online'), 'online section wrong');
       assert(/No appointment is required\./.test(r.explain) && /does not reserve a specific appointment time/.test(r.explain), 'walk-in explanation wording is missing');
       assert(r.addr === 'Address coming soon', 'location should say the address is coming soon: ' + r.addr);
       assert(r.hoursRows === 7, 'opening hours should list 7 days');
-      assert(r.faq === 10, 'expected 10 homepage FAQs, got ' + r.faq);
-      assert(r.band.join(' | ') === 'Walk-In Clinic | See a GP Online', 'closing call to action wrong: ' + r.band.join(' | '));
+      assert(r.faq === 4, 'expected 4 homepage FAQs, got ' + r.faq);
       assert(await tab.ev(`!document.querySelector('a[href="/blog.html"]')`), 'Health Info should not be in the navigation or footer');
     });
     await test('current page is marked in the navigation', async () => {
@@ -304,6 +302,28 @@ async function main() {
       ctx.walkinRef = await tab.ev(`document.getElementById('bookInRef').textContent`);
       assert(/^WI-/.test(ctx.walkinRef), 'bad reference ' + ctx.walkinRef);
       assert(await tab.ev(`window.__xss === undefined`), 'script in the form text was executed');
+    });
+    await test('homepage: registering for family practice is prominent, and nothing is repeated', async () => {
+      await tab.goto('/');
+      const r = await tab.ev(`({
+        heroRegister: !!document.querySelector('.hero2 a.btn-primary[href="/new-patients.html"]'),
+        feature: !!document.querySelector('#register .family-feature a.btn-primary[href="/new-patients.html"]'),
+        navRegister: !!document.querySelector('nav.main-nav a[href="/new-patients.html"]'),
+        sections: document.querySelectorAll('main > section').length,
+        repeated: ['.why-grid', '.cta-band', '.online-sec'].filter((q) => document.querySelector(q)),
+        faqs: document.querySelectorAll('.faq details').length,
+        walkInButtons: [...document.querySelectorAll('main a')].filter((a) => /^\\s*(visit the )?walk-in clinic\\s*$/i.test(a.textContent)).length,
+        featureAboveChoose: (document.getElementById('register').compareDocumentPosition(document.getElementById('choose')) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      })`);
+      assert(r.heroRegister && r.feature && r.navRegister, 'Register should be in the hero, a featured section and the menu: ' + JSON.stringify(r));
+      assert(r.featureAboveChoose, 'the register section should come before the walk-in / online choice');
+      assert(r.repeated.length === 0 && r.sections <= 9 && r.faqs <= 4, 'homepage still has repeated or extra sections: ' + JSON.stringify(r));
+      assert(r.walkInButtons <= 2, 'the walk-in button is repeated too often: ' + r.walkInButtons);
+    });
+    await test('registration form has no medical card / GP Visit Card question', async () => {
+      await tab.goto('/new-patients.html');
+      const r = await tab.ev(`({ field: !!document.getElementById('medicalCard'), text: /medical card|gp visit card/i.test(document.getElementById('registerForm').innerText + document.getElementById('registerForm').innerHTML) })`);
+      assert(!r.field && !r.text, 'the card question is still on the registration form: ' + JSON.stringify(r));
     });
     await test('registration: 5 steps with progress, validation, family, review, submit → reference', async () => {
       await tab.goto('/new-patients.html');
@@ -618,6 +638,7 @@ async function main() {
       await test('"Register to clinic" tab: register a patient at the desk (validation, consent, family) — separate from website registrations', async () => {
         await tab.ev(`document.getElementById('tabBtn_desk').click()`);
         await tab.waitFor(`!document.getElementById('panel_desk').hidden`, 4000, 'desk registration panel');
+        assert(await tab.ev(`!document.getElementById('drCard') && !/medical card|gp visit card/i.test(document.getElementById('deskRegForm').innerText)`), 'the card question should not be on the desk registration form');
         await tab.ev(`document.querySelector('#deskRegForm button[type=submit]').click()`);
         assert(/name, date of birth, phone and address/i.test(await tab.ev(`document.getElementById('drError').textContent`)), 'required-field message missing');
         ctx.deskRegName = `ZZ TEST DeskReg ${STAMP}`;

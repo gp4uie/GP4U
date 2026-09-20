@@ -835,3 +835,21 @@ body.staff-page { background: var(--cream); }
   .vc-side { justify-content: flex-start; }
   .pv-row .btn { margin-left: 0; }
 }
+
+/* ================= Homepage: featured "Register with us" (comprehensive family practice) ================= */
+.family-feature { display: grid; grid-template-columns: 1fr 1.1fr; background: var(--teal-deep); color: #fff; border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 34px 64px -36px rgba(10, 60, 60, .7); }
+.ff-media img { display: block; width: 100%; height: 100%; min-height: 340px; object-fit: cover; }
+.ff-body { padding: clamp(28px, 4.6vw, 58px); align-self: center; }
+.clinic-page .ff-body .eyebrow { color: #9fe3dc !important; margin: 0 0 6px; }
+.ff-body h2 { color: #fff; font-size: clamp(1.7rem, 3vw, 2.35rem); line-height: 1.15; margin: 6px 0 14px; }
+.ff-body p { color: #d5e6e7; margin: 0 0 14px; }
+.ff-body .check-list { margin: 0 0 6px; }
+.ff-body .check-list li { color: #fff; }
+.ff-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 22px; }
+.clinic-page .ff-body a.btn-primary { background: #fff; color: var(--teal-deep); border-color: #fff; box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .5); }
+.clinic-page .ff-body a.btn-primary:hover { background: #eafaf8; color: var(--teal-deep); }
+@media (max-width: 860px) {
+  .family-feature { grid-template-columns: 1fr; }
+  .ff-media img { min-height: 0; aspect-ratio: 16 / 9; }
+  .ff-actions .btn { flex: 1 1 100%; text-align: center; }
+}
