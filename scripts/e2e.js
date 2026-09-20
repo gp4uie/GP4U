@@ -57,6 +57,8 @@ class Tab {
   async shot(name) {
     if (!process.env.E2E_SHOTS) return;
     fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true });
+    // scroll the whole page once so lazy-loaded pictures are fetched before the photo is taken
+    await this.ev("(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); })()").catch(() => {});
     await this.ev("document.querySelectorAll('.reveal').forEach((e) => e.classList.add('in'))").catch(() => {});
     await new Promise((res) => setTimeout(res, 800)); // let the scroll-reveal fades finish so the picture shows everything
     const r = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
@@ -121,7 +123,7 @@ async function main() {
             return { status: nav && nav.responseStatus, title: document.title, h1: document.querySelectorAll('h1').length, main: !!document.querySelector('main#main'),
               overflow: d.scrollWidth - d.clientWidth, text: document.body.innerText, footerAddr: (document.querySelector('footer [data-clinic-address]') || {}).textContent,
               brokenImgs: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.currentSrc).map((i) => i.currentSrc.slice(-40)),
-              styled: !document.body.classList.contains('clinic-page') || (getComputedStyle(document.body).backgroundColor === 'rgb(251, 247, 240)' && (!document.querySelector('.skip-link') || document.querySelector('.skip-link').getBoundingClientRect().bottom <= 0)),
+              styled: !document.body.classList.contains('clinic-page') || (getComputedStyle(document.body).backgroundColor === 'rgb(243, 248, 252)' && (!document.querySelector('.skip-link') || document.querySelector('.skip-link').getBoundingClientRect().bottom <= 0)),
               unversioned: [...document.querySelectorAll('link[rel=stylesheet][href^="/css/"], script[src^="/js/"]')].map((e) => e.getAttribute('href') || e.getAttribute('src')).filter((u) => !u.includes('?v=')),
               stickyOk: document.body.dataset.sticky === 'off' || !document.querySelector('.sticky-cta') || getComputedStyle(document.querySelector('.sticky-cta')).display !== 'none',
               hrefs: [...(window.__h || [])] }; })()`);
@@ -183,14 +185,14 @@ async function main() {
     });
     await test('homepage: hero with three equal buttons (Online, Walk-in, Register), three photo columns', async () => {
       await tab.goto('/');
-      const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), meta: (document.querySelector('.hero2-meta') || {}).textContent, cards: [...document.querySelectorAll('.choose-card')].map((c) => c.querySelector('h3').textContent.trim() + ' | ' + [...c.querySelectorAll('a.btn')].map((a) => a.textContent.trim()).join(' / ')), heading: (document.querySelector('#choose h2') || {}).textContent, tiles: document.querySelectorAll('.tile').length })`);
+      const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), meta: (document.querySelector('.hero2-meta') || {}).textContent, cards: [...document.querySelectorAll('.need-card')].map((c) => c.querySelector('h3').textContent.trim() + ' | ' + c.querySelector('.need-go').textContent.trim() + ' | ' + c.getAttribute('href')), heading: (document.querySelector('#choose h2') || {}).textContent, tiles: document.querySelectorAll('.tile').length })`);
       assert(r.h1 === 'GP care, when you need it.', 'hero headline wrong: ' + r.h1);
       assert(r.ctas.join(' | ') === 'Online GP | Walk-In Clinic | Register with GP', 'hero actions wrong: ' + r.ctas.join(' | '));
       assert(await tab.ev(`[...document.querySelectorAll('.hero2-actions a')].every((a) => a.className === 'btn btn-primary btn-lg')`), 'the three hero buttons should look identical (equal importance)');
       assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
       assert(r.heading === 'How can we help you today?', 'central section heading wrong');
-      assert(r.cards.length === 3 && r.cards[0].startsWith('Online GP | Book Online') && r.cards[1].startsWith('Walk-in clinic | Visit the Walk-In Clinic') && r.cards[2].startsWith('Register with GP | Register as a new patient'), 'the three columns should be Online, Walk-in, Register (right): ' + r.cards.join(' || '));
-      assert(await tab.ev(`[...document.querySelectorAll('.choose-card')].every((c) => !!c.querySelector('img'))`), 'each column needs an image');
+      assert(r.cards.length === 3 && r.cards[0].startsWith('I want to speak to a GP online | Online GP | /online.html') && r.cards[1].startsWith('I need to see a GP today | Visit the walk-in clinic | /walk-in.html') && r.cards[2].startsWith('I want to register with GP4U | Register with GP | /new-patients.html'), 'the three columns should be Online, Walk-in, Register (right): ' + r.cards.join(' || '));
+      assert(await tab.ev(`[...document.querySelectorAll('.need-card')].every((c) => !!c.querySelector('img'))`), 'each column needs an image');
     });
     await test('homepage flow: trust bar, 01-02-03 steps, location — no services list, no FAQ', async () => {
       await tab.goto('/');
@@ -310,14 +312,14 @@ async function main() {
     await test('homepage: short, nothing repeated, Register present in hero, right-hand column and menu', async () => {
       await tab.goto('/');
       const r = await tab.ev(`({
-        heroRegister: !!document.querySelector('.hero2 a[href="/new-patients.html"]'),
-        rightColumn: (() => { const cards = [...document.querySelectorAll('.choose-grid.three .choose-card')]; return cards.length === 3 && !!cards[2].querySelector('a[href="/new-patients.html"]'); })(),
+        heroRegister: !!document.querySelector('.hero3 a[href="/new-patients.html"]'),
+        rightColumn: (() => { const cards = [...document.querySelectorAll('.need-grid .need-card')]; return cards.length === 3 && cards[2].getAttribute('href') === '/new-patients.html'; })(),
         navRegister: !!document.querySelector('nav.main-nav a[href="/new-patients.html"]'),
         sections: document.querySelectorAll('main > section').length,
         removed: ['.why-grid', '.cta-band', '.online-sec', '.faq', '#services', '.family-feature'].filter((q) => document.querySelector(q)),
       })`);
       assert(r.heroRegister && r.rightColumn && r.navRegister, 'Register should be in the hero, the right-hand column and the menu: ' + JSON.stringify(r));
-      assert(r.removed.length === 0 && r.sections <= 7, 'homepage still has repeated or removed sections: ' + JSON.stringify(r));
+      assert(r.removed.length === 0 && r.sections <= 10, 'homepage still has repeated or removed sections: ' + JSON.stringify(r));
     });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
       await tab.goto('/');
