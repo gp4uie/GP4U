@@ -168,7 +168,7 @@ const clinicLd = {
 const onlineBand = `<section class="sec">
   <div class="container">
     <div class="band">
-      <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
+      <img src="/img/clinic/online-gp-home.jpg" alt="A woman smiling as she talks to a GP by video from her kitchen at home" loading="lazy" width="1600" height="922">
       <div class="band-inner">
         <p class="eyebrow">Online GP</p>
         <h2>Can't get to the clinic? See a GP from home.</h2>
@@ -291,7 +291,7 @@ write('index.html', page({
           <p class="sub">Video or phone · anywhere in Ireland</p>
           <span class="need-go">Online GP <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span><span class="need-price" data-min-price hidden></span>
         </div>
-        <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
+        <img src="/img/clinic/online-gp-home.jpg" alt="A woman smiling as she talks to a GP by video from her kitchen at home" loading="lazy" width="1600" height="922">
       </a>
       <a class="need-card" href="/walk-in.html">
         <div class="need-body">
@@ -300,7 +300,7 @@ write('index.html', page({
           <p class="sub">Walk-in clinic · Newbridge · No appointment needed</p>
           <span class="need-go">Visit the walk-in clinic <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
         </div>
-        <img src="/img/clinic/doctor-consult.webp" alt="A GP listening carefully to a patient during a consultation at the clinic" loading="lazy" width="1300" height="731">
+        <img src="/img/clinic/walk-in-consult.jpg" alt="A GP listening carefully to an older patient during a consultation at the clinic" loading="lazy" width="1600" height="1066">
       </a>
       <a class="need-card" id="register" href="/new-patients.html">
         <div class="need-body">
@@ -309,7 +309,7 @@ write('index.html', page({
           <p class="sub">Comprehensive family practice · register your family</p>
           <span class="need-go">Register with GP <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
         </div>
-        <img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son" loading="lazy" width="1300" height="731">
+        <img class="pos-top" src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" loading="lazy" width="930" height="930">
       </a>
     </div>
   </div>
@@ -388,7 +388,7 @@ write('index.html', page({
     <h2>GP care when you need it.</h2>
     <p>Walk in, see a GP online, or register your family.</p>
     <div class="cta-strip-actions">
-      <a href="/book-now.html" class="btn btn-green btn-lg">Book a GP</a>
+      <a href="/book-now.html" class="btn btn-primary btn-lg">Book a GP</a>
       <a href="/new-patients.html" class="btn btn-outline-light btn-lg">Register with GP</a>
     </div>
   </div>
@@ -563,7 +563,7 @@ write('about.html', page({
         <li>${chip('lock')}<div><h4>Private &amp; secure</h4><p>Your health information is encrypted and handled in line with GDPR. <a href="/privacy.html">Privacy notice</a></p></div></li>
       </ul>
     </div>
-    <div class="split-media"><img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son" loading="lazy" width="1300" height="731"></div>
+    <div class="split-media"><img src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" loading="lazy" width="930" height="930"></div>
   </div>
   <div class="container" style="margin-top:36px;"><div class="founder" data-founder hidden></div></div>
 </section>
@@ -635,7 +635,7 @@ write('faq.html', page({
 write('online.html', page({
   title: 'Online GP Ireland — Video &amp; Phone GP Consultations | GP4U Clinic',
   desc: 'See a GP online in Ireland. Video and phone GP consultations, repeat prescriptions and sick certs from home, with Medical Council registered doctors.',
-  url: '/online.html', image: '/img/clinic/doctor-video.webp',
+  url: '/online.html', image: '/img/clinic/online-gp-home.jpg',
   jsonld: ld({
     '@context': 'https://schema.org', '@type': 'MedicalBusiness', name: 'GP4U Clinic — Online GP', url: `${ORG}/online.html`,
     description: 'Online GP consultations in Ireland: video and phone appointments, repeat prescriptions and sick certificates.',
@@ -659,7 +659,7 @@ write('online.html', page({
         <span>${ico('card')} Pay by card at booking</span>
       </div>
     </div>
-    <div class="phero-media"><img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" width="1300" height="731" fetchpriority="high"></div>
+    <div class="phero-media"><img src="/img/clinic/online-gp-home.jpg" alt="A woman smiling as she talks to a GP by video from her kitchen at home" width="1600" height="922" fetchpriority="high"></div>
   </div>
 </section>
 
@@ -744,7 +744,7 @@ fetch('/api/content').then((r) => r.json()).then((c) => {
 write('services.html', page({
   title: 'GP Services Newbridge — Walk-In, Family &amp; Online | GP4U',
   desc: 'Walk-in GP care, comprehensive family practice, women\'s and men\'s health, child health and online consultations at GP4U Clinic, Newbridge, Co. Kildare.',
-  url: '/services.html', image: '/img/clinic/doctor-family.webp',
+  url: '/services.html', image: '/img/clinic/gp-family-exam.jpg',
   body: `
 <section class="phero">
   <div class="container phero-grid">
@@ -757,7 +757,7 @@ write('services.html', page({
         <a href="/online.html" class="btn btn-secondary btn-lg">See a GP Online</a>
       </div>
     </div>
-    <div class="phero-media"><img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son in the consulting room" width="1300" height="731" fetchpriority="high"></div>
+    <div class="phero-media"><img src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" width="930" height="930" fetchpriority="high"></div>
   </div>
 </section>
 

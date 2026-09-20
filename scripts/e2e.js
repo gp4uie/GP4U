@@ -123,7 +123,7 @@ async function main() {
             return { status: nav && nav.responseStatus, title: document.title, h1: document.querySelectorAll('h1').length, main: !!document.querySelector('main#main'),
               overflow: d.scrollWidth - d.clientWidth, text: document.body.innerText, footerAddr: (document.querySelector('footer [data-clinic-address]') || {}).textContent,
               brokenImgs: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.currentSrc).map((i) => i.currentSrc.slice(-40)),
-              styled: !document.body.classList.contains('clinic-page') || (getComputedStyle(document.body).backgroundColor === 'rgb(243, 248, 252)' && (!document.querySelector('.skip-link') || document.querySelector('.skip-link').getBoundingClientRect().bottom <= 0)),
+              styled: !document.body.classList.contains('clinic-page') || (getComputedStyle(document.body).backgroundColor === 'rgb(251, 247, 240)' && (!document.querySelector('.skip-link') || document.querySelector('.skip-link').getBoundingClientRect().bottom <= 0)),
               unversioned: [...document.querySelectorAll('link[rel=stylesheet][href^="/css/"], script[src^="/js/"]')].map((e) => e.getAttribute('href') || e.getAttribute('src')).filter((u) => !u.includes('?v=')),
               stickyOk: document.body.dataset.sticky === 'off' || !document.querySelector('.sticky-cta') || getComputedStyle(document.querySelector('.sticky-cta')).display !== 'none',
               hrefs: [...(window.__h || [])] }; })()`);
