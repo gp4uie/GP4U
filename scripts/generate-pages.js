@@ -240,11 +240,11 @@ write('index.html', page({
   title: 'GP4U Clinic — Walk-In GP &amp; Online GP | Newbridge, Co. Kildare',
   desc: 'Walk-in GP clinic and comprehensive family practice in Newbridge, Co. Kildare, plus online GP consultations from home. No appointment needed at the clinic. Open 7 days.',
   url: '/',
-  extraHead: '<meta name="google-site-verification" content="ub7hnibZETNhoVlnaToNVXdh1WpZFs5eSjIv7njwld0" />\n<link rel="preload" as="image" href="/img/clinic/doctor-desk.webp" fetchpriority="high">\n',
+  extraHead: '<meta name="google-site-verification" content="ub7hnibZETNhoVlnaToNVXdh1WpZFs5eSjIv7njwld0" />\n<link rel="preload" as="image" href="/img/clinic/clinic-room.jpg" fetchpriority="high">\n',
   jsonld: ld(clinicLd),
   body: `
 <section class="hero3">
-  <div class="hero3-photo"><img src="/img/clinic/doctor-desk.webp" alt="A GP seated at her desk in a bright consulting room" width="1100" height="619" fetchpriority="high"></div>
+  <div class="hero3-photo"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high"></div>
   <div class="container hero3-inner">
     <div class="hero3-text">
       <p class="pill">${ico('pin')} GP4U Clinic · Newbridge, Co. Kildare</p>

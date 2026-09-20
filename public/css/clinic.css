@@ -886,7 +886,7 @@ body.staff-page { background: var(--cream); }
 /* ---------- hero: full-width photo on the right, soft fade on the left ---------- */
 .hero3 { position: relative; overflow: hidden; background: #f3ecdf; display: flex; align-items: center; min-height: 460px; }
 .hero3-photo { position: absolute; top: 0; right: 0; bottom: 0; width: 56%; }
-.hero3-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+.hero3-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 62% 55%; }
 .hero3-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #f3ecdf 0%, rgba(243, 236, 223, .92) 10%, rgba(243, 236, 223, 0) 42%); }
 .hero3-inner { position: relative; z-index: 1; width: 100%; padding-top: clamp(36px, 5vw, 64px); padding-bottom: clamp(36px, 5vw, 64px); }
 .hero3-text { max-width: 520px; }
