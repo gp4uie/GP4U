@@ -317,7 +317,23 @@ async function main() {
         removed: ['.why-grid', '.cta-band', '.online-sec', '.faq', '#services', '.family-feature'].filter((q) => document.querySelector(q)),
       })`);
       assert(r.heroRegister && r.rightColumn && r.navRegister, 'Register should be in the hero, the right-hand column and the menu: ' + JSON.stringify(r));
-      assert(r.removed.length === 0 && r.sections <= 6, 'homepage still has repeated or removed sections: ' + JSON.stringify(r));
+      assert(r.removed.length === 0 && r.sections <= 7, 'homepage still has repeated or removed sections: ' + JSON.stringify(r));
+    });
+    await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
+      await tab.goto('/');
+      await tab.waitFor(`document.querySelectorAll('.hs-card [data-open-status]').length > 0 && !!document.querySelector('.hs-card .hs-row')`, 6000, 'hours strip');
+      const r = await tab.ev(`({
+        overlay: !!document.querySelector('.hero2-media .hero2-card'),
+        cards: [...document.querySelectorAll('.hs-card')].map((c) => c.querySelector('.hs-title').textContent.trim() + ' :: ' + c.innerText.replace(/\\s+/g, ' ')),
+        footerHours: [...document.querySelectorAll('.site-footer h4')].map((h) => h.textContent).join('|'),
+        footerOnline: (document.querySelector('.footer-online') || {}).textContent,
+        top: document.querySelector('.topbar [data-open-status]').textContent,
+      })`);
+      assert(!r.overlay, 'the hours card should not float over the hero photo');
+      assert(r.cards.length === 2 && /^Walk-in clinic hours ::/.test(r.cards[0]) && /Mon–Fri/.test(r.cards[0]) && /^Online GP ::/.test(r.cards[1]), 'two separate, labelled hours cards expected: ' + r.cards.join(' || '));
+      assert(!/Mon–Fri/.test(r.cards[1]), 'online GP card must not repeat the walk-in hours');
+      assert(/Walk-in clinic hours/.test(r.footerHours) && /Online GP:/.test(r.footerOnline), 'footer should separate walk-in and online times: ' + r.footerHours + ' / ' + r.footerOnline);
+      assert(/^Walk-in clinic/.test(r.top), 'the top bar status should say it is the walk-in clinic: ' + r.top);
     });
     await test('registration form has no medical card / GP Visit Card question', async () => {
       await tab.goto('/new-patients.html');

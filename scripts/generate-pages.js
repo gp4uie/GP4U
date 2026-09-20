@@ -213,9 +213,11 @@ const locationBlock = () => `<div class="loc">
         <div class="loc-map" data-clinic-map hidden></div>
       </div>
       <div class="loc-card">
-        <h3>Opening hours</h3>
+        <h3>Walk-in clinic hours</h3>
         <div data-clinic-hours></div>
         <p class="hours-note" data-clinic-hours-note></p>
+        <h3 style="margin-top:22px;">Online GP</h3>
+        <div data-online-hours></div>
       </div>
     </div>`;
 
@@ -256,13 +258,21 @@ write('index.html', page({
     </div>
     <div class="hero2-media">
       <img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" width="1500" height="844" fetchpriority="high">
-      <div class="hero2-card">
-        ${chip('clock')}
-        <div>
-          <div data-open-status></div>
-          <div data-clinic-hours-summary></div>
-        </div>
-      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hours-strip" aria-label="Opening times">
+  <div class="container hours-strip-grid">
+    <div class="hs-card">
+      <div class="hs-head"><h2 class="hs-title">Walk-in clinic hours</h2><div data-open-status></div></div>
+      <div class="hs-times" data-clinic-hours-summary></div>
+      <p class="hs-note">No appointment needed. Hours may differ on public holidays.</p>
+    </div>
+    <div class="hs-card">
+      <div class="hs-head"><h2 class="hs-title">Online GP</h2></div>
+      <div class="hs-times" data-online-hours></div>
+      <p class="hs-note">Separate from the walk-in clinic — <a href="/book.html">book an online GP</a>.</p>
     </div>
   </div>
 </section>

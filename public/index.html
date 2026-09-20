@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=e831b262">
+<link rel="stylesheet" href="/css/clinic.css?v=692e08cf">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -116,13 +116,21 @@
     </div>
     <div class="hero2-media">
       <img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" width="1500" height="844" fetchpriority="high">
-      <div class="hero2-card">
-        <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-        <div>
-          <div data-open-status></div>
-          <div data-clinic-hours-summary></div>
-        </div>
-      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hours-strip" aria-label="Opening times">
+  <div class="container hours-strip-grid">
+    <div class="hs-card">
+      <div class="hs-head"><h2 class="hs-title">Walk-in clinic hours</h2><div data-open-status></div></div>
+      <div class="hs-times" data-clinic-hours-summary></div>
+      <p class="hs-note">No appointment needed. Hours may differ on public holidays.</p>
+    </div>
+    <div class="hs-card">
+      <div class="hs-head"><h2 class="hs-title">Online GP</h2></div>
+      <div class="hs-times" data-online-hours></div>
+      <p class="hs-note">Separate from the walk-in clinic — <a href="/book.html">book an online GP</a>.</p>
     </div>
   </div>
 </section>
@@ -228,9 +236,11 @@
         <div class="loc-map" data-clinic-map hidden></div>
       </div>
       <div class="loc-card">
-        <h3>Opening hours</h3>
+        <h3>Walk-in clinic hours</h3>
         <div data-clinic-hours></div>
         <p class="hours-note" data-clinic-hours-note></p>
+        <h3 style="margin-top:22px;">Online GP</h3>
+        <div data-online-hours></div>
       </div>
     </div>
   </div>
@@ -253,8 +263,9 @@
         </ul>
       </div>
       <div class="footer-hours-col">
-        <h4>Opening hours</h4>
+        <h4>Walk-in clinic hours</h4>
         <div data-clinic-hours></div>
+        <p class="footer-online"><strong>Online GP:</strong> <span data-online-hours-text></span></p>
       </div>
       <div>
         <h4>Book &amp; visit</h4>
@@ -302,7 +313,7 @@
 
 <script src="/js/questionnaires.js?v=1201355e"></script>
 <script src="/js/services-list.js?v=da2a9e12"></script>
-<script src="/js/clinic.js?v=12af1e11"></script>
+<script src="/js/clinic.js?v=50ee1f5d"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

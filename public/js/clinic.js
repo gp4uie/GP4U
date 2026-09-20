@@ -36,6 +36,12 @@ const CLINIC = {
   },
   hoursNote: 'Hours may differ on public holidays.',
 
+  // ONLINE GP times are separate from the walk-in clinic hours above. Leave onlineHours as null and the site
+  // just says online appointments are booked online (the available times are shown when someone books).
+  // To publish fixed online hours, use the same shape as "hours", e.g. { 1: ['09:00', '17:00'], ... }.
+  onlineHours: null,
+  onlineNote: 'Booked online — pick a time that suits you when you book.',
+
   // Show an embedded map once the street address is set (it loads Google Maps, so it is off until you
   // choose). "Get directions" links work without it.
   showMap: true,
@@ -109,11 +115,12 @@ const CLINIC = {
   }
 
   // Compact "Mon–Fri 10am – 9pm / Sat–Sun 12pm – 7pm" summary, built from the same hours.
-  function hoursSummary() {
+  function hoursSummary(hoursObj) {
+    const HRS = hoursObj || CLINIC.hours;
     const SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const groups = [];
     DISPLAY_ORDER.forEach((d) => {
-      const h = CLINIC.hours[d];
+      const h = HRS[d];
       const key = h ? h.join('-') : 'closed';
       const last = groups[groups.length - 1];
       if (last && last.key === key) last.days.push(d); else groups.push({ key, days: [d], h });
@@ -125,10 +132,12 @@ const CLINIC = {
   }
 
   // "Monday to Friday 10am – 9pm and Saturday and Sunday 12pm – 7pm" — for use inside sentences.
-  function hoursText() {
+  const hoursSummaryText = (h) => hoursText(h);
+  function hoursText(hoursObj) {
+    const HRS = hoursObj || CLINIC.hours;
     const groups = [];
     DISPLAY_ORDER.forEach((d) => {
-      const h = CLINIC.hours[d];
+      const h = HRS[d];
       const key = h ? h.join('-') : 'closed';
       const last = groups[groups.length - 1];
       if (last && last.key === key) last.days.push(d); else groups.push({ key, days: [d], h });
@@ -148,8 +157,13 @@ const CLINIC = {
     document.querySelectorAll('[data-open-status]').forEach((el) => {
       const s = status();
       el.className = `open-status ${s.open ? 'is-open' : 'is-closed'}`;
-      el.innerHTML = `<span class="open-dot"></span>${s.text}`;
+      el.innerHTML = `<span class="open-dot"></span>Walk-in clinic · ${s.text}`;
     });
+    // Online GP times (separate from the walk-in clinic): fixed hours if configured, otherwise a plain note.
+    document.querySelectorAll('[data-online-hours]').forEach((el) => {
+      el.innerHTML = CLINIC.onlineHours ? hoursSummary(CLINIC.onlineHours) : `<p class="online-note">${CLINIC.onlineNote}</p>`;
+    });
+    document.querySelectorAll('[data-online-hours-text]').forEach((el) => { el.textContent = CLINIC.onlineHours ? hoursSummaryText(CLINIC.onlineHours) : CLINIC.onlineNote; });
     document.querySelectorAll('[data-clinic-hours-text]').forEach((el) => { el.textContent = hoursText(); });
     document.querySelectorAll('[data-clinic-hours-summary]').forEach((el) => { el.innerHTML = hoursSummary(); });
     document.querySelectorAll('[data-clinic-hours]').forEach((el) => { el.innerHTML = hoursTable(); });

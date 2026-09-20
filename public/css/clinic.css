@@ -861,3 +861,19 @@ body.staff-page { background: var(--cream); }
 .choose-grid.three .choose-media .badge-chip { left: 14px; top: 14px; font-size: .74rem; padding: 6px 12px; }
 .choose-grid.three .choose-actions .btn-lg { padding-left: 22px; padding-right: 22px; }
 @media (max-width: 1000px) { .choose-grid.three { grid-template-columns: 1fr; } .choose-grid.three .choose-actions .btn { flex: 1 1 100%; } }
+
+/* ================= Homepage: opening times strip (walk-in clinic and online GP kept separate) ================= */
+.hours-strip { padding: 4px 0 30px; }
+.hours-strip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.hs-card { background: #fff; border: 1px solid var(--line-warm); border-radius: var(--r-md); padding: 20px 26px 18px; box-shadow: 0 20px 40px -32px rgba(60, 40, 10, .35); }
+.hs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.hs-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.3rem; margin: 0; }
+.hs-head .open-status { margin: 0; }
+.hs-times .hs-row { justify-content: flex-start; gap: 14px; font-size: 1rem; }
+.hs-times .hs-row strong { min-width: 74px; }
+.hs-times .online-note { margin: 0; color: var(--ink); font-size: 1rem; }
+.hs-note { margin: 10px 0 0; color: var(--muted); font-size: .9rem; }
+.online-note { margin: 0 0 4px; color: var(--muted); }
+.footer-online { margin: 12px 0 0; font-size: .9rem; max-width: 250px; color: #cfe0e2; }
+.footer-online strong { color: #fff; }
+@media (max-width: 760px) { .hours-strip-grid { grid-template-columns: 1fr; } }
