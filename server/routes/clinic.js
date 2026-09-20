@@ -4,6 +4,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const formLimiter = require('../formLimiter');
 const { requireDoctor } = require('./doctor');
+const { applyWalkInStatus } = require('../walkins');
 
 const router = express.Router();
 
@@ -169,7 +170,7 @@ router.get('/doctor/clinic/summary', requireDoctor, async (req, res) => {
 
 router.get('/doctor/clinic/walk-ins', requireDoctor, async (req, res) => {
   const rows = await db.all(`
-    SELECT id, status, full_name, dob, phone, email, reason, arrival_minutes, created_at
+    SELECT id, status, full_name, dob, phone, email, reason, arrival_minutes, booking_id, created_at
     FROM walkin_checkins
     WHERE created_at > (NOW() - INTERVAL 24 HOUR)
     ORDER BY created_at ASC
@@ -182,6 +183,7 @@ router.post('/doctor/clinic/walk-ins/:id/status', requireDoctor, async (req, res
   if (!WALKIN_STATUSES.includes(status)) return res.status(400).json({ error: 'Unknown status' });
   const result = await db.run('UPDATE walkin_checkins SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
   if (!result.changes) return res.status(404).json({ error: 'Not found' });
+  await applyWalkInStatus(req.params.id, status);
   res.json({ ok: true });
 });
 

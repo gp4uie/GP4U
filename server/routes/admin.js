@@ -243,13 +243,13 @@ router.get('/analytics', requireAdmin, async (req, res) => {
   // "Seen" = a consultation that actually happened (status completed), counted by the
   // appointment's own slot_start date, not by name/whether it's a repeat.
   const patientsSeenToday = await db.get(
-    "SELECT COUNT(DISTINCT patient_email) AS n FROM bookings WHERE status = 'completed' AND DATE(slot_start) = CURDATE()"
+    "SELECT COUNT(DISTINCT COALESCE(NULLIF(patient_email, ''), CONCAT(patient_name, '|', patient_dob))) AS n FROM bookings WHERE status = 'completed' AND DATE(slot_start) = CURDATE()"
   );
   const patientsSeenWeek = await db.get(
-    "SELECT COUNT(DISTINCT patient_email) AS n FROM bookings WHERE status = 'completed' AND YEARWEEK(slot_start, 1) = YEARWEEK(CURDATE(), 1)"
+    "SELECT COUNT(DISTINCT COALESCE(NULLIF(patient_email, ''), CONCAT(patient_name, '|', patient_dob))) AS n FROM bookings WHERE status = 'completed' AND YEARWEEK(slot_start, 1) = YEARWEEK(CURDATE(), 1)"
   );
   const patientsSeenMonth = await db.get(
-    "SELECT COUNT(DISTINCT patient_email) AS n FROM bookings WHERE status = 'completed' AND YEAR(slot_start) = YEAR(CURDATE()) AND MONTH(slot_start) = MONTH(CURDATE())"
+    "SELECT COUNT(DISTINCT COALESCE(NULLIF(patient_email, ''), CONCAT(patient_name, '|', patient_dob))) AS n FROM bookings WHERE status = 'completed' AND YEAR(slot_start) = YEAR(CURDATE()) AND MONTH(slot_start) = MONTH(CURDATE())"
   );
 
   // Revenue is counted from the moment payment succeeds (status paid or completed), attributed
@@ -295,22 +295,22 @@ router.get('/analytics', requireAdmin, async (req, res) => {
   // New vs returning this month: "new" = their very first ever booking falls in the current
   // month; "returning" = they booked before this month and booked again this month.
   const firstBookingByPatient = await db.all(`
-    SELECT patient_email, MIN(created_at) AS first_booking
+    SELECT COALESCE(NULLIF(patient_email, ''), CONCAT(patient_name, '|', patient_dob)) AS patient_key, MIN(created_at) AS first_booking
     FROM bookings WHERE status IN ('paid', 'completed')
-    GROUP BY patient_email
+    GROUP BY patient_key
   `);
   const bookedThisMonth = await db.all(`
-    SELECT DISTINCT patient_email FROM bookings
+    SELECT DISTINCT COALESCE(NULLIF(patient_email, ''), CONCAT(patient_name, '|', patient_dob)) AS patient_key FROM bookings
     WHERE status IN ('paid', 'completed')
       AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())
   `);
   const firstBookingMap = {};
-  firstBookingByPatient.forEach((r) => { firstBookingMap[r.patient_email] = new Date(r.first_booking); });
+  firstBookingByPatient.forEach((r) => { firstBookingMap[r.patient_key] = new Date(r.first_booking); });
   const now = new Date();
   let newThisMonth = 0;
   let returningThisMonth = 0;
   bookedThisMonth.forEach((r) => {
-    const first = firstBookingMap[r.patient_email];
+    const first = firstBookingMap[r.patient_key];
     const isNew = first && first.getFullYear() === now.getFullYear() && first.getMonth() === now.getMonth();
     if (isNew) newThisMonth++; else returningThisMonth++;
   });
@@ -509,6 +509,18 @@ router.post('/receptionists/:id/password', requireAdmin, async (req, res) => {
   const result = await db.run('UPDATE receptionists SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(password, 10), req.params.id]);
   if (!result.changes) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
+});
+
+// Front-desk activity: receptionists can see health information, so what they viewed and changed is reviewable here.
+router.get('/reception-log', requireAdmin, async (req, res) => {
+  const log = await db.all(`
+    SELECT l.id, l.action, l.detail, l.created_at, r.name AS receptionist_name
+    FROM reception_access_log l
+    LEFT JOIN receptionists r ON r.id = l.receptionist_id
+    ORDER BY l.created_at DESC, l.id DESC
+    LIMIT 200
+  `);
+  res.json(log);
 });
 
 module.exports = { router, requireAdmin };

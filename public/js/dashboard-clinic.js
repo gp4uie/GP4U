@@ -102,7 +102,7 @@ async function loadRegistrations() {
       <details class="card prev-visit" style="margin-bottom:10px; ${r.status === 'processed' ? 'opacity:0.65;' : ''}">
         <summary>
           <span><strong>${clinicEsc(r.full_name)}</strong>${r.family_members.length ? ` <span class="prev-visit-counts">+ ${r.family_members.length} family</span>` : ''}</span>
-          <span class="prev-visit-counts">${clinicFmtTime(r.created_at)} · <span class="badge ${r.status === 'processed' ? 'badge-green' : 'badge-amber'}">${r.status === 'processed' ? 'Processed' : 'New'}</span></span>
+          <span class="prev-visit-counts">${r.source === 'desk' ? '<span class="badge badge-desk">At desk</span> ' : ''}${clinicFmtTime(r.created_at)} · <span class="badge ${r.status === 'processed' ? 'badge-green' : 'badge-amber'}">${r.status === 'processed' ? 'Processed' : 'New'}</span></span>
         </summary>
         <div style="margin-top:10px;">
           ${field('DOB', `${r.dob} (${clinicAge(r.dob)})`)}
@@ -169,7 +169,7 @@ async function loadToday() {
     aBox.innerHTML = appts.length ? appts.map((b) => `
       <div class="appt-row">
         <span class="appt-time">${clinicEsc(new Date(b.slot_start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }))}</span>
-        <span class="appt-who"><strong>${clinicEsc(b.patient_name)}</strong><span class="appt-svc">${clinicEsc((window.todayServiceLabels[b.service_type] || {}).label || String(b.service_type).replace('_', ' '))}</span></span>
+        <span class="appt-who"><strong>${clinicEsc(b.patient_name)}</strong><span class="appt-svc">${clinicEsc((window.todayServiceLabels[b.service_type] || {}).label || (b.service_type === 'walk_in' ? 'Walk-in visit' : String(b.service_type).replace('_', ' ')))}</span></span>
         <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status === 'completed' ? 'Completed' : 'Booked'}</span>
         <button class="btn btn-secondary" style="padding:8px 16px;" onclick="openBooking('${clinicEsc(b.id)}', null)">Open</button></span>
       </div>`).join('') : '<div class="empty">No online appointments today.</div>';

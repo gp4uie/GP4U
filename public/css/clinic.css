@@ -727,12 +727,25 @@ body.staff-page { background: var(--cream); }
 .reg-fam, .reg-when { color: var(--muted); font-size: 0.9rem; }
 .reg-card .review-list { margin: 4px 0 18px; }
 .reg-card .review-list dd { text-align: right; }
+.staff-ok { color: #1b6e4a; font-weight: 600; min-height: 1.4em; margin: 6px 0 12px; }
+.optional { color: var(--muted); font-weight: 500; }
+.desk-reg h3 { font-family: 'Fraunces', Georgia, serif; font-size: 1.15rem; margin: 22px 0 10px; color: var(--navy); }
+.fam-row { display: grid; grid-template-columns: 2fr 1.2fr 1.2fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+.fam-row .form-row { margin-bottom: 0; }
+.rv-health { background: #fff8ec; border: 1px solid #f0dcb4; border-radius: 12px; padding: 4px 16px; margin: 0 0 18px; }
+.rv-health-title { font-weight: 700; color: var(--navy); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 0; }
+.rv-health .review-list { margin: 0; }
+.rv-health .rv:last-child { border-bottom: 0; }
+.badge-desk { background: #e3ecf7; color: #1d3b63; }
+.appt-extra { grid-column: 2 / -1; margin: 0; color: var(--ink); font-size: .95rem; }
+.appt-extra span { color: var(--muted); font-weight: 600; }
 
 @media (max-width: 720px) {
   .desk-stats { grid-template-columns: 1fr; }
   .staff-role { display: none; }
   .appt-row { grid-template-columns: 70px 1fr; }
   .appt-row .badge { grid-column: 2; justify-self: start; }
+  .fam-row { grid-template-columns: 1fr; }
   .qc-actions .btn { flex: 1 1 100%; }
   .staff-header .nav-wrap { flex-wrap: wrap; }
 }

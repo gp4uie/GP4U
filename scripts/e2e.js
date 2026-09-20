@@ -317,7 +317,7 @@ async function main() {
       await tab.set('#email', 'zz-test@example.invalid'); await tab.set('#address', 'TEST ADDRESS - please ignore');
       await tab.ev(`document.getElementById('regNext').click()`);
       assert(await step() === 'Step 2 of 5 | Health information', 'step 2 expected, got ' + await step());
-      await tab.set('#allergies', 'None'); await tab.ev(`document.getElementById('regNext').click()`);
+      await tab.set('#allergies', 'ZZ TEST peanut allergy'); await tab.ev(`document.getElementById('regNext').click()`);
       assert(await step() === 'Step 3 of 5 | Next of kin', 'step 3 expected');
       await tab.ev(`document.getElementById('regBack').click()`);
       assert(await step() === 'Step 2 of 5 | Health information', 'Back should return to step 2');
@@ -506,7 +506,7 @@ async function main() {
     });
 
     // ---------------------------------------------------------------- 6b. front desk (receptionist) + admin-managed accounts
-    heading('Front desk: receptionist role, least-privilege access, admin-managed accounts');
+    heading('Front desk: receptionist role (health info + reasons visible, no clinical notes), walk-ins become bookings, desk registration, admin-managed accounts');
     const RECEPTION_EMAIL = process.env.E2E_RECEPTION_EMAIL; const RECEPTION_PASSWORD = process.env.E2E_RECEPTION_PASSWORD;
     const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL; const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
     const postJson = (url, body) => tab.ev(`fetch(${JSON.stringify(url)}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(${JSON.stringify(body || {})}) }).then((r) => r.status)`);
@@ -536,52 +536,91 @@ async function main() {
         await tab.waitFor(`[...document.querySelectorAll('.stat-num')].every((e) => /^\\d+$/.test(e.textContent))`, 6000, 'stat numbers');
         await tab.shot('reception-queue');
       });
-      await test('walk-in queue: online check-in is listed (text escaped); a walk-in can be added at the desk and worked through', async () => {
+      await test('walk-in queue: online check-in is listed (text escaped); a walk-in added at the desk becomes a booking and can be worked through', async () => {
         await tab.waitFor(`document.getElementById('queueList').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'online check-in in queue');
         assert(await tab.ev(`document.querySelector('#queueList img') === null`), 'patient text was rendered as HTML');
         // empty submit
         await tab.ev(`document.getElementById('addWalkin').open = true; document.querySelector('#addForm button[type=submit]').click()`);
-        assert(/fill in every field/i.test(await tab.ev(`document.getElementById('addError').textContent`)), 'no validation message');
+        assert(/fill in name/i.test(await tab.ev(`document.getElementById('addError').textContent`)), 'no validation message');
         ctx.deskName = `ZZ TEST Desk ${STAMP}`;
-        await tab.set('#addName', ctx.deskName); await tab.set('#addDob', '1975-03-03'); await tab.set('#addPhone', '0000000000'); await tab.set('#addReason', 'Desk walk-in test');
+        await tab.set('#addName', ctx.deskName); await tab.set('#addDob', '1975-03-03'); await tab.set('#addPhone', '0000000000'); await tab.set('#addReason', 'Desk walk-in chest pain test');
         await tab.ev(`document.querySelector('#addForm button[type=submit]').click()`);
         const card = `[...document.querySelectorAll('#queueList .queue-card')].find((c) => c.innerText.includes(${JSON.stringify(ctx.deskName)}))`;
-        await tab.waitFor(`!!(${card}) && ${card}.innerText.includes('Arrived')`, 6000, 'desk walk-in shown as Arrived');
+        await tab.waitFor(`!!(${card}) && ${card}.innerText.includes('Arrived') && ${card}.innerText.includes('With doctor')`, 6000, 'desk walk-in shown as Arrived and with the doctor');
+        const rows = await tab.ev(`fetch('/api/reception/walk-ins').then((r) => r.json())`);
+        const mine = rows.find((r) => r.full_name === ctx.deskName);
+        assert(mine && /^WALK-/.test(mine.booking_id || ''), 'the desk walk-in should be linked to a booking: ' + JSON.stringify(mine));
+        ctx.deskBookingId = mine.booking_id; ctx.deskWalkinId = mine.id;
+        // marking arrived again / seen must not create a second booking
         await tab.ev(`[...${card}.querySelectorAll('button')].find((b) => /Mark seen/.test(b.textContent)).click()`);
         await tab.waitFor(`${card}.innerText.includes('Seen')`, 6000, 'status Seen');
+        const again = (await tab.ev(`fetch('/api/reception/walk-ins').then((r) => r.json())`)).find((r) => r.id === ctx.deskWalkinId);
+        assert(again.booking_id === ctx.deskBookingId, 'the walk-in must keep the same single booking');
         await tab.waitFor(`document.getElementById('statWaiting').textContent !== '–'`, 4000, 'stats');
       });
-      await test('registrations: administrative details only — health details are never sent to the front desk', async () => {
+      await test('"Register to clinic" tab: register a patient at the desk (validation, consent, family) — separate from website registrations', async () => {
+        await tab.ev(`document.getElementById('tabBtn_desk').click()`);
+        await tab.waitFor(`!document.getElementById('panel_desk').hidden`, 4000, 'desk registration panel');
+        await tab.ev(`document.querySelector('#deskRegForm button[type=submit]').click()`);
+        assert(/name, date of birth, phone and address/i.test(await tab.ev(`document.getElementById('drError').textContent`)), 'required-field message missing');
+        ctx.deskRegName = `ZZ TEST DeskReg ${STAMP}`;
+        await tab.set('#drName', ctx.deskRegName); await tab.set('#drDob', '1990-02-02'); await tab.set('#drPhone', '0000000000');
+        await tab.set('#drAddress', 'DESK TEST ADDRESS - please ignore'); await tab.set('#drAllergies', 'ZZ TEST latex allergy'); await tab.set('#drConditions', 'ZZ TEST asthma');
+        await tab.ev(`document.querySelector('#deskRegForm button[type=submit]').click()`);
+        assert(/Privacy Notice/i.test(await tab.ev(`document.getElementById('drError').textContent`)), 'consent must be required');
+        await tab.ev(`document.getElementById('drAddFamily').click(); const r = document.querySelector('#drFamily .fam-row'); r.querySelector('[data-f=name]').value = 'ZZ TEST DeskKid'; r.querySelector('[data-f=dob]').value = '2019-09-09'; r.querySelector('[data-f=relationship]').value = 'Daughter'; document.getElementById('drConsent').checked = true;`);
+        await tab.ev(`document.querySelector('#deskRegForm button[type=submit]').click()`);
+        await tab.waitFor(`/Registered\\. Reference REG-/.test(document.getElementById('drDone').textContent)`, 8000, 'registered confirmation');
+        await tab.waitFor(`document.getElementById('deskRegList').innerText.includes(${JSON.stringify(ctx.deskRegName)})`, 6000, 'desk registration listed');
+        const det = `[...document.querySelectorAll('#deskRegList details')].find((d) => d.innerText.includes(${JSON.stringify(ctx.deskRegName)}))`;
+        await tab.ev(`${det}.open = true`);
+        const text = await tab.ev(`${det}.innerText`);
+        assert(text.includes('ZZ TEST DeskKid') && text.includes('ZZ TEST latex allergy') && text.includes('ZZ TEST asthma'), 'desk registration details should include family and health information: ' + text.slice(0, 300));
+        await tab.shot('reception-register');
+        // it must NOT be in the website list
+        const web = await tab.ev(`fetch('/api/reception/registrations?source=online').then((r) => r.text())`);
+        assert(!web.includes(ctx.deskRegName), 'a desk registration appeared under Website registrations');
+        const desk = await tab.ev(`fetch('/api/reception/registrations?source=desk').then((r) => r.text())`);
+        assert(!desk.includes(ctx.regName), 'a website registration appeared under Register to clinic');
+        // the website tab does not list it either
         await tab.ev(`document.getElementById('tabBtn_regs').click()`);
-        await tab.waitFor(`document.getElementById('regList').innerText.includes(${JSON.stringify(ctx.regName)})`, 8000, 'registration listed');
+        await tab.waitFor(`document.getElementById('regList').innerText.includes(${JSON.stringify(ctx.regName)})`, 8000, 'website registration listed');
+        assert(await tab.ev(`!document.getElementById('regList').innerText.includes(${JSON.stringify(ctx.deskRegName)})`), 'desk registration shown in the website tab');
+      });
+      await test('website registrations: contact AND health details are visible to the front desk', async () => {
         const det = `[...document.querySelectorAll('#regList details')].find((d) => d.innerText.includes(${JSON.stringify(ctx.regName)}))`;
         await tab.ev(`${det}.open = true`);
         const text = await tab.ev(`${det}.innerText`);
         assert(text.includes('TEST ADDRESS') && text.includes('ZZ TEST Kid'), 'contact / family details should be visible');
-        assert(!/allerg|long-term conditions|current medicines|notes/i.test(text), 'health details are showing in the UI');
-        const raw = await tab.ev(`fetch('/api/reception/registrations').then((r) => r.text())`);
-        assert(!/known_conditions|current_medications|allergies|reg_notes/.test(raw), 'the API sent health fields to the receptionist');
+        assert(text.includes('ZZ TEST peanut allergy') && /Health information/i.test(text), 'health details should be visible to the front desk: ' + text.slice(0, 400));
         await tab.shot('reception-registrations');
         const before = await tab.ev(`${det}.innerText.includes('Processed')`);
         await tab.ev(`[...${det}.querySelectorAll('button')].find((b) => /Mark as/.test(b.textContent)).click()`);
         await tab.waitFor(`document.getElementById('regList').innerText.includes('${before ? 'New' : 'Processed'}')`, 6000, 'status toggled');
+        assert(await tab.ev(`fetch('/api/reception/registrations').then((r) => r.text()).then((t) => !/password|patient_token/i.test(t))`), 'unexpected sensitive fields in the registrations response');
       });
-      await test('appointments: bookings show name, time and service — never the reason or questionnaire', async () => {
+      await test('appointments: reason for visit and intake answers are visible; clinical records and tokens are not', async () => {
         await tab.ev(`document.getElementById('tabBtn_appts').click()`);
         await tab.waitFor(`document.getElementById('dayLabel').textContent.length > 0 && !document.getElementById('apptList').innerText.includes('Loading')`, 5000, 'appointments panel');
-        let found = null;
+        let found = null; let dayOffset = 0;
         for (let i = 0; i < 14 && !found; i++) {
           const rows = await tab.ev(`(async () => { const d = new Date(); d.setDate(d.getDate() + ${i}); return fetch('/api/reception/schedule?date=' + d.toLocaleDateString('en-CA')).then((r) => r.text()); })()`);
-          if (rows.includes(ctx.patientName)) found = rows;
+          if (rows.includes(ctx.patientName)) { found = rows; dayOffset = i; }
         }
         assert(found, 'the online booking should appear on the front-desk schedule');
         const row = JSON.parse(found).find((r) => r.patient_name === ctx.patientName);
         assert(row.service === 'Phone Consultation', 'service label wrong: ' + row.service);
-        assert(Object.keys(row).sort().join(',') === 'id,patient_name,service,service_type,slot_end,slot_start,status', 'unexpected fields sent: ' + Object.keys(row).join(','));
-        assert(!found.includes('E2E test consultation'), 'the consultation reason must not reach the front desk');
+        assert(row.reason === 'E2E test consultation - please ignore', 'the reason for visit should be visible to reception: ' + row.reason);
+        assert(!/patient_token|patient_email|notes|prescription|document|message/i.test(Object.keys(row).join(',')), 'clinical/private fields leaked: ' + Object.keys(row).join(','));
+        // and it shows in the page
+        for (let i = 0; i < dayOffset; i++) await tab.ev(`document.getElementById('dayNext').click()`);
+        await tab.waitFor(`document.getElementById('apptList').innerText.includes('E2E test consultation')`, 6000, 'reason shown on the appointments list');
+        // walk-ins are not listed as "online appointments"
+        const today = await tab.ev(`fetch('/api/reception/schedule?date=' + new Date().toLocaleDateString('en-CA')).then((r) => r.text())`);
+        assert(!today.includes(ctx.deskName), 'walk-ins belong in the walk-in queue, not the online appointments list');
       });
       await test('privilege separation: the front desk cannot reach doctor, admin or patient-record endpoints', async () => {
-        const urls = ['/api/doctor/clinic/summary', '/api/doctor/recent', `/api/doctor/bookings/${ctx.bookingId}`, '/api/doctor/notifications', '/api/admin/doctors', '/api/admin/receptionists', '/api/patient/bookings'];
+        const urls = ['/api/doctor/clinic/summary', '/api/doctor/recent', `/api/doctor/bookings/${ctx.bookingId}`, `/api/doctor/bookings/${ctx.deskBookingId}`, `/api/doctor/schedule?date=${new Date().toLocaleDateString('en-CA')}`, '/api/admin/reception-log', '/api/doctor/notifications', '/api/admin/doctors', '/api/admin/receptionists', '/api/patient/bookings'];
         const codes = await tab.ev(`Promise.all(${JSON.stringify(urls)}.map((u) => fetch(u).then((r) => r.status)))`);
         assert(codes.every((c) => c === 401 || c === 403), 'front desk reached protected areas: ' + urls.map((u, i) => u + '=' + codes[i]).join(', '));
         assert(await postJson('/api/admin/receptionists', { name: 'x', email: 'x@example.invalid', password: 'password123' }) === 401, 'a receptionist must not be able to create accounts');
@@ -590,6 +629,38 @@ async function main() {
         await tab.ev(`document.getElementById('logoutLink').click()`);
         await tab.waitFor(`!document.getElementById('loginBox').hidden`, 5000, 'sign-in form');
         assert(await tab.ev(`fetch('/api/reception/summary').then((r) => r.status)`) === 401, 'still signed in after logout');
+      });
+    }
+    if (DOCTOR_EMAIL && DOCTOR_PASSWORD) {
+      await test('doctor side: the desk walk-in is a real booking (schedule, recent, notification, chart) with no other patient\'s history', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/dashboard.html');
+        assert(await postJson('/api/doctor/login', { email: DOCTOR_EMAIL, password: DOCTOR_PASSWORD }) === 200, 'doctor login failed');
+        const today = new Date().toLocaleDateString('en-CA');
+        const chart = await tab.ev(`fetch('/api/doctor/bookings/${ctx.deskBookingId}').then((r) => r.json())`);
+        assert(chart.booking && chart.booking.service_type === 'walk_in' && chart.booking.patient_name === ctx.deskName, 'chart should open for the walk-in booking');
+        assert(chart.booking.reason === 'Desk walk-in chest pain test', 'the reason typed at the desk should reach the doctor: ' + chart.booking.reason);
+        assert(!('patient_token' in chart.booking), 'patient token must not be sent to the doctor page');
+        assert(chart.previousConsultations.length === 0, 'an email-less walk-in must not be matched to any other patient\'s history: ' + JSON.stringify(chart.previousConsultations.map((p) => p.id)));
+        const sched = await tab.ev(`fetch('/api/doctor/schedule?date=${today}').then((r) => r.json())`);
+        assert(sched.bookings.some((b) => b.id === ctx.deskBookingId), 'walk-in should be on today\'s doctor schedule');
+        const recent = await tab.ev(`fetch('/api/doctor/recent').then((r) => r.text())`);
+        assert(recent.includes(ctx.deskName), 'walk-in should be in Recent Cases');
+        const notes = await tab.ev(`fetch('/api/doctor/notifications').then((r) => r.text())`);
+        assert(notes.includes('Walk-in patient: ' + ctx.deskName), 'the doctor should get a walk-in notification');
+        // exactly one booking for this walk-in
+        assert((recent.match(new RegExp(ctx.deskName, 'g')) || []).length === 1, 'the walk-in should not appear more than once');
+        // the doctor can chart it: write a note
+        assert(await postJson(`/api/doctor/bookings/${ctx.deskBookingId}/notes`, { noteText: 'E2E walk-in note' }) === 200, 'doctor should be able to write a note on a walk-in');
+        // Clinic tab: desk registration shows the At desk badge; website one does not
+        await tab.goto('/dashboard.html');
+        await tab.waitFor(`getComputedStyle(document.getElementById('dashboardBox')).display !== 'none'`, 10000, 'dashboard');
+        await tab.ev(`showTab('clinic')`);
+        await tab.waitFor(`document.getElementById('registrationList').innerText.includes(${JSON.stringify(ctx.deskRegName)})`, 8000, 'desk registration in doctor Clinic tab');
+        const badges = await tab.ev(`(() => { const d = (n) => [...document.querySelectorAll('#registrationList details')].find((x) => x.innerText.includes(n)); return { desk: d(${JSON.stringify(ctx.deskRegName)}).innerText.includes('At desk'), web: d(${JSON.stringify(ctx.regName)}).innerText.includes('At desk') }; })()`);
+        assert(badges.desk && !badges.web, 'only desk registrations should carry the At desk badge: ' + JSON.stringify(badges));
+        await tab.shot('doctor-desk-registration');
+        await tab.ev(`fetch('/api/doctor/logout', { method: 'POST' })`);
       });
     }
     if (ADMIN_EMAIL && ADMIN_PASSWORD) {
@@ -628,6 +699,8 @@ async function main() {
         await tab.ev(`showAdminTab('reception')`);
         await tab.waitFor(`document.getElementById('receptionBody').innerText.includes('ZZ E2E Desk')`, 6000, 'reception accounts listed');
         assert(await tab.ev(`document.querySelector('.staff-role').textContent.trim() === 'Admin' && !document.querySelector('a[href="/walk-in.html"]')`), 'admin header should be the staff header');
+        await tab.waitFor(`document.getElementById('receptionLogBody').innerText.includes('Added walk-in patient')`, 6000, 'front-desk activity log');
+        assert(await tab.ev(`document.getElementById('receptionLogBody').innerText.includes('Registered a new patient at the desk')`), 'desk registration should be in the log');
         await tab.shot('admin-reception');
       });
     }

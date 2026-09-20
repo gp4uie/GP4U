@@ -1,3 +1,5 @@
+// Readable name for a booking's service key (walk-in bookings are created by the front desk / check-in).
+function svcLabel(t) { return t === 'walk_in' ? 'Walk-in visit' : String(t || '').replace(/_/g, ' '); }
 let activeAdminTab = 'analytics';
 let scheduleEditorDoctorId = null;
 
@@ -49,7 +51,7 @@ async function loadAccessLog() {
       <td>${new Date(r.viewed_at).toLocaleString('en-IE')}</td>
       <td>${r.doctor_name}</td>
       <td>${r.patient_name}</td>
-      <td>${r.service_type.replace('_', ' ')}</td>
+      <td>${svcLabel(r.service_type)}</td>
     </tr>
   `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No access recorded yet.</td></tr>';
 }
@@ -74,7 +76,7 @@ async function loadAdminSummaries() {
   const summaries = await res.json();
   document.getElementById('adminSummariesList').innerHTML = summaries.length ? summaries.map((s) => `
     <div class="card" style="margin-bottom:12px;">
-      <p><strong>${s.patientName}</strong> — ${s.serviceType.replace('_', ' ')} — ${new Date(s.slotStart).toLocaleString('en-IE')}</p>
+      <p><strong>${s.patientName}</strong> — ${svcLabel(s.serviceType)} — ${new Date(s.slotStart).toLocaleString('en-IE')}</p>
       <p><strong>Presentation:</strong> ${s.reason || 'N/A'}</p>
       ${s.notes.length ? `<p><strong>Notes:</strong> ${s.notes.map((n) => n.note_text).join('; ')}</p>` : ''}
       ${s.prescriptions.length ? `<p><strong>Medication issued:</strong> ${s.prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`).join('; ')}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
@@ -111,7 +113,7 @@ async function loadAnalytics() {
   `).join('') || '<tr><td colspan="3">No consultations recorded yet.</td></tr>';
 
   document.getElementById('serviceBreakdownBody').innerHTML = data.serviceBreakdown.map((s) => `
-    <tr><td>${s.service_type.replace('_', ' ')}</td><td>${s.n}</td><td>${euro(s.cents)}</td></tr>
+    <tr><td>${svcLabel(s.service_type)}</td><td>${s.n}</td><td>${euro(s.cents)}</td></tr>
   `).join('') || '<tr><td colspan="3">No bookings yet.</td></tr>';
 }
 
@@ -258,7 +260,7 @@ async function openPatientSummary(email) {
 
   document.getElementById('patientConsultations').innerHTML = data.consultations.map((c) => `
     <div class="card" style="margin-bottom:12px;">
-      <strong>${new Date(c.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })} — ${c.service_type.replace('_', ' ')}</strong>
+      <strong>${new Date(c.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })} — ${svcLabel(c.service_type)}</strong>
       <p style="color:var(--ink-500); margin:4px 0;">Reason: ${c.reason || 'N/A'}</p>
       ${c.notes.length ? `<p><strong>Notes:</strong> ${c.notes.map((n) => n.note_text).join('; ')}</p>` : ''}
       ${c.prescriptions.length ? `<p><strong>Prescriptions:</strong> ${c.prescriptions.map((p) => `${p.medication} ${p.dose}`).join(', ')}</p>` : ''}
@@ -390,6 +392,15 @@ async function loadReception() {
         ? `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, false)">Deactivate</button>`
         : `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, true)">Reactivate</button>`}</td>
     </tr>`).join('') || '<tr><td colspan="7">No reception accounts yet.</td></tr>';
+  loadReceptionLog();
+}
+
+async function loadReceptionLog() {
+  const res = await fetch('/api/admin/reception-log');
+  if (!res.ok) return;
+  const rows = await res.json();
+  document.getElementById('receptionLogBody').innerHTML = rows.map((r) => `
+    <tr><td>${new Date(r.created_at).toLocaleString('en-IE')}</td><td>${recEsc(r.receptionist_name || 'Removed account')}</td><td>${recEsc(r.action)}</td><td>${recEsc(r.detail || '')}</td></tr>`).join('') || '<tr><td colspan="4">No front-desk activity yet.</td></tr>';
 }
 
 async function addReceptionist() {

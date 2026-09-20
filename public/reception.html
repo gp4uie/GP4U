@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=0a3e5814">
+<link rel="stylesheet" href="/css/clinic.css?v=a74f129b">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -51,13 +51,14 @@
   <div class="desk-stats" aria-live="polite">
     <div class="stat"><span class="stat-num" id="statWaiting">–</span><span class="stat-label">Waiting now</span></div>
     <div class="stat"><span class="stat-num" id="statAppts">–</span><span class="stat-label">Online appointments today</span></div>
-    <div class="stat"><span class="stat-num" id="statRegs">–</span><span class="stat-label">New registrations</span></div>
+    <div class="stat"><span class="stat-num" id="statRegs">–</span><span class="stat-label">New website registrations</span></div>
   </div>
 
   <div class="tab-bar" role="tablist" aria-label="Front desk sections">
     <button class="tab-btn active" role="tab" id="tabBtn_queue" aria-selected="true" aria-controls="panel_queue" data-tab="queue">Walk-in queue <span class="side-badge" id="badgeQueue" hidden>0</span></button>
     <button class="tab-btn" role="tab" id="tabBtn_appts" aria-selected="false" aria-controls="panel_appts" data-tab="appts">Today's appointments</button>
-    <button class="tab-btn" role="tab" id="tabBtn_regs" aria-selected="false" aria-controls="panel_regs" data-tab="regs">New registrations <span class="side-badge" id="badgeRegs" hidden>0</span></button>
+    <button class="tab-btn" role="tab" id="tabBtn_desk" aria-selected="false" aria-controls="panel_desk" data-tab="desk">Register to clinic</button>
+    <button class="tab-btn" role="tab" id="tabBtn_regs" aria-selected="false" aria-controls="panel_regs" data-tab="regs">Website registrations <span class="side-badge" id="badgeRegs" hidden>0</span></button>
   </div>
 
   <!-- Walk-in queue -->
@@ -65,12 +66,13 @@
     <details class="desk-add card" id="addWalkin">
       <summary><span class="btn btn-secondary">+ Add a walk-in at the desk</span></summary>
       <form id="addForm" novalidate>
-        <p class="staff-hint" style="margin-top:0;">For someone who has arrived without checking in online. They are added to the queue as "arrived".</p>
+        <p class="staff-hint" style="margin-top:0;">For someone who has arrived without checking in online. They are added to the queue as "arrived" and appear straight away as a walk-in booking in the doctor's dashboard.</p>
         <div class="form-grid">
           <div class="form-row"><label for="addName">Full name <span class="req">*</span></label><input id="addName" maxlength="255" autocomplete="off"></div>
           <div class="form-row"><label for="addDob">Date of birth <span class="req">*</span></label><input id="addDob" type="date" min="1900-01-01"></div>
           <div class="form-row"><label for="addPhone">Phone <span class="req">*</span></label><input id="addPhone" type="tel" maxlength="64" autocomplete="off"></div>
-          <div class="form-row"><label for="addReason">Reason for visit <span class="req">*</span></label><input id="addReason" maxlength="500" autocomplete="off"></div>
+          <div class="form-row"><label for="addEmail">Email <span class="optional">(optional)</span></label><input id="addEmail" type="email" maxlength="255" autocomplete="off"></div>
+          <div class="form-row" style="grid-column:1/-1;"><label for="addReason">Reason for visit <span class="req">*</span></label><input id="addReason" maxlength="500" autocomplete="off"></div>
         </div>
         <p id="addError" role="alert" class="staff-error"></p>
         <button class="btn btn-primary" type="submit">Add to queue</button>
@@ -88,20 +90,62 @@
       <button class="btn btn-secondary" type="button" id="dayNext">Next day →</button>
       <button class="btn btn-secondary" type="button" id="dayToday">Today</button>
     </div>
-    <p class="staff-hint">Online GP appointments for the day. Clinical details are visible to doctors only.</p>
+    <p class="staff-hint">Online GP appointments for the day, with the reason for visit and the patient's answers. Walk-ins are in the Walk-in queue. Doctors' consultation notes are not shown here.</p>
     <div id="apptList" aria-live="polite"></div>
   </section>
 
-  <!-- Registrations -->
+  <!-- Register to clinic (at the desk) -->
+  <section id="panel_desk" role="tabpanel" aria-labelledby="tabBtn_desk" hidden>
+    <form id="deskRegForm" class="card desk-reg" novalidate>
+      <h2 style="margin-top:0;">Register a new patient to the clinic</h2>
+      <p class="staff-hint">Use this when a patient registers in person. Show them the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Notice</a> first. The doctor sees it in their Clinic tab marked "At desk".</p>
+      <h3>About the patient</h3>
+      <div class="form-grid">
+        <div class="form-row"><label for="drName">Full name <span class="req">*</span></label><input id="drName" maxlength="255" autocomplete="off"></div>
+        <div class="form-row"><label for="drDob">Date of birth <span class="req">*</span></label><input id="drDob" type="date" min="1900-01-01"></div>
+        <div class="form-row"><label for="drSex">Sex</label><select id="drSex"><option value="">Prefer not to say</option><option>Female</option><option>Male</option><option>Other</option></select></div>
+        <div class="form-row"><label for="drPhone">Phone <span class="req">*</span></label><input id="drPhone" type="tel" maxlength="64" autocomplete="off"></div>
+        <div class="form-row"><label for="drEmail">Email <span class="optional">(optional)</span></label><input id="drEmail" type="email" maxlength="255" autocomplete="off"></div>
+        <div class="form-row"><label for="drEircode">Eircode</label><input id="drEircode" maxlength="16" autocomplete="off"></div>
+        <div class="form-row" style="grid-column:1/-1;"><label for="drAddress">Address <span class="req">*</span></label><textarea id="drAddress" rows="2" maxlength="1000"></textarea></div>
+        <div class="form-row"><label for="drCard">Medical / GP Visit Card</label><select id="drCard"><option value="unsure">Not sure</option><option value="none">No card</option><option value="medical_card">Medical card</option><option value="gp_visit_card">GP Visit Card</option></select></div>
+        <div class="form-row"><label for="drPrevGp">Previous GP / practice</label><input id="drPrevGp" maxlength="255" autocomplete="off"></div>
+      </div>
+      <h3>Health information</h3>
+      <div class="form-grid">
+        <div class="form-row"><label for="drConditions">Long-term conditions</label><textarea id="drConditions" rows="2" maxlength="2000"></textarea></div>
+        <div class="form-row"><label for="drMeds">Current medicines</label><textarea id="drMeds" rows="2" maxlength="2000"></textarea></div>
+        <div class="form-row"><label for="drAllergies">Allergies</label><textarea id="drAllergies" rows="2" maxlength="1000"></textarea></div>
+        <div class="form-row"><label for="drNotes">Anything else the doctor should know</label><textarea id="drNotes" rows="2" maxlength="2000"></textarea></div>
+      </div>
+      <h3>Next of kin</h3>
+      <div class="form-grid">
+        <div class="form-row"><label for="drKinName">Name</label><input id="drKinName" maxlength="255" autocomplete="off"></div>
+        <div class="form-row"><label for="drKinRel">Relationship</label><input id="drKinRel" maxlength="64" autocomplete="off"></div>
+        <div class="form-row"><label for="drKinPhone">Phone</label><input id="drKinPhone" type="tel" maxlength="64" autocomplete="off"></div>
+      </div>
+      <h3>Family members registering too</h3>
+      <div id="drFamily"></div>
+      <button class="btn btn-secondary" type="button" id="drAddFamily">+ Add a family member</button>
+      <label class="check-row" style="display:flex;gap:.6rem;align-items:flex-start;margin:1.25rem 0 .5rem;"><input type="checkbox" id="drConsent" style="margin-top:.25rem;"><span>The patient has been shown the Privacy Notice and agrees to GP4U Clinic holding their details to provide care. <span class="req">*</span></span></label>
+      <p id="drError" role="alert" class="staff-error"></p>
+      <p id="drDone" role="status" class="staff-ok"></p>
+      <button class="btn btn-primary btn-lg" type="submit">Register patient</button>
+    </form>
+    <h2 style="margin:2rem 0 .5rem;">Registered at the desk</h2>
+    <div id="deskRegList"></div>
+  </section>
+
+  <!-- Website registrations -->
   <section id="panel_regs" role="tabpanel" aria-labelledby="tabBtn_regs" hidden>
-    <p class="staff-hint">New patient registrations from the website. Open one to see contact and registration details, then mark it processed once the patient (and family) are set up. Health details are visible to doctors only.</p>
+    <p class="staff-hint">New patient registrations made on the website. Open one to see contact, registration and health details, then mark it processed once the patient (and family) are set up. Please treat health information as confidential — access is logged.</p>
     <div id="regList"></div>
   </section>
 
 </div>
 </main>
 
-<script src="/js/reception.js?v=a65c4aaa"></script>
+<script src="/js/reception.js?v=1a368210"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

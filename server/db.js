@@ -508,6 +508,26 @@ async function initSchema() {
       updated_at DATETIME NULL
     )
   `);
+  // A walk-in patient becomes a real booking (service 'walk_in') once they arrive or are added at the desk, so
+  // doctors can chart them like any other consultation. This links the check-in to that booking.
+  await ensureColumn('walkin_checkins', 'booking_id', 'VARCHAR(32) NULL');
+
+  // Where a registration came from: the public website form ('online') or a receptionist at the desk ('desk').
+  await ensureColumn('patient_registrations', 'source', "VARCHAR(16) NOT NULL DEFAULT 'online'");
+  await ensureColumn('patient_registrations', 'registered_by', 'VARCHAR(255) NULL');
+
+  // Front-desk audit trail: receptionists can see health information, so admins can review who did what
+  // (shown in Admin -> Reception). Views are logged at most once per few minutes to keep it readable.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reception_access_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      receptionist_id INT NOT NULL,
+      action VARCHAR(64) NOT NULL,
+      detail VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_rec_log_time (created_at)
+    )
+  `);
 
   // Seed default homepage text and starter blog posts once, so the site looks the same
   // as before the content editor existed until someone actually edits it.

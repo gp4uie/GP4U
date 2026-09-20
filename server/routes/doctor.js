@@ -351,9 +351,10 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   // without having to click into each past booking separately.
   const previousBookings = await db.all(`
     SELECT id, service_type, reason, slot_start, status FROM bookings
-    WHERE patient_email = ? AND id != ? AND status IN ('paid', 'completed')
+    WHERE ((patient_email <> '' AND patient_email = ?) OR (patient_name = ? AND patient_dob = ?))
+      AND id != ? AND status IN ('paid', 'completed')
     ORDER BY slot_start DESC LIMIT 20
-  `, [booking.patient_email, req.params.id]);
+  `, [booking.patient_email || '', booking.patient_name, booking.patient_dob, req.params.id]);
   const previousConsultations = [];
   for (const b of previousBookings) {
     previousConsultations.push({

@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=0a3e5814">
+<link rel="stylesheet" href="/css/clinic.css?v=a74f129b">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -120,7 +120,7 @@
 
   <div id="tab_reception" style="display:none;">
     <h1>Reception staff</h1>
-    <p class="staff-hint">Front-desk staff sign in at <strong>/reception.html</strong>. They can run the walk-in queue, see the day's appointments and process new registrations. They can never see clinical notes, prescriptions, health details or the reason for an online consultation.</p>
+    <p class="staff-hint">Front-desk staff sign in at <strong>/reception.html</strong>. They run the walk-in queue (adding a walk-in creates a booking the doctor sees), register new patients, and can see registration health details, reasons for visit and intake answers. They cannot see consultation notes, prescriptions, documents or messages. Everything they view or change is recorded below.</p>
     <div class="table-scroll">
       <table class="bookings-table">
         <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Online</th><th>Last login</th><th>Password</th><th></th></tr></thead>
@@ -136,6 +136,14 @@
     <div class="form-row" style="max-width:420px;"><label for="newRecPassword">Password (at least 8 characters)</label><input type="password" id="newRecPassword" autocomplete="new-password"></div>
     <button class="btn btn-primary" onclick="addReceptionist()">Add receptionist</button>
     <p id="receptionMsg" role="alert" class="staff-error"></p>
+
+    <h3 style="margin-top:28px;">Recent front-desk activity</h3>
+    <div class="table-scroll">
+      <table class="bookings-table">
+        <thead><tr><th>When</th><th>Who</th><th>What</th><th>Detail</th></tr></thead>
+        <tbody id="receptionLogBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div id="tab_patients" style="display:none;">
@@ -214,7 +222,7 @@
 </main>
 
 <script src="/js/availability-editor.js?v=9f9178f4"></script>
-<script src="/js/admin-dashboard.js?v=c115ad5a"></script>
+<script src="/js/admin-dashboard.js?v=90d44a91"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

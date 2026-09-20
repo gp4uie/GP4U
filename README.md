@@ -494,12 +494,18 @@ content-based version stamp (`/css/clinic.css?v=1a2b3c4d`). **After changing any
 
 ### Front desk (receptionist) role and the staff screens
 
-- **Front desk:** `/reception.html`. A receptionist can run the walk-in queue (mark arrived / seen / cancelled, and add someone who arrives
-  without checking in online), see the day's online appointments (name, time, service), and process new-patient registrations.
-- **Least privilege, enforced on the server** (`server/routes/reception.js`): receptionists never receive clinical notes, prescriptions,
-  documents, patient charts, the reason/questionnaire of an online consultation, or the health fields of a registration (conditions,
-  medicines, allergies, notes) — those columns are simply not selected. They cannot reach doctor or admin endpoints. To change what the
-  front desk may see, change the queries in that one file.
+- **Front desk:** `/reception.html`. Four tabs: **Walk-in queue** (mark arrived / seen / cancelled; **Add a walk-in at the desk**), **Today's appointments**
+  (online GP bookings with reason for visit and intake answers), **Register to clinic** (register a new patient in person, with family members
+  and health information; the list below shows desk registrations only) and **Website registrations** (from the public New Patients form).
+- **Walk-ins become bookings:** a walk-in added at the desk — or an online check-in once marked *arrived* or *seen* (by reception or doctor) —
+  creates a real booking (service `walk_in`, EUR 0, timed "now" for 15 min; `server/walkins.js`). The doctor sees it on Schedule, Recent Cases,
+  the notification bell and can chart it (notes, prescriptions). Cancelling the walk-in cancels the booking. Patients with no email are matched
+  to their history by name + date of birth only, never by blank email.
+- **What reception can and cannot see (enforced in `server/routes/reception.js`):** CAN see registration details including health information
+  (conditions, medicines, allergies, notes, previous GP), walk-in reasons, and online-booking reasons and intake answers. CANNOT see
+  consultation notes, prescriptions, documents/letters, messages or charts, and cannot reach any doctor, admin or patient endpoint.
+- **Audit trail:** reception activity (what was viewed — throttled to once per 10 minutes — and every change) is stored in
+  `reception_access_log` and shown to admins under *Admin → Reception → Recent front-desk activity*.
 - **Accounts:** an admin creates them in *Admin dashboard → Reception* (name, email, password), and can deactivate/reactivate an account or
   set a new password. Sessions end after 30 idle minutes; repeated wrong passwords are rate-limited. There is no two-factor step for
   receptionists yet (doctors have one).

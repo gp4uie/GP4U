@@ -1,3 +1,5 @@
+// Readable name for a booking's service key (walk-in bookings are created by the front desk / check-in).
+function svcLabel(t) { return t === 'walk_in' ? 'Walk-in visit' : String(t || '').replace(/_/g, ' '); }
 let currentBookingId = null;
 let currentPatientEmail = null;
 let scheduleDate = new Date();
@@ -364,7 +366,7 @@ function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
     const rowSpan = Math.max(1, Math.round(durMin / stepMin));
     const timeLabel = start.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
     const reasonPreview = b.reason ? b.reason.slice(0, 40) + (b.reason.length > 40 ? '…' : '') : '';
-    html += `<div class="schedule-booking ${b.status === 'completed' ? 'completed' : ''}" style="grid-row:${rowStart} / span ${rowSpan};" onclick="openBooking('${b.id}', 'schedule')" title="${reasonPreview.replace(/"/g, '&quot;')}">${timeLabel} <strong>${b.patient_name}</strong> — ${reasonPreview || b.service_type.replace('_', ' ')}</div>`;
+    html += `<div class="schedule-booking ${b.status === 'completed' ? 'completed' : ''}" style="grid-row:${rowStart} / span ${rowSpan};" onclick="openBooking('${b.id}', 'schedule')" title="${reasonPreview.replace(/"/g, '&quot;')}">${timeLabel} <strong>${b.patient_name}</strong> — ${reasonPreview || svcLabel(b.service_type)}</div>`;
   });
 
   // Current-time line, only when this is actually today.
@@ -416,7 +418,7 @@ async function runSearch() {
         ${results.map(b => `
           <tr onclick="openBooking('${b.id}', 'search')">
             <td>${new Date(b.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-            <td>${b.service_type.replace('_', ' ')}</td>
+            <td>${svcLabel(b.service_type)}</td>
             <td>${b.patient_name}</td>
             <td>${b.patient_dob}</td>
             <td>${b.patient_phone}</td>
@@ -438,7 +440,7 @@ async function loadRecent() {
   body.innerHTML = bookings.length ? bookings.map((b) => `
     <tr onclick="openBooking('${b.id}', 'recent')">
       <td>${new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-      <td>${b.service_type.replace('_', ' ')}</td>
+      <td>${svcLabel(b.service_type)}</td>
       <td>${b.patient_name}</td>
       <td><span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></td>
     </tr>
@@ -544,7 +546,7 @@ async function openBooking(id, listType, keepTab) {
   const data = await res.json();
   const b = data.booking;
   currentPatientEmail = b.patient_email;
-  document.getElementById('chartHeader').textContent = `${b.patient_name} — ${b.service_type.replace('_', ' ')}`;
+  document.getElementById('chartHeader').textContent = `${b.patient_name} — ${svcLabel(b.service_type)}`;
   const dobLabel = b.patient_dob
     ? new Date(b.patient_dob + 'T00:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'DOB not given';
@@ -564,7 +566,7 @@ async function openBooking(id, listType, keepTab) {
     <p><strong>Address:</strong> ${b.patient_address || '—'}</p>
     <p><strong>Contact:</strong> ${b.patient_phone} • ${b.patient_email}</p>
     <p><strong>Pharmacy:</strong> ${b.pharmacy_name || '—'}</p>
-    <p><strong>Service:</strong> ${b.service_type.replace('_', ' ')}</p>
+    <p><strong>Service:</strong> ${svcLabel(b.service_type)}</p>
     <p><strong>When:</strong> ${new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
     <p><strong>Reason given:</strong> ${b.reason}</p>
     <p><strong>Symptom duration:</strong> ${b.symptoms_duration || '—'}</p>
@@ -671,7 +673,7 @@ function renderPreviousConsultations(previous) {
     const dateLabel = new Date(p.slot_start).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const summaryLine = `
       <strong>${dateLabel}</strong>
-      — ${p.service_type.replace('_', ' ')}
+      — ${svcLabel(p.service_type)}
       <span class="badge ${p.status === 'completed' ? 'badge-green' : 'badge-amber'}">${p.status}</span>
     `;
     const body = `
