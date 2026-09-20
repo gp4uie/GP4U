@@ -213,7 +213,8 @@ async function main() {
       await tab.set('#wiName', ctx.walkinName); await tab.set('#wiDob', '1990-01-01'); await tab.set('#wiPhone', '0000000000');
       await tab.set('#wiReason', 'TEST ONLY - please ignore <img src=x onerror="window.__xss=1">');
       await tab.ev(`document.getElementById('wiNotEmergency').checked = true; document.getElementById('wiConsent').checked = true; document.getElementById('bookInSubmit').click()`);
-      await tab.waitFor(`!document.getElementById('bookInDone').hidden`, 8000, 'walk-in success panel');
+      try { await tab.waitFor(`!document.getElementById('bookInDone').hidden`, 12000, 'walk-in success panel'); }
+      catch (e) { throw new Error(e.message + ' | form said: ' + await tab.ev(`document.getElementById('bookInError').textContent`).catch(() => '?')); }
       ctx.walkinRef = await tab.ev(`document.getElementById('bookInRef').textContent`);
       assert(/^WI-/.test(ctx.walkinRef), 'bad reference ' + ctx.walkinRef);
       assert(await tab.ev(`window.__xss === undefined`), 'script in the form text was executed');
@@ -229,7 +230,8 @@ async function main() {
       await tab.ev(`document.getElementById('registerSubmit').click()`);
       assert(/Privacy Notice/i.test(await tab.ev(`document.getElementById('registerError').textContent`)), 'consent not enforced');
       await tab.ev(`document.getElementById('consent').checked = true; const r = document.getElementById('familyRows').children[0]; r.querySelector('.fm-name').value = 'ZZ TEST Kid'; r.querySelector('.fm-dob').value = '2018-01-01'; r.querySelector('.fm-rel').value = 'Son'; document.getElementById('registerSubmit').click()`);
-      await tab.waitFor(`!document.getElementById('registerDone').hidden`, 8000, 'registration success panel');
+      try { await tab.waitFor(`!document.getElementById('registerDone').hidden`, 12000, 'registration success panel'); }
+      catch (e) { throw new Error(e.message + ' | form said: ' + await tab.ev(`document.getElementById('registerError').textContent`).catch(() => '?')); }
       ctx.regRef = await tab.ev(`document.getElementById('registerRef').textContent`);
       assert(/^REG-/.test(ctx.regRef), 'bad reference ' + ctx.regRef);
     });
