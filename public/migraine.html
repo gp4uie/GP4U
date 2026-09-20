@@ -13,7 +13,13 @@
 <meta property="og:image" content="https://www.gp4u.ie/img/gp4u-logo-card.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<!-- @head -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/clinic.css">
+<!-- @/head -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -27,22 +33,39 @@
 }
 </script>
 </head>
-<body>
+<body class="clinic-page on-light">
 
+<!-- @topbar -->
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="topbar"><div class="container">
+  <span data-open-status></span>
+  <span class="topbar-right">
+    <a href="/patient-login.html" id="patientLoginLink">Patient login</a>
+    <a href="/patient-portal.html" id="patientPortalLink" hidden>My account</a>
+    <span class="topbar-sep" aria-hidden="true">·</span>
+    <span>Emergency? Call <strong>112</strong> or <strong>999</strong></span>
+  </span>
+</div></div>
+<!-- @/topbar -->
+<!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
-    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
-    <nav class="main-nav">
-      <a href="/walk-in.html">Walk-In</a>
+    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
+    <nav class="main-nav" id="siteNav" aria-label="Main">
+      <a href="/walk-in.html">Walk-In Clinic</a>
+      <a href="/online.html">Online GP</a>
       <a href="/services.html">Services</a>
-      <a href="/new-patients.html">New Patients</a>
+      <a href="/fees.html">Fees</a>
+      <a href="/about.html">About</a>
+      <a href="/faq.html">FAQs</a>
       <a href="/contact.html">Contact</a>
-      <a href="/patient-login.html" class="doctor-link">Patient Login</a>
-      <a href="/online.html" class="btn btn-primary">See a GP Online</a>
+      <a href="/book-now.html" class="btn btn-primary">Book Now</a>
     </nav>
   </div>
 </header>
+<!-- @/header -->
+<main id="main">
 
 <section class="hero" style="padding:56px 24px 64px;">
   <div class="container">
@@ -75,7 +98,7 @@
   <div class="container" style="max-width:720px;" id="conditionAboutContainer"></div>
 </section>
 
-<section style="background:linear-gradient(160deg, #ffffff 0%, #eefaf9 100%);">
+<section>
   <div class="container" style="max-width:720px;" id="conditionFaqContainer"></div>
 </section>
 
@@ -83,12 +106,16 @@
   <div class="container" id="relatedServicesContainer"></div>
 </section>
 
+</main>
+
+<!-- @footer -->
 <footer class="site-footer">
   <div class="container">
     <div class="footer-cols">
       <div>
         <h4>GP4U Clinic</h4>
         <ul>
+          <li>Walk-in clinic &amp; comprehensive family practice</li>
           <li data-clinic-address></li>
           <li class="contact-item" data-clinic-phone></li>
           <li data-clinic-email></li>
@@ -99,20 +126,23 @@
         <div data-clinic-hours></div>
       </div>
       <div>
-        <h4>The clinic</h4>
+        <h4>Book &amp; visit</h4>
         <ul>
-          <li><a href="/walk-in.html">Walk-In Clinic</a></li>
-          <li><a href="/services.html">Services</a></li>
-          <li><a href="/new-patients.html">New patients</a></li>
+          <li><a href="/book-now.html">Book now</a></li>
+          <li><a href="/walk-in.html">Walk-in clinic</a></li>
+          <li><a href="/online.html">Online GP</a></li>
+          <li><a href="/new-patients.html">Register as a patient</a></li>
           <li><a href="/contact.html">Contact</a></li>
         </ul>
       </div>
       <div>
-        <h4>Online</h4>
+        <h4>Information</h4>
         <ul>
-          <li><a href="/online.html">See a GP online</a></li>
+          <li><a href="/services.html">Services</a></li>
+          <li><a href="/fees.html">Fees</a></li>
+          <li><a href="/about.html">About GP4U</a></li>
+          <li><a href="/faq.html">FAQs</a></li>
           <li><a href="/blog.html">Health info</a></li>
-          <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
       <div>
@@ -120,16 +150,25 @@
         <ul>
           <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
           <li><a href="/privacy.html#terms">Terms of Use</a></li>
+          <li><a href="/privacy.html#cookies">Cookies</a></li>
+          <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-legal">
-      Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+      <strong>Not for use in a medical emergency</strong> — call 112 or 999, or attend your nearest Emergency Department.
       Online consultations do not replace in-person examination where one is clinically necessary.
       <div class="footer-company" data-clinic-company></div>
     </div>
   </div>
 </footer>
+<!-- @/footer -->
+<!-- @sticky -->
+<div class="sticky-cta" role="region" aria-label="Book a GP">
+  <a class="btn btn-primary" href="/book.html">Online GP</a>
+  <a class="btn btn-secondary" href="/walk-in.html#book-in">Walk-in</a>
+</div>
+<!-- @/sticky -->
 
 <script>const PAGE_SERVICE_KEY = 'migraine';</script>
 <script src="/js/questionnaires.js"></script>

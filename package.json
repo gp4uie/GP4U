@@ -6,7 +6,9 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "pages": "node scripts/build-pages.js",
+    "generate": "node scripts/generate-pages.js && node scripts/build-pages.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

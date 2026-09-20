@@ -4,36 +4,61 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book an Online GP Appointment — GP4U Ireland</title>
-<meta name="description" content="Book your online GP appointment in Ireland today. Choose video, travel health, women's health, men's health, repeat prescription, or a sick cert — pay securely and join by video or audio call.">
+<meta name="description" content="Book an online GP consultation with GP4U Clinic: choose a service, tell us what's going on, pick a time and pay securely. Video or phone, from home.">
 <link rel="canonical" href="https://www.gp4u.ie/book.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Book an Online GP Appointment — GP4U Ireland">
-<meta property="og:description" content="Choose a consultation type, answer a few quick questions, pick a time, and pay securely online.">
+<meta property="og:description" content="Book an online GP consultation with GP4U Clinic: choose a service, tell us what's going on, pick a time and pay securely. Video or phone, from home.">
 <meta property="og:url" content="https://www.gp4u.ie/book.html">
 <meta property="og:image" content="https://www.gp4u.ie/img/gp4u-logo-card.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<!-- @head -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/clinic.css">
+<!-- @/head -->
 </head>
-<body>
+<body class="clinic-page on-light" data-sticky="off">
 
+<!-- @topbar -->
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="topbar"><div class="container">
+  <span data-open-status></span>
+  <span class="topbar-right">
+    <a href="/patient-login.html" id="patientLoginLink">Patient login</a>
+    <a href="/patient-portal.html" id="patientPortalLink" hidden>My account</a>
+    <span class="topbar-sep" aria-hidden="true">·</span>
+    <span>Emergency? Call <strong>112</strong> or <strong>999</strong></span>
+  </span>
+</div></div>
+<!-- @/topbar -->
+<!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
-    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
-    <nav class="main-nav">
-      <a href="/walk-in.html">Walk-In</a>
+    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
+    <nav class="main-nav" id="siteNav" aria-label="Main">
+      <a href="/walk-in.html">Walk-In Clinic</a>
+      <a href="/online.html">Online GP</a>
       <a href="/services.html">Services</a>
-      <a href="/new-patients.html">New Patients</a>
+      <a href="/fees.html">Fees</a>
+      <a href="/about.html">About</a>
+      <a href="/faq.html">FAQs</a>
       <a href="/contact.html">Contact</a>
-      <a href="/patient-login.html" class="doctor-link">Patient Login</a>
-      <a href="/online.html" class="btn btn-primary">See a GP Online</a>
+      <a href="/book-now.html" class="btn btn-primary">Book Now</a>
     </nav>
   </div>
 </header>
+<!-- @/header -->
+<main id="main">
 
 <div class="page-shell">
-  <h1>Book your consultation</h1>
+  <h1>Book an online GP consultation</h1>
+  <p class="lead-in" style="font-size:1.05rem;">See a GP by video or phone, from wherever you are. It takes about five minutes: choose a service, tell us what's going on, pick a time and pay securely.</p>
+  <div class="notice" style="margin-bottom:24px;"><strong>This is an online booking — not an appointment at the clinic.</strong>Would you rather be seen in person? <a href="/walk-in.html#book-in">Book in for our walk-in clinic in Newbridge</a> — no appointment needed.</div>
   <div class="wizard-steps">
     <span id="tab1" class="active">1. Service</span>
     <span id="tab2">2. About you</span>
@@ -71,21 +96,21 @@
       <div id="conditionQuestionsContainer"></div>
       <div id="patientDetailsFields" style="display:none;">
         <div class="form-grid">
-          <div class="form-row"><label>Full name <span style="color:#c0392b;">*</span></label><input required name="patientName"></div>
-          <div class="form-row"><label>Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob" id="patientDobInput" min="1900-01-01"></div>
-          <div class="form-row"><label>Phone number <span style="color:#c0392b;">*</span></label><input required type="tel" name="patientPhone"></div>
-          <div class="form-row"><label>Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail"></div>
+          <div class="form-row"><label for="f-patientName">Full name <span style="color:#c0392b;">*</span></label><input required name="patientName" id="f-patientName"></div>
+          <div class="form-row"><label for="patientDobInput">Date of birth <span style="color:#c0392b;">*</span></label><input required type="date" name="patientDob" id="patientDobInput" min="1900-01-01"></div>
+          <div class="form-row"><label for="f-patientPhone">Phone number <span style="color:#c0392b;">*</span></label><input required type="tel" name="patientPhone" id="f-patientPhone"></div>
+          <div class="form-row"><label for="f-patientEmail">Email <span style="color:#c0392b;">*</span></label><input required type="email" name="patientEmail" id="f-patientEmail"></div>
         </div>
-        <div class="form-row"><label id="addressLabel">Home address</label><input name="patientAddress" id="addressInput" placeholder="Needed for sick certs / referral letters if you need one"></div>
-        <div class="form-row" id="pharmacyRow"><label id="pharmacyLabel">Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input name="pharmacyName" id="pharmacyInput" placeholder="e.g. Boots Pharmacy, Main Street"></div>
-        <div class="form-row"><label><span id="reasonLabelText">What would you like to discuss with the GP?</span> <span style="color:#c0392b;">*</span></label><textarea required name="reason" id="reasonInput" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
+        <div class="form-row"><label id="addressLabel" for="addressInput">Home address</label><input name="patientAddress" id="addressInput" placeholder="Needed for sick certs / referral letters if you need one"></div>
+        <div class="form-row" id="pharmacyRow"><label id="pharmacyLabel" for="pharmacyInput">Your regular pharmacy's name <span style="color:#c0392b;">*</span></label><input name="pharmacyName" id="pharmacyInput" placeholder="e.g. Boots Pharmacy, Main Street"></div>
+        <div class="form-row"><label for="reasonInput"><span id="reasonLabelText">What would you like to discuss with the GP?</span> <span style="color:#c0392b;">*</span></label><textarea required name="reason" id="reasonInput" placeholder="Please describe your symptoms or the reason for this consultation"></textarea></div>
         <div class="form-grid">
-          <div class="form-row" id="symptomsDurationRow"><label id="symptomsDurationLabel">How long have you had these symptoms?</label><input name="symptomsDuration" id="symptomsDurationInput" placeholder="e.g. 3 days"></div>
-          <div class="form-row" id="allergiesRow"><label>Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'"></div>
+          <div class="form-row" id="symptomsDurationRow"><label id="symptomsDurationLabel" for="symptomsDurationInput">How long have you had these symptoms?</label><input name="symptomsDuration" id="symptomsDurationInput" placeholder="e.g. 3 days"></div>
+          <div class="form-row" id="allergiesRow"><label for="f-allergies">Any known allergies?</label><input name="allergies" placeholder="e.g. Penicillin, or 'None'" id="f-allergies"></div>
         </div>
-        <div class="form-row" id="currentMedicationsRow"><label>Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'"></div>
+        <div class="form-row" id="currentMedicationsRow"><label for="f-currentMedications">Current medications</label><input name="currentMedications" placeholder="List anything you currently take, or 'None'" id="f-currentMedications"></div>
         <div class="form-row" id="extraDetailsRow" style="display:none;">
-          <label id="extraDetailsLabel">Additional details</label>
+          <label id="extraDetailsLabel" for="extraDetailsInput">Additional details</label>
           <input name="extraDetails" id="extraDetailsInput">
         </div>
         <div id="repeatRxSafetyRow" style="display:none;">
@@ -94,7 +119,7 @@
             Since this is a repeat prescription, your GP needs to confirm nothing has changed before renewing it.
           </div>
           <div class="form-row">
-            <label>Are you currently taking this medication exactly as prescribed (correct dose and frequency)? <span style="color:#c0392b;">*</span></label>
+            <label for="rxAsPrescribedInput">Are you currently taking this medication exactly as prescribed (correct dose and frequency)? <span style="color:#c0392b;">*</span></label>
             <select id="rxAsPrescribedInput" name="rxAsPrescribed">
               <option value="">Please choose…</option>
               <option value="Yes">Yes</option>
@@ -102,12 +127,12 @@
             </select>
           </div>
           <div class="form-row">
-            <label>Since your last prescription, has anything changed — new symptoms, side effects, other medications, or health conditions? <span style="color:#c0392b;">*</span></label>
+            <label for="rxHealthChangesInput">Since your last prescription, has anything changed — new symptoms, side effects, other medications, or health conditions? <span style="color:#c0392b;">*</span></label>
             <textarea id="rxHealthChangesInput" name="rxHealthChanges" placeholder="Write 'No changes' if nothing has changed"></textarea>
           </div>
         </div>
         <div class="form-row">
-          <label id="photoInputLabel">Attach a photo (optional — e.g. a rash or a letter)</label>
+          <label id="photoInputLabel" for="photoInput">Attach a photo (optional — e.g. a rash or a letter)</label>
           <input type="file" id="photoInput" accept="image/*" multiple>
         </div>
         <button type="button" class="btn btn-primary" id="step2ContinueBtn" onclick="goToStep3FromForm()">Continue</button>
@@ -137,9 +162,73 @@
     <div class="card" id="reviewCard"></div>
     <button id="payBtn" class="btn btn-primary" style="margin-top:20px;" onclick="submitBooking()">Continue to Payment</button>
     <button class="btn btn-secondary" onclick="goToStep(3)" style="margin-top:20px;">Back</button>
-    <p id="bookingError" style="color:#c0392b;"></p>
+    <p id="bookingError" role="alert" style="color:#c0392b;"></p>
   </div>
 </div>
+
+</main>
+
+<!-- @footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <h4>GP4U Clinic</h4>
+        <ul>
+          <li>Walk-in clinic &amp; comprehensive family practice</li>
+          <li data-clinic-address></li>
+          <li class="contact-item" data-clinic-phone></li>
+          <li data-clinic-email></li>
+        </ul>
+      </div>
+      <div class="footer-hours-col">
+        <h4>Opening hours</h4>
+        <div data-clinic-hours></div>
+      </div>
+      <div>
+        <h4>Book &amp; visit</h4>
+        <ul>
+          <li><a href="/book-now.html">Book now</a></li>
+          <li><a href="/walk-in.html">Walk-in clinic</a></li>
+          <li><a href="/online.html">Online GP</a></li>
+          <li><a href="/new-patients.html">Register as a patient</a></li>
+          <li><a href="/contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Information</h4>
+        <ul>
+          <li><a href="/services.html">Services</a></li>
+          <li><a href="/fees.html">Fees</a></li>
+          <li><a href="/about.html">About GP4U</a></li>
+          <li><a href="/faq.html">FAQs</a></li>
+          <li><a href="/blog.html">Health info</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
+          <li><a href="/privacy.html#terms">Terms of Use</a></li>
+          <li><a href="/privacy.html#cookies">Cookies</a></li>
+          <li><a href="/patient-login.html">Patient login</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-legal">
+      <strong>Not for use in a medical emergency</strong> — call 112 or 999, or attend your nearest Emergency Department.
+      Online consultations do not replace in-person examination where one is clinically necessary.
+      <div class="footer-company" data-clinic-company></div>
+    </div>
+  </div>
+</footer>
+<!-- @/footer -->
+<!-- @sticky -->
+<div class="sticky-cta" role="region" aria-label="Book a GP">
+  <a class="btn btn-primary" href="/book.html">Online GP</a>
+  <a class="btn btn-secondary" href="/walk-in.html#book-in">Walk-in</a>
+</div>
+<!-- @/sticky -->
 
 <script src="/js/questionnaires.js?v=3"></script>
 <script src="/js/book.js?v=4"></script>

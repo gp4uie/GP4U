@@ -57,6 +57,11 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
     if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'no-cache');
     }
+    // Photos and icons rarely change — let browsers keep them for a week (repeat visits load faster).
+    // If you replace a photo, give it a new filename, or it will refresh within a week.
+    if (/\.(webp|jpg|jpeg|png|svg)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    }
   },
 }));
 

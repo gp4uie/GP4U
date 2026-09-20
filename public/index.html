@@ -4,18 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google-site-verification" content="ub7hnibZETNhoVlnaToNVXdh1WpZFs5eSjIv7njwld0" />
-<title>GP4U Clinic — Walk-In Clinic &amp; Comprehensive Family Practice, Newbridge, Co. Kildare</title>
-<meta name="description" content="GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare. No appointment needed. Open 7 days. Online GP consultations also available.">
+<link rel="preload" as="image" href="/img/clinic/family-sofa.webp" fetchpriority="high">
+<title>GP4U Clinic — Walk-In GP &amp; Online GP | Newbridge, Co. Kildare</title>
+<meta name="description" content="Walk-in GP clinic and comprehensive family practice in Newbridge, Co. Kildare, plus online GP consultations from home. No appointment needed at the clinic. Open 7 days.">
 <link rel="canonical" href="https://www.gp4u.ie/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="GP4U Clinic — Walk-In Clinic &amp; Comprehensive Family Practice, Newbridge, Co. Kildare">
-<meta property="og:description" content="GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare. No appointment needed. Open 7 days. Online GP consultations also available.">
+<meta property="og:site_name" content="GP4U Clinic">
+<meta property="og:locale" content="en_IE">
+<meta property="og:title" content="GP4U Clinic — Walk-In GP &amp; Online GP | Newbridge, Co. Kildare">
+<meta property="og:description" content="Walk-in GP clinic and comprehensive family practice in Newbridge, Co. Kildare, plus online GP consultations from home. No appointment needed at the clinic. Open 7 days.">
 <meta property="og:url" content="https://www.gp4u.ie/">
 <meta property="og:image" content="https://www.gp4u.ie/img/clinic/family-sofa.webp">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<!-- @head -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/clinic.css">
+<!-- @/head -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -25,46 +33,89 @@
   "image": "https://www.gp4u.ie/img/clinic/family-sofa.webp",
   "description": "Walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare, with online GP consultations.",
   "medicalSpecialty": "GeneralPractice",
-  "address": { "@type": "PostalAddress", "addressLocality": "Newbridge", "addressRegion": "Co. Kildare", "addressCountry": "IE" },
+  "areaServed": {
+    "@type": "Country",
+    "name": "Ireland"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Newbridge",
+    "addressRegion": "Co. Kildare",
+    "addressCountry": "IE"
+  },
   "openingHoursSpecification": [
-    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "10:00", "closes": "21:00" },
-    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday","Sunday"], "opens": "12:00", "closes": "19:00" }
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "opens": "10:00",
+      "closes": "21:00"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Saturday",
+        "Sunday"
+      ],
+      "opens": "12:00",
+      "closes": "19:00"
+    }
   ]
 }
 </script>
 </head>
 <body class="clinic-page on-light">
-
-<div class="topbar"><div class="container"><span data-open-status></span><span>Emergency? Call <strong>112</strong> or <strong>999</strong></span></div></div>
+<!-- @topbar -->
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="topbar"><div class="container">
+  <span data-open-status></span>
+  <span class="topbar-right">
+    <a href="/patient-login.html" id="patientLoginLink">Patient login</a>
+    <a href="/patient-portal.html" id="patientPortalLink" hidden>My account</a>
+    <span class="topbar-sep" aria-hidden="true">·</span>
+    <span>Emergency? Call <strong>112</strong> or <strong>999</strong></span>
+  </span>
+</div></div>
+<!-- @/topbar -->
+<!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
-    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
-    <nav class="main-nav">
-      <a href="/walk-in.html">Walk-In</a>
+    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
+    <nav class="main-nav" id="siteNav" aria-label="Main">
+      <a href="/walk-in.html">Walk-In Clinic</a>
+      <a href="/online.html">Online GP</a>
       <a href="/services.html">Services</a>
-      <a href="/new-patients.html">New Patients</a>
+      <a href="/fees.html">Fees</a>
+      <a href="/about.html">About</a>
+      <a href="/faq.html">FAQs</a>
       <a href="/contact.html">Contact</a>
-      <a href="/patient-login.html" class="doctor-link">Patient Login</a>
-      <a href="/online.html" class="btn btn-primary">See a GP Online</a>
+      <a href="/book-now.html" class="btn btn-primary">Book Now</a>
     </nav>
   </div>
 </header>
+<!-- @/header -->
+<main id="main">
 
 <section class="hero2">
   <div class="container hero2-grid">
     <div class="hero2-text">
-      <p class="eyebrow">Walk-in clinic · Comprehensive family practice · Newbridge</p>
-      <h1>Care for you and your whole family, close to home.</h1>
-      <p class="lead">GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare. No appointment needed — or see a GP online from home.</p>
+      <p class="eyebrow">GP4U Clinic · Newbridge, Co. Kildare</p>
+      <h1>GP care when you need it.</h1>
+      <p class="lead">See a GP in person at our walk-in clinic in Newbridge, or online from home. Choose what suits you — no appointment needed at the clinic.</p>
       <div class="hero2-actions">
-        <a href="/walk-in.html#book-in" class="btn btn-primary btn-lg">Book in for walk-in</a>
-        <a href="/new-patients.html" class="btn btn-secondary btn-lg">Register your family</a>
+        <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
+        <a href="/walk-in.html" class="btn btn-secondary btn-lg">Visit Our Walk-In Clinic</a>
       </div>
       <div class="trust-row">
         <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Open 7 days a week</span>
-        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v16h14V8z"/><path d="M14 3v5h5"/><circle cx="10" cy="13" r="0.6"/></svg> No appointment needed</span>
-        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg> Medical Council registered doctors</span>
+        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg> Doctors registered with the Medical Council</span>
+        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private &amp; secure</span>
       </div>
     </div>
     <div class="hero2-media">
@@ -80,63 +131,90 @@
   </div>
 </section>
 
-<div class="container">
-  <div class="facts">
-    <div class="fact">
-      <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-      <div><h3>Opening hours</h3><div data-clinic-hours-summary></div><p style="margin-top:4px;font-size:0.82rem;" data-clinic-hours-note></p></div>
-    </div>
-    <div class="fact">
-      <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v16h14V8z"/><path d="M14 3v5h5"/><circle cx="10" cy="13" r="0.6"/></svg></span>
-      <div><h3>Walk in, no appointment</h3><p>Come in any day during opening hours — or <a href="/walk-in.html#book-in">book in online</a> so we know you're on your way.</p></div>
-    </div>
-    <div class="fact">
-      <span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>
-      <div><h3>Prefer to stay home?</h3><p>Video and audio consultations, repeat prescriptions and sick certs. <a href="/online.html">See a GP online</a>.</p></div>
-    </div>
-  </div>
-</div>
-
-<section class="sec">
+<section class="sec sec-tight" style="padding-top:0;margin-top:-28px;position:relative;z-index:2;">
   <div class="container">
-    <div class="sec-head center">
-      <p class="eyebrow">How we can help</p>
-      <h2>Three ways to see a GP</h2>
-      <p>Whether you need to be seen today, want a family doctor for the long term, or would rather stay at home.</p>
-    </div>
-    <div class="pcards">
-      <article class="pcard">
-        <img src="/img/clinic/doctor-consult.webp" alt="A GP listening carefully to a patient during a consultation" loading="lazy" width="1300" height="731">
-        <div class="pcard-body">
-          <p class="eyebrow">No appointment</p>
-          <h3>Walk-in clinic</h3>
-          <p>Come in during opening hours, seven days a week. Book in online first if you'd like us to know you're on your way.</p>
-          <a class="link-arrow" href="/walk-in.html#book-in">Book in for walk-in →</a>
-        </div>
-      </article>
-      <article class="pcard">
-        <img src="/img/clinic/mother-baby.webp" alt="A mother holding her newborn baby in soft window light" loading="lazy" width="1300" height="867">
-        <div class="pcard-body">
-          <p class="eyebrow">Comprehensive family practice</p>
-          <h3>Your family's GP</h3>
-          <p>Register yourself, your children and your whole family with one practice for continuing, joined-up care.</p>
-          <a class="link-arrow" href="/new-patients.html">Register your family →</a>
-        </div>
-      </article>
-      <article class="pcard">
-        <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
-        <div class="pcard-body">
-          <p class="eyebrow">From home</p>
-          <h3>See a GP online</h3>
-          <p>Video or audio consultations, repeat prescriptions and sick certs. Book in minutes, no travel needed.</p>
-          <a class="link-arrow" href="/online.html">See a GP online →</a>
-        </div>
-      </article>
+    <h2 class="sr-only">What do you need today?</h2>
+    <div class="tiles">
+      <a class="tile" href="/walk-in.html"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><h3>I need a GP today</h3><p>Walk-in clinic — no appointment needed.</p><span class="go">Walk-in clinic →</span></a>
+      <a class="tile" href="/online.html"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span><h3>I want to speak to a GP online</h3><p>Video or phone consultations from home.</p><span class="go">Online GP →</span></a>
+      <a class="tile" href="/services.html"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span><h3>I need information</h3><p>Our services, fees and answers to common questions.</p><span class="go">Services &amp; fees →</span></a>
+      <a class="tile" href="/contact.html"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span><h3>I need to contact GP4U</h3><p>Opening hours, email and where we are.</p><span class="go">Contact us →</span></a>
     </div>
   </div>
 </section>
 
+<section class="sec">
+  <div class="container">
+    <div class="sec-head center">
+      <p class="eyebrow">Two ways to see a GP</p>
+      <h2>Choose what suits you</h2>
+      <p>Same GP-led care, whether you come to us or we come to you online.</p>
+    </div>
+    <div class="opt-grid">
+      <article class="opt is-online">
+        <span class="badge-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Online · from home</span>
+        <h3 class="opt-title">Online GP consultation</h3>
+        <p>Speak to a GP by video or phone, wherever you are.</p>
+        <ul class="tick-list">
+          <li>Choose a time that suits you</li>
+          <li>Repeat prescriptions and sick certs, where appropriate</li>
+          <li>Secure card payment when you book</li>
+        </ul>
+        <div class="opt-foot">
+          <p class="price-line"><span data-min-price hidden></span> <small>· prices shown before you pay</small></p>
+          <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
+        </div>
+      </article>
+      <article class="opt is-inperson">
+        <span class="badge-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> In person · Newbridge, Co. Kildare</span>
+        <h3 class="opt-title">Walk-in clinic</h3>
+        <p>See a doctor at the clinic — no appointment needed.</p>
+        <ul class="tick-list">
+          <li>Open seven days a week</li>
+          <li>Book in online so we know you're on your way</li>
+          <li>Everyday illness and minor injuries</li>
+        </ul>
+        <div class="opt-foot">
+          <p class="price-line">Fees: <a href="/fees.html">see our Fees page</a></p>
+          <a href="/walk-in.html" class="btn btn-secondary btn-lg">Visit Our Walk-In Clinic</a>
+        </div>
+      </article>
+    </div>
+    <p style="text-align:center;margin:28px 0 0;">Not sure which to choose? If you need to be examined in person, choose the walk-in clinic.</p>
+  </div>
+</section>
+
 <section class="sec sec-alt">
+  <div class="container">
+    <div class="sec-head center">
+      <p class="eyebrow">What to expect</p>
+      <h2>How your consultation works</h2>
+    </div>
+    <div class="two-lists">
+      <div class="steps-card">
+        <h3>Online GP</h3>
+        <p>About five minutes to book.</p>
+        <ol class="numlist">
+          <li><div><strong>Choose a service</strong><span>Video, phone, repeat prescription or sick cert.</span></div></li>
+          <li><div><strong>Tell us what's going on</strong><span>A short, private questionnaire so your GP is prepared.</span></div></li>
+          <li><div><strong>Pick a time and pay securely</strong><span>Pay by card — processed securely by Stripe.</span></div></li>
+          <li><div><strong>Have your consultation</strong><span>Join from your confirmation page or email.</span></div></li>
+        </ol>
+      </div>
+      <div class="steps-card">
+        <h3>Walk-in clinic</h3>
+        <p>No appointment needed.</p>
+        <ol class="numlist">
+          <li><div><strong>Come in</strong><span>Any day during opening hours — or book in online first.</span></div></li>
+          <li><div><strong>Check in at reception</strong><span>Give our team your details and tell us why you're here.</span></div></li>
+          <li><div><strong>See a doctor</strong><span>Your GP will assess you and, where needed, arrange prescriptions, sick certs or referrals.</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
   <div class="container split">
     <div class="split-media">
       <img src="/img/clinic/doctor-family.webp" alt="A GP talking with a mother and her young son in the consulting room" loading="lazy" width="1300" height="731">
@@ -149,7 +227,6 @@
         <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><div><h4>Every age, one practice</h4><p>Babies, children, adults and older patients.</p></div></li>
         <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><div><h4>Long-term conditions</h4><p>Ongoing care for asthma, diabetes, blood pressure and more.</p></div></li>
         <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><div><h4>Women's and men's health</h4><p>Contraception, health checks and confidential advice.</p></div></li>
-        <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><div><h4>Prescriptions, certs and referrals</h4><p>Repeat prescriptions, sick certificates and specialist referrals.</p></div></li>
       </ul>
       <a href="/new-patients.html" class="btn btn-primary btn-lg">Register your family</a>
       <a href="/services.html" class="link-arrow" style="margin-left:18px;">See all services →</a>
@@ -157,67 +234,36 @@
   </div>
 </section>
 
-<section class="sec">
-  <div class="container">
-    <div class="sec-head center">
-      <p class="eyebrow">What we treat</p>
-      <h2>Everyday illness and the care your family needs</h2>
-    </div>
-    <div class="svc-grid">
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></span><h3>Coughs, colds &amp; infections</h3><p>Chest, ear, nose, throat and urine infections.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span><h3>Children's health</h3><p>Childhood illness and advice for parents.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><h3>Women's health</h3><p>Contraception and women's health care.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><h3>Men's health</h3><p>Confidential advice and health checks.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><h3>Long-term conditions</h3><p>Asthma, diabetes and blood pressure reviews.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></span><h3>Skin problems</h3><p>Rashes, infections and skin conditions.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><h3>Minor injuries</h3><p>Cuts, sprains and everyday injuries.</p></div>
-      <div class="svc"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><h3>Certs, letters &amp; prescriptions</h3><p>Sick certificates, letters and repeat prescriptions.</p></div>
-    </div>
-  </div>
-</section>
-
 <section class="sec sec-alt">
   <div class="container">
     <div class="sec-head center">
-      <p class="eyebrow">Walk-in clinic</p>
-      <h2>How walk-in works</h2>
+      <p class="eyebrow">Why patients choose GP4U</p>
+      <h2>Clear, careful, GP-led care</h2>
     </div>
-    <div class="steps3">
-      <div class="step3"><div class="num">1</div><h3>Come in</h3><p>Drop in any time during opening hours. Booking in online just lets us know you're on your way.</p></div>
-      <div class="step3"><div class="num">2</div><h3>Check in at reception</h3><p>Give our team your details and tell us why you're here.</p></div>
-      <div class="step3"><div class="num">3</div><h3>See a doctor</h3><p>A GP will assess you and, where needed, arrange prescriptions, sick certs or referrals.</p></div>
+    <div class="trust-grid">
+      <div class="trust-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg></span><h3>GP-led</h3><p>GP4U was set up by a practising Irish GP.</p></div>
+      <div class="trust-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span><h3>Registered doctors</h3><p>Consultations are with doctors registered with the Medical Council of Ireland.</p></div>
+      <div class="trust-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><h3>Private &amp; secure</h3><p>Health information is encrypted and handled in line with GDPR.</p></div>
+      <div class="trust-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span><h3>Clear fees</h3><p>Online consultation prices are shown before you book. <a href="/fees.html">See fees</a></p></div>
     </div>
-    <p style="text-align:center;margin:40px 0 0;"><a href="/walk-in.html#book-in" class="btn btn-primary btn-lg">Book in for walk-in</a></p>
+    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/about.html">About GP4U →</a></p>
   </div>
 </section>
 
 <section class="sec">
-  <div class="container">
-    <div class="band">
-      <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
-      <div class="band-inner">
-        <p class="eyebrow">Online consultations</p>
-        <h2>Can't get to the clinic? See a GP from home.</h2>
-        <p>Video and audio consultations, repeat prescriptions and sick certs — book in minutes and speak to an Irish-registered GP wherever you are.</p>
-        <a href="/online.html" class="btn btn-light btn-lg">See a GP online →</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="sec sec-white">
   <div class="container">
     <div class="sec-head center">
       <p class="eyebrow">Good to know</p>
       <h2>Common questions</h2>
     </div>
     <div class="faq">
-  <details><summary>Do I need an appointment?</summary><p>No. Walk-in patients are seen without an appointment during opening hours. You can also <a href="/walk-in.html#book-in">book in online</a> so we know you're on your way.</p></details>
-  <details><summary>Can I register my whole family?</summary><p>Yes. We're a comprehensive family practice caring for adults and children. Use the <a href="/new-patients.html">registration form</a> and add each family member.</p></details>
-  <details><summary>What should I bring?</summary><p>A list of any medicines you take, plus any recent letters or test results from other doctors.</p></details>
-  <details><summary>What if it's an emergency?</summary><p>Call 112 or 999, or go to your nearest Emergency Department. GP4U Clinic is not an emergency service.</p></details>
-  <details><summary>Can I see a GP without coming in?</summary><p>Yes. Our <a href="/online.html">online consultations</a> offer video and audio appointments, repeat prescriptions and sick certificates.</p></details>
+  <details><summary>Do I need an appointment for the walk-in clinic?</summary><p>No. You can come in at any time during opening hours. You can also <a href="/walk-in.html#book-in">book in online</a> so we know you're on your way.</p></details>
+  <details><summary>What is an online GP consultation?</summary><p>A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer.</p></details>
+  <details><summary>Can I register my whole family at once?</summary><p>Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go.</p></details>
+  <details><summary>Is an online consultation right for every problem?</summary><p>No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.</p></details>
+  <details><summary>Is GP4U an emergency service?</summary><p>No. In an emergency call <strong>112</strong> or <strong>999</strong>, or go to your nearest Emergency Department. This includes chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding, or loss of consciousness.</p></details>
 </div>
+    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/faq.html">See all FAQs →</a></p>
   </div>
 </section>
 
@@ -240,13 +286,16 @@
     </div>
   </div>
 </section>
+</main>
 
+<!-- @footer -->
 <footer class="site-footer">
   <div class="container">
     <div class="footer-cols">
       <div>
         <h4>GP4U Clinic</h4>
         <ul>
+          <li>Walk-in clinic &amp; comprehensive family practice</li>
           <li data-clinic-address></li>
           <li class="contact-item" data-clinic-phone></li>
           <li data-clinic-email></li>
@@ -257,20 +306,23 @@
         <div data-clinic-hours></div>
       </div>
       <div>
-        <h4>The clinic</h4>
+        <h4>Book &amp; visit</h4>
         <ul>
-          <li><a href="/walk-in.html">Walk-In Clinic</a></li>
-          <li><a href="/services.html">Services</a></li>
-          <li><a href="/new-patients.html">New patients</a></li>
+          <li><a href="/book-now.html">Book now</a></li>
+          <li><a href="/walk-in.html">Walk-in clinic</a></li>
+          <li><a href="/online.html">Online GP</a></li>
+          <li><a href="/new-patients.html">Register as a patient</a></li>
           <li><a href="/contact.html">Contact</a></li>
         </ul>
       </div>
       <div>
-        <h4>Online</h4>
+        <h4>Information</h4>
         <ul>
-          <li><a href="/online.html">See a GP online</a></li>
+          <li><a href="/services.html">Services</a></li>
+          <li><a href="/fees.html">Fees</a></li>
+          <li><a href="/about.html">About GP4U</a></li>
+          <li><a href="/faq.html">FAQs</a></li>
           <li><a href="/blog.html">Health info</a></li>
-          <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
       <div>
@@ -278,17 +330,28 @@
         <ul>
           <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
           <li><a href="/privacy.html#terms">Terms of Use</a></li>
+          <li><a href="/privacy.html#cookies">Cookies</a></li>
+          <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-legal">
-      Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+      <strong>Not for use in a medical emergency</strong> — call 112 or 999, or attend your nearest Emergency Department.
       Online consultations do not replace in-person examination where one is clinically necessary.
       <div class="footer-company" data-clinic-company></div>
     </div>
   </div>
 </footer>
+<!-- @/footer -->
+<!-- @sticky -->
+<div class="sticky-cta" role="region" aria-label="Book a GP">
+  <a class="btn btn-primary" href="/book.html">Online GP</a>
+  <a class="btn btn-secondary" href="/walk-in.html#book-in">Walk-in</a>
+</div>
+<!-- @/sticky -->
 
+<script src="/js/questionnaires.js"></script>
+<script src="/js/services-list.js"></script>
 <script src="/js/clinic.js"></script>
 <script src="/js/nav-toggle.js"></script>
 </body>

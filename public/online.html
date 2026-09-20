@@ -3,141 +3,178 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>See a GP Online — Video &amp; Audio GP Consultations Ireland | GP4U Clinic</title>
-<meta name="description" content="Book a GP consultation online in Ireland with GP4U. Video and audio appointments, repeat prescriptions, sick certs, and travel health advice from Irish Medical Council registered GPs. Same-day appointments, no waiting room.">
+<title>Online GP Ireland — Video &amp; Phone GP Consultations | GP4U Clinic</title>
+<meta name="description" content="See a GP online in Ireland. Video and phone GP consultations, repeat prescriptions and sick certs from home, with Medical Council registered doctors.">
 <link rel="canonical" href="https://www.gp4u.ie/online.html">
 <meta property="og:type" content="website">
-<meta property="og:title" content="See a GP Online — GP4U Clinic">
-<meta property="og:description" content="Video and audio GP consultations, repeat prescriptions, sick certs, and travel health advice — book online with an Irish Medical Council registered GP.">
+<meta property="og:site_name" content="GP4U Clinic">
+<meta property="og:locale" content="en_IE">
+<meta property="og:title" content="Online GP Ireland — Video &amp; Phone GP Consultations | GP4U Clinic">
+<meta property="og:description" content="See a GP online in Ireland. Video and phone GP consultations, repeat prescriptions and sick certs from home, with Medical Council registered doctors.">
 <meta property="og:url" content="https://www.gp4u.ie/online.html">
-<meta property="og:image" content="https://www.gp4u.ie/img/gp4u-logo-card.png">
+<meta property="og:image" content="https://www.gp4u.ie/img/clinic/doctor-video.webp">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<!-- @head -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/clinic.css">
+<!-- @/head -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "MedicalBusiness",
-  "name": "GP4U Clinic — Online Consultations",
+  "name": "GP4U Clinic — Online GP",
   "url": "https://www.gp4u.ie/online.html",
-  "parentOrganization": { "@type": "MedicalClinic", "name": "GP4U Clinic", "url": "https://www.gp4u.ie/" },
-  "image": "https://www.gp4u.ie/img/gp4u-logo-card.png",
-  "description": "Online GP telemedicine service in Ireland offering video and audio consultations, repeat prescriptions, sick certificates, referral letters, and travel health advice.",
-  "areaServed": { "@type": "Country", "name": "Ireland" },
-  "medicalSpecialty": "General Practice",
-  "priceRange": "€€",
-  "address": { "@type": "PostalAddress", "addressCountry": "IE" }
+  "description": "Online GP consultations in Ireland: video and phone appointments, repeat prescriptions and sick certificates.",
+  "areaServed": {
+    "@type": "Country",
+    "name": "Ireland"
+  },
+  "medicalSpecialty": "GeneralPractice",
+  "parentOrganization": {
+    "@type": "MedicalClinic",
+    "name": "GP4U Clinic",
+    "url": "https://www.gp4u.ie/"
+  }
 }
 </script>
 </head>
-<body>
-
+<body class="clinic-page on-light">
+<!-- @topbar -->
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="topbar"><div class="container">
+  <span data-open-status></span>
+  <span class="topbar-right">
+    <a href="/patient-login.html" id="patientLoginLink">Patient login</a>
+    <a href="/patient-portal.html" id="patientPortalLink" hidden>My account</a>
+    <span class="topbar-sep" aria-hidden="true">·</span>
+    <span>Emergency? Call <strong>112</strong> or <strong>999</strong></span>
+  </span>
+</div></div>
+<!-- @/topbar -->
+<!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
-    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
-    <nav class="main-nav">
-      <a href="/walk-in.html">Walk-In</a>
+    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
+    <nav class="main-nav" id="siteNav" aria-label="Main">
+      <a href="/walk-in.html">Walk-In Clinic</a>
+      <a href="/online.html">Online GP</a>
       <a href="/services.html">Services</a>
-      <a href="/new-patients.html">New Patients</a>
+      <a href="/fees.html">Fees</a>
+      <a href="/about.html">About</a>
+      <a href="/faq.html">FAQs</a>
       <a href="/contact.html">Contact</a>
-      <a href="/patient-login.html" class="doctor-link">Patient Login</a>
-      <a href="/online.html" class="btn btn-primary">See a GP Online</a>
+      <a href="/book-now.html" class="btn btn-primary">Book Now</a>
     </nav>
   </div>
 </header>
+<!-- @/header -->
+<main id="main">
 
-<section class="hero">
-  <div class="container">
-    <div class="hero-text">
+<section class="phero">
+  <div class="container phero-grid">
+    <div>
+      <p class="eyebrow">Online GP</p>
       <h1 id="heroTitle">See a GP online, from anywhere in Ireland.</h1>
-      <p id="heroSubtitle">GP4U connects you with Irish-registered GPs for video and audio consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.</p>
-      <a href="/book.html" class="btn btn-primary">Book a Consultation</a>
-      <div class="hero-badges">
-        <span class="hero-badge" id="heroBadge1"></span>
-        <span class="hero-badge" id="heroBadge2"></span>
-        <span class="hero-badge" id="heroBadge3"></span>
+      <p class="lead" id="heroSubtitle">GP4U connects you with Irish-registered GPs for video and phone consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.</p>
+      <div class="hero2-actions">
+        <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
+        <a href="/repeat-prescription.html" class="btn btn-secondary btn-lg">Request a repeat prescription</a>
+      </div>
+      <div class="trust-row">
+        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Video or phone</span>
+        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private &amp; secure</span>
+        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pay by card at booking</span>
       </div>
     </div>
-    <div class="hero-card">
-      <div class="hero-card-icon">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <h3 id="heroCardTitle">Same-day appointments</h3>
-      <p style="color:#3c5460" id="heroCardText">Choose a consultation type, answer a few quick questions about why you're getting in touch, pick a time that suits, and pay securely online. You'll get a private video link for your appointment.</p>
-      <a href="/book.html" class="btn btn-secondary btn-block">Get Started →</a>
-    </div>
+    <div class="phero-media"><img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" width="1300" height="731" fetchpriority="high"></div>
   </div>
 </section>
 
-<section id="services" style="background:linear-gradient(160deg, #ffffff 0%, #eefaf9 55%, #eaf1ff 100%);">
+<section class="sec">
   <div class="container">
-    <h2 class="section-title" id="servicesSectionTitle">Our Services</h2>
-    <p class="section-sub" id="servicesSectionSubtitle">Pick the type of consultation that fits what you need — prices are shown upfront, no surprises.</p>
-    <div class="grid" id="servicesGrid"></div>
+    <div class="sec-head center"><p class="eyebrow">Choose a consultation</p><h2>What would you like to see a GP about?</h2><p>Prices are shown upfront — no surprises.</p></div>
+    <div class="svc-cards" data-services="cards" aria-live="polite"><p>Loading services…</p></div>
+    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/fees.html">See all fees →</a></p>
   </div>
 </section>
 
-<section id="trust" style="background:linear-gradient(160deg, #ffffff 0%, #eefaf9 55%, #eaf1ff 100%); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+<section class="sec sec-alt">
   <div class="container">
-    <h2 class="section-title">Why patients trust GP4U</h2>
-    <div class="grid">
-      <div class="card">
-        <h3>Irish Medical Council registered</h3>
-        <p style="color:var(--ink-500); font-size:0.92rem;">Every consultation is carried out by a GP registered with the Irish Medical Council — the same standard of doctor you'd see in person.</p>
-      </div>
-      <div class="card">
-        <h3>GDPR &amp; privacy compliant</h3>
-        <p style="color:var(--ink-500); font-size:0.92rem;">Your data is encrypted and handled in line with GDPR. See our <a href="/privacy.html">Privacy &amp; GDPR Notice</a> for full details on how your records are kept and protected.</p>
-      </div>
-      <div class="card">
-        <!-- TODO: replace with real, consented patient reviews/testimonials once collected —
-             do not add star ratings or quotes here until genuine reviews exist. -->
-        <h3>Patient reviews</h3>
-        <p style="color:var(--ink-500); font-size:0.92rem;">Patient reviews are coming soon.</p>
-      </div>
+    <div class="sec-head center"><p class="eyebrow">Common conditions</p><h2>Treatment for everyday conditions, online</h2><p>Answer a few safety questions and your GP can assess whether a prescription is appropriate.</p></div>
+    <div class="chip-links" style="justify-content:center;">
+      <a href="/uti.html">UTI / cystitis</a><a href="/contraception.html">Contraception</a><a href="/period-delay.html">Delaying your period</a>
+      <a href="/asthma.html">Asthma</a><a href="/migraine.html">Migraine</a><a href="/hay-fever.html">Hay fever</a>
+      <a href="/eczema-psoriasis.html">Eczema &amp; psoriasis</a><a href="/acne.html">Acne</a><a href="/cold-sores.html">Cold sores</a>
+      <a href="/hair-loss.html">Hair loss</a><a href="/ed.html">Erectile dysfunction</a><a href="/hypothyroidism.html">Underactive thyroid</a>
+      <a href="/stop-smoking.html">Stopping smoking</a>
     </div>
   </div>
 </section>
 
-<section id="how-it-works" style="background:linear-gradient(160deg, #eaf1ff 0%, #ffffff 45%, #ffffff 100%); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+<section class="sec">
   <div class="container">
-    <h2 class="section-title">How it works</h2>
-    <div class="steps" style="max-width:640px;margin:0 auto;" id="howItWorksSteps">
-      <div class="step"><div class="step-num">1</div><div><strong id="howItWorks1Title"></strong><p id="howItWorks1Text"></p></div></div>
-      <div class="step"><div class="step-num">2</div><div><strong id="howItWorks2Title"></strong><p id="howItWorks2Text"></p></div></div>
-      <div class="step"><div class="step-num">3</div><div><strong id="howItWorks3Title"></strong><p id="howItWorks3Text"></p></div></div>
-      <div class="step"><div class="step-num">4</div><div><strong id="howItWorks4Title"></strong><p id="howItWorks4Text"></p></div></div>
+    <div class="sec-head center"><p class="eyebrow">How it works</p><h2>Your online consultation, step by step</h2></div>
+    <div class="steps3 steps4">
+      <div class="step3"><div class="num">1</div><h3 id="howItWorks1Title">Choose a service</h3><p id="howItWorks1Text">Video, phone, repeat prescription or a sick cert.</p></div>
+      <div class="step3"><div class="num">2</div><h3 id="howItWorks2Title">Tell us what's going on</h3><p id="howItWorks2Text">A short, private questionnaire so your GP is prepared before you speak.</p></div>
+      <div class="step3"><div class="num">3</div><h3 id="howItWorks3Title">Pick a time &amp; pay securely</h3><p id="howItWorks3Text">Choose a slot that suits you and pay by card — processed securely by Stripe.</p></div>
+      <div class="step3"><div class="num">4</div><h3 id="howItWorks4Title">Have your consultation</h3><p id="howItWorks4Text">Join your private video or phone call from your confirmation page.</p></div>
     </div>
   </div>
 </section>
 
-<section id="about" style="background:linear-gradient(160deg, #ffffff 0%, #fdf8ec 100%);">
-  <div class="container about-layout">
-    <img src="/img/photos/about-doctor.jpg" alt="A GP reviewing patient notes at a desk" class="about-photo">
-    <div class="about-copy">
-      <h2 class="section-title section-title-left">About GP4U</h2>
-      <p id="aboutText" style="color:var(--ink-700)">
-        GP4U is a telemedicine service built by a practising Irish GP, aimed at making everyday GP care more
-        convenient — without losing the personal, careful approach of a good family doctor. Every consultation
-        is carried out by a GP registered with the Irish Medical Council.
-      </p>
+<section class="sec sec-alt">
+  <div class="container split">
+    <div>
+      <p class="eyebrow">What to expect</p>
+      <h2>Good to know before you book</h2>
+      <ul class="feat-list">
+        <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span><div><h4>What you'll need</h4><p>A phone, tablet or computer with a camera and microphone (or just a phone for a phone consultation), and somewhere private.</p></div></li>
+        <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><div><h4>Safety comes first</h4><p>If your GP thinks you need to be examined in person, they'll tell you — and you can be seen at our walk-in clinic.</p></div></li>
+        <li><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><div><h4>Prescriptions &amp; certificates</h4><p>Issued only where your GP considers them clinically appropriate. Prescriptions go to the pharmacy you name.</p></div></li>
+      </ul>
+      <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
     </div>
+    <div class="split-media"><img src="/img/clinic/doctor-desk.webp" alt="A GP seated at her desk in a bright consulting room" loading="lazy" width="1100" height="619"></div>
   </div>
 </section>
 
-<section style="padding:40px 0;background:#fff;border-top:1px solid var(--line);">
+<section class="sec">
   <div class="container">
-    <div class="notice-strip"><strong>Prefer to be seen in person?</strong> GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare — no appointment needed. <a href="/walk-in.html">Walk-in details</a> · <a href="/contact.html">Opening hours &amp; contact</a></div>
+    <div class="sec-head center"><p class="eyebrow">Online GP questions</p><h2>Common questions</h2></div>
+    <div class="faq">
+  <details><summary>What is an online GP consultation?</summary><p>A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer.</p></details>
+  <details><summary>How do I book an online GP consultation?</summary><p>Choose <a href="/book.html">Book an Online GP Consultation</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.</p></details>
+  <details><summary>What do I need for a video consultation?</summary><p>A phone, tablet or computer with a camera and microphone, a stable internet connection, and somewhere private. For a phone consultation you just need your phone.</p></details>
+  <details><summary>Is an online consultation right for every problem?</summary><p>No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.</p></details>
+  <details><summary>How do I pay for an online consultation?</summary><p>By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details.</p></details>
+  <details><summary>Will I always be given a prescription?</summary><p>No. A prescription is only issued where your GP considers it clinically appropriate and safe for you.</p></details>
+</div>
+    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/faq.html">See all FAQs →</a></p>
   </div>
 </section>
 
+<section class="sec sec-tight">
+  <div class="container">
+    <div class="callout"><p><strong>Prefer to be seen in person?</strong> GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare — no appointment needed. <a href="/walk-in.html">Visit our walk-in clinic</a></p></div>
+    <div style="margin-top:20px;"><div class="notice-strip"><strong>In an emergency, call 112 or 999</strong> or go to your nearest Emergency Department. GP4U is not an emergency service.</div></div>
+  </div>
+</section>
+</main>
+
+<!-- @footer -->
 <footer class="site-footer">
   <div class="container">
     <div class="footer-cols">
       <div>
         <h4>GP4U Clinic</h4>
         <ul>
+          <li>Walk-in clinic &amp; comprehensive family practice</li>
           <li data-clinic-address></li>
           <li class="contact-item" data-clinic-phone></li>
           <li data-clinic-email></li>
@@ -148,20 +185,23 @@
         <div data-clinic-hours></div>
       </div>
       <div>
-        <h4>The clinic</h4>
+        <h4>Book &amp; visit</h4>
         <ul>
-          <li><a href="/walk-in.html">Walk-In Clinic</a></li>
-          <li><a href="/services.html">Services</a></li>
-          <li><a href="/new-patients.html">New patients</a></li>
+          <li><a href="/book-now.html">Book now</a></li>
+          <li><a href="/walk-in.html">Walk-in clinic</a></li>
+          <li><a href="/online.html">Online GP</a></li>
+          <li><a href="/new-patients.html">Register as a patient</a></li>
           <li><a href="/contact.html">Contact</a></li>
         </ul>
       </div>
       <div>
-        <h4>Online</h4>
+        <h4>Information</h4>
         <ul>
-          <li><a href="/online.html">See a GP online</a></li>
+          <li><a href="/services.html">Services</a></li>
+          <li><a href="/fees.html">Fees</a></li>
+          <li><a href="/about.html">About GP4U</a></li>
+          <li><a href="/faq.html">FAQs</a></li>
           <li><a href="/blog.html">Health info</a></li>
-          <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
       <div>
@@ -169,76 +209,36 @@
         <ul>
           <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
           <li><a href="/privacy.html#terms">Terms of Use</a></li>
+          <li><a href="/privacy.html#cookies">Cookies</a></li>
+          <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-legal">
-      Not for use in a medical emergency — call 112 / 999 or attend your nearest Emergency Department.
+      <strong>Not for use in a medical emergency</strong> — call 112 or 999, or attend your nearest Emergency Department.
       Online consultations do not replace in-person examination where one is clinically necessary.
       <div class="footer-company" data-clinic-company></div>
     </div>
   </div>
 </footer>
+<!-- @/footer -->
+<!-- @sticky -->
+<div class="sticky-cta" role="region" aria-label="Book a GP">
+  <a class="btn btn-primary" href="/book.html">Online GP</a>
+  <a class="btn btn-secondary" href="/walk-in.html#book-in">Walk-in</a>
+</div>
+<!-- @/sticky -->
 
 <script src="/js/questionnaires.js"></script>
+<script src="/js/services-list.js"></script>
 <script>
-fetch('/api/content').then(r => r.json()).then(content => {
-  document.getElementById('heroTitle').textContent = content.hero_title;
-  document.getElementById('heroSubtitle').textContent = content.hero_subtitle;
-  document.getElementById('aboutText').textContent = content.about_text;
-  document.getElementById('heroBadge1').textContent = content.hero_badge_1 || '';
-  document.getElementById('heroBadge2').textContent = content.hero_badge_2 || '';
-  document.getElementById('heroBadge3').textContent = content.hero_badge_3 || '';
-  document.getElementById('heroCardTitle').textContent = content.hero_card_title || '';
-  document.getElementById('heroCardText').textContent = content.hero_card_text || '';
-  document.getElementById('servicesSectionTitle').textContent = content.services_section_title || '';
-  document.getElementById('servicesSectionSubtitle').textContent = content.services_section_subtitle || '';
-  document.getElementById('footerContactEmail').textContent = content.footer_contact_email || '';
-  document.getElementById('footerLegalText').textContent = content.footer_legal_text || '';
-  [1, 2, 3, 4].forEach((n) => {
-    document.getElementById(`howItWorks${n}Title`).textContent = content[`how_it_works_${n}_title`] || '';
-    document.getElementById(`howItWorks${n}Text`).textContent = content[`how_it_works_${n}_text`] || '';
-  });
-});
-
-fetch('/api/services').then(r => r.json()).then(services => {
-  // The 14 condition-specific prescription services live behind the single "Repeat Prescription"
-  // tile's category picker (repeat-prescription.html), not as their own tiles here — see book.js's
-  // isRxConditionKey for the matching logic used on the booking page.
-  const isRxConditionKey = (key) => typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
-  // Full-tile background photo for each consultation-type card — sourced as CC0 stock
-  // photography, cropped 4:3 in scripts/process-consult-photos-wide.js. Falls back to the
-  // general-consultation photo for any future service key that doesn't have its own yet.
-  const photos = {
-    general: 'consult-general-bg.jpg',
-    video: 'consult-video-bg.jpg',
-    womens: 'consult-womens-bg.jpg',
-    mens: 'consult-mens-bg.jpg',
-    repeat_rx: 'consult-repeat-rx-bg.jpg',
-    sick_cert: 'consult-sick-cert-bg.jpg',
-    travel: 'consult-travel-bg.jpg',
-    weight_loss: 'consult-weight-loss-bg.jpg',
-  };
-  const grid = document.getElementById('servicesGrid');
-  grid.innerHTML = Object.entries(services)
-    .filter(([key]) => !isRxConditionKey(key))
-    .map(([key, s]) => {
-      const bookHref = key === 'repeat_rx' ? '/repeat-prescription.html' : `/book.html?service=${key}`;
-      const photo = photos[key] || photos.general;
-      return `
-    <div class="card service-card service-card-photo">
-      <img class="service-card-bg" src="/img/photos/${photo}" alt="" loading="lazy" width="640" height="480">
-      <div class="service-card-body">
-        <h3>${s.label}</h3>
-        <div class="service-price">€${(s.priceCents/100).toFixed(2)}</div>
-        <p style="font-size:0.85rem;margin-bottom:14px;">${s.durationMins} minute appointment</p>
-        <a href="${bookHref}" class="btn btn-secondary btn-block">Book</a>
-      </div>
-    </div>
-  `;
-    }).join('');
-
-});
+// Headline, intro and the four "how it works" steps are editable from the admin content editor.
+fetch('/api/content').then((r) => r.json()).then((c) => {
+  const set = (id, v) => { const e = document.getElementById(id); if (e && v) e.textContent = v; };
+  set('heroTitle', c.hero_title);
+  set('heroSubtitle', c.hero_subtitle);
+  [1, 2, 3, 4].forEach((n) => { set('howItWorks' + n + 'Title', c['how_it_works_' + n + '_title']); set('howItWorks' + n + 'Text', c['how_it_works_' + n + '_text']); });
+}).catch(() => { /* the built-in text above stays */ });
 </script>
 <script src="/js/clinic.js"></script>
 <script src="/js/nav-toggle.js"></script>

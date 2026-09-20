@@ -103,6 +103,23 @@ const CLINIC = {
     }).join('');
   }
 
+  // "Monday to Friday 10am – 9pm and Saturday and Sunday 12pm – 7pm" — for use inside sentences.
+  function hoursText() {
+    const groups = [];
+    DISPLAY_ORDER.forEach((d) => {
+      const h = CLINIC.hours[d];
+      const key = h ? h.join('-') : 'closed';
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.days.push(d); else groups.push({ key, days: [d], h });
+    });
+    return groups.map((g) => {
+      const first = DAY_NAMES[g.days[0]];
+      const lastDay = DAY_NAMES[g.days[g.days.length - 1]];
+      const label = g.days.length === 1 ? first : g.days.length === 2 ? `${first} and ${lastDay}` : `${first} to ${lastDay}`;
+      return `${label} ${g.h ? `${fmt(g.h[0])} – ${fmt(g.h[1])}` : '(closed)'}`;
+    }).join(', ');
+  }
+
   function fill() {
     const addr = [CLINIC.streetAddress, CLINIC.town, CLINIC.county, CLINIC.eircode].filter(Boolean);
     const hasStreet = !!CLINIC.streetAddress;
@@ -112,6 +129,7 @@ const CLINIC = {
       el.className = `open-status ${s.open ? 'is-open' : 'is-closed'}`;
       el.innerHTML = `<span class="open-dot"></span>${s.text}`;
     });
+    document.querySelectorAll('[data-clinic-hours-text]').forEach((el) => { el.textContent = hoursText(); });
     document.querySelectorAll('[data-clinic-hours-summary]').forEach((el) => { el.innerHTML = hoursSummary(); });
     document.querySelectorAll('[data-clinic-hours]').forEach((el) => { el.innerHTML = hoursTable(); });
     document.querySelectorAll('[data-clinic-hours-note]').forEach((el) => { el.textContent = CLINIC.hoursNote; });

@@ -506,7 +506,10 @@ async function submitBooking() {
 
     window.location.href = data.checkoutUrl;
   } catch (err) {
-    errorEl.textContent = err.message;
+    // Server messages are already patient-friendly; anything else (offline, timeout) gets a plain one.
+    errorEl.textContent = err instanceof TypeError
+      ? "We couldn't reach our booking system. Please check your internet connection and try again."
+      : err.message;
     payBtn.disabled = false;
     payBtn.textContent = 'Continue to Payment';
   }
@@ -519,8 +522,7 @@ if (qs('cancelled')) document.getElementById('cancelledNotice').style.display = 
 // retype everything for a repeat booking.
 fetch('/api/patient/me').then((r) => r.json()).then((me) => {
   if (!me.loggedIn) return;
-  document.getElementById('patientLoginLink').style.display = 'none';
-  document.getElementById('patientPortalLink').style.display = 'inline';
+  // (The header's "Patient login" / "My account" link swap is handled by the shared nav-toggle.js.)
   const form = document.getElementById('intakeForm');
   if (me.name) form.patientName.value = me.name;
   if (me.dob) form.patientDob.value = me.dob;
