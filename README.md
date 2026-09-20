@@ -459,3 +459,13 @@ booking API, both clinic forms and the signed-in patient experience.
 **Still needs your input:** clinic fees, phone number, street address, company details, real clinic photos, lead-GP name/photo
 (see the TODO in `scripts/generate-pages.js` under "Medical leadership"), and confirmation of the FAQ answers marked
 in the summary as policy-dependent (children online, cancellations, test results).
+
+### Automated end-to-end tests
+
+`npm run e2e` drives a real Chrome browser like a patient and a doctor: every public page at desktop and phone size
+(errors, layout, images, address hidden), all links, navigation pathways, both clinic forms, the whole online booking journey
+(choose service → questionnaire → time → pay → confirmation → set password → message the GP → sign in), the doctor dashboard
+(login, Clinic tab, chart, notes, prescription, complete) and the patient seeing the result, plus form rate limiting. It needs
+the app + database running and a **local-only** test doctor (`E2E_DOCTOR_EMAIL` / `E2E_DOCTOR_PASSWORD`).
+`node scripts/e2e.js --live https://www.gp4u.ie` runs a safe subset against the live site (pages, links, navigation, both forms —
+it creates two clearly-labelled "ZZ TEST" records that you can mark as processed/seen in the Clinic tab).

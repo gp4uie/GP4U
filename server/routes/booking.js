@@ -198,7 +198,10 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
     const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-    if (booking.status === 'paid') return res.json({ status: 'paid' });
+    // The confirmation page calls this every time it is opened, including long after the consultation.
+    // Only a booking still waiting for payment may be confirmed — otherwise reopening the link would
+    // reset a 'completed' consultation back to 'paid' (reopening messaging and re-notifying the doctor).
+    if (booking.status !== 'pending_payment') return res.json({ status: booking.status });
 
     if (!stripe || !booking.stripe_session_id) {
       // Demo mode without Stripe configured: mark as paid so the flow can be tried end to end.
