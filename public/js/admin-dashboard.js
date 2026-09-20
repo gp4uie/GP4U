@@ -91,7 +91,26 @@ function euro(cents) {
 }
 
 // --- Analytics ---
+// --- Go-live checklist (what still needs setting up) ---
+async function loadSetup() {
+  const box = document.getElementById('setupCard');
+  const res = await fetch('/api/admin/setup-status');
+  if (!res.ok) return;
+  const s = await res.json();
+  const missing = s.items.filter((i) => !i.ok);
+  const groups = [...new Set(s.items.map((i) => i.group))];
+  box.innerHTML = `
+    <details class="card setup-card"${missing.length ? ' open' : ''}>
+      <summary><strong>Setup checklist</strong> <span class="badge ${missing.length ? 'badge-amber' : 'badge-green'}">${s.done} of ${s.total} done</span>
+        <span class="setup-sub">${missing.length ? 'Things to finish before the clinic runs for real' : 'Everything is set up'}</span></summary>
+      ${groups.map((g) => `<h4>${pEsc(g)}</h4><ul class="setup-list">${s.items.filter((i) => i.group === g).map((i) => `
+        <li class="${i.ok ? 'ok' : 'todo'}"><span class="setup-tick" aria-hidden="true">${i.ok ? '✓' : '!'}</span>
+          <div><strong>${pEsc(i.label)}</strong>${i.ok ? '' : `<p>${pEsc(i.why)}</p><p class="setup-fix">${pEsc(i.todo)}</p>`}</div></li>`).join('')}</ul>`).join('')}
+    </details>`;
+}
+
 async function loadAnalytics() {
+  loadSetup();
   const res = await fetch('/api/admin/analytics');
   const data = await res.json();
 

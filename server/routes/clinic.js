@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const mailer = require('../mailer');
+const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
 const formLimiter = require('../formLimiter');
 const { requireDoctor } = require('./doctor');
 const { applyWalkInStatus, ensureWalkInBooking } = require('../walkins');
@@ -87,13 +88,14 @@ router.post('/register-patient', formLimiter.limit('register'), async (req, res)
 
     // Best-effort emails — a missing/broken mail setup must never fail the registration itself.
     // Neither email contains any health information.
-    const practice = process.env.PRACTICE_NAME || 'GP4U Clinic';
+    const practiceInfo = await getPractice();
+    const practice = practiceInfo.name;
     try {
       await mailer.sendMail({
         to: email,
         subject: `We've received your registration — ${practice}`,
-        html: `<p>Hi ${fullName.replace(/[<>&"]/g, '')},</p>
-          <p>Thank you for registering with ${practice}. We've received your details${familyMembers.length ? ' (including your family members)' : ''} and our team will review them and be in touch.</p>
+        html: `${emailHeader(practiceInfo)}<p>Hi ${esc(fullName)},</p>
+          <p>Thank you for registering with ${esc(practice)}. We've received your details${familyMembers.length ? ' (including your family members)' : ''} and our team will review them and be in touch.</p>
           <p>Your reference is <strong>${id}</strong>.</p>`,
       });
     } catch (err) {

@@ -1111,3 +1111,17 @@ body.staff-page { background: var(--cream); }
   .ed-line { grid-template-columns: 1fr; }
   .ed-line label { padding-top: 0; }
 }
+
+/* ================= Admin: setup checklist ================= */
+.setup-card { margin-bottom: 24px; padding: 8px 24px 18px; }
+.setup-card summary { cursor: pointer; padding: 14px 0; list-style: none; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.setup-card summary::-webkit-details-marker { display: none; }
+.setup-sub { color: var(--muted); font-size: .92rem; }
+.setup-card h4 { margin: 16px 0 6px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.setup-list { list-style: none; margin: 0; padding: 0; }
+.setup-list li { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-warm); }
+.setup-list p { margin: 3px 0 0; font-size: .9rem; }
+.setup-fix { color: var(--teal-deep); font-weight: 600; }
+.setup-tick { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .85rem; }
+.setup-list li.ok .setup-tick { background: #e2f5ea; color: #185f3a; }
+.setup-list li.todo .setup-tick { background: #fdf1dc; color: #7d5209; }

@@ -34,6 +34,10 @@
   }
   .sig-meta { margin: 6px 0 0; font-size: 0.85rem; color: var(--ink-500); }
   .body-text { white-space: pre-wrap; line-height: 1.6; }
+  .letterhead-domain { text-align: right; line-height: 1.5; }
+  .field { margin-bottom: 10px; }
+  .field label { font-weight: 700; display:block; font-size:0.82rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.03em; }
+  .letter-footer { margin-top: 60px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 0.72rem; color: var(--ink-500); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -42,6 +46,7 @@
   <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
 </div>
 
+<script src="/js/print-letter.js?v=a197a20b"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const docId = params.get('docId');
@@ -52,67 +57,47 @@ const url = (bookingId && token)
   : `/api/doctor/documents/${docId}`;
 
 function renderSickCert(f, b, practice, doc) {
+  const L = window.PrintLetter;
   return `
-    <div class="letterhead">
-      <div>
-        <div class="letterhead-brand">
-          <img src="/img/gp4u-icon.svg" alt="">
-          <h1>${practice.name}</h1>
-        </div>
-        <p class="letterhead-slogan">One Tap. Real Care.</p>
-      </div>
-      <p class="letterhead-domain">www.gp4u.ie</p>
-    </div>
+    ${L.letterhead(practice)}
     <h2>Medical Certificate</h2>
-    <p class="body-text">This is to certify that ${b.patient_name} (DOB ${b.patient_dob}) of ${b.patient_address || 'the address on file'}
-was examined by me and is ${f.fitForWork} from ${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')} inclusive,
-due to: ${f.diagnosis}.</p>
-    <div class="sig">
-      <p class="sig-name">${doc.doctor_name}</p>
-      <p class="sig-meta">IMC Reg No: ${doc.doctor_reg_number}<br>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p>
-    </div>
+    ${L.patientFields(b)}
+    ${L.field('Seen', L.visitLine(b))}
+    <p class="body-text" style="margin-top:18px;">This is to certify that ${L.esc(b.patient_name)} was assessed by me and is ${L.esc(f.fitForWork)} from ${L.dateIE(f.dateFrom)} to ${L.dateIE(f.dateTo)} inclusive, due to: ${L.esc(f.diagnosis)}.</p>
+    ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice)}
+    ${L.footer(practice, 'CERT-' + String(doc.id).padStart(5, '0'), doc.created_at)}
   `;
 }
 
 function renderReferral(f, b, practice, doc, isAE) {
-  const toLine = isAE
-    ? `Emergency Department, ${f.hospitalName}`
-    : `${f.specialty}${f.consultantOrDept ? ' — ' + f.consultantOrDept : ''}`;
+  const L = window.PrintLetter;
+  const toLine = isAE ? 'Emergency Department, ' + f.hospitalName : f.specialty + (f.consultantOrDept ? ' — ' + f.consultantOrDept : '');
   return `
-    <div class="letterhead">
-      <div>
-        <div class="letterhead-brand">
-          <img src="/img/gp4u-icon.svg" alt="">
-          <h1>${practice.name}</h1>
-        </div>
-        <p class="letterhead-slogan">One Tap. Real Care.</p>
-      </div>
-      <p class="letterhead-domain">www.gp4u.ie</p>
-    </div>
-    <p>${new Date(doc.created_at).toLocaleDateString('en-IE')}</p>
-    <p><strong>To:</strong> ${toLine}<br><strong>Urgency:</strong> ${f.urgency}</p>
-    <p><strong>Re:</strong> ${b.patient_name}, DOB ${b.patient_dob}<br>${b.patient_address || ''}<br>${b.patient_phone}</p>
-    <h3>Clinical Summary</h3>
-    <p class="body-text">${f.clinicalSummary}</p>
-    <h3>Reason for Referral</h3>
-    <p class="body-text">${f.reasonForReferral}</p>
-    <div class="sig">
-      <p>Yours sincerely,</p>
-      <p class="sig-name">${doc.doctor_name}</p>
-      <p class="sig-meta">IMC Reg No: ${doc.doctor_reg_number}</p>
-    </div>
+    ${L.letterhead(practice)}
+    <p style="color:var(--ink-500);">${L.dateIE(doc.created_at)}</p>
+    ${L.field('To', toLine)}${L.field('Urgency', f.urgency)}
+    <h3>Re: patient details</h3>
+    ${L.patientFields(b, true)}
+    ${L.field('Seen', L.visitLine(b))}${L.field('Allergies', b.allergies)}${L.field('Current medicines', b.current_medications)}
+    <p style="margin-top:18px;">Dear Colleague,</p>
+    <h3>Clinical summary</h3>
+    <p class="body-text">${L.esc(f.clinicalSummary)}</p>
+    <h3>Reason for referral</h3>
+    <p class="body-text">${L.esc(f.reasonForReferral)}</p>
+    <p>Thank you for seeing this patient. Please reply to ${L.esc([practice.email, practice.phone].filter(Boolean).join(' or ') || practice.name)}.</p>
+    ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice, true)}
+    ${L.footer(practice, 'REF-' + String(doc.id).padStart(5, '0'), doc.created_at)}
   `;
 }
 
-fetch(url).then(r => r.json()).then(data => {
+fetch(url).then((r) => r.json()).then((data) => {
   if (data.error) { document.getElementById('letter').textContent = data.error; return; }
   const { document: doc, booking: b, practice } = data;
   const f = doc.fields;
-  let html;
-  if (doc.doc_type === 'sick_cert') html = renderSickCert(f, b, practice, doc);
-  else html = renderReferral(f, b, practice, doc, doc.doc_type === 'referral_ae');
-  document.getElementById('letter').innerHTML = html;
-});
+  document.getElementById('letter').innerHTML = doc.doc_type === 'sick_cert'
+    ? renderSickCert(f, b, practice, doc)
+    : renderReferral(f, b, practice, doc, doc.doc_type === 'referral_ae');
+}).catch(() => { document.getElementById('letter').textContent = 'This document could not be loaded.'; });
 </script>
 </body>
 </html>

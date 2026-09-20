@@ -705,6 +705,7 @@ async function openBooking(id, listKey, keepTab) {
     startCall('audio');
     window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
   };
+  if (!isSameBooking) document.getElementById('rxPharmacy').value = b.pharmacy_name || '';
   renderAttachments(data.attachments);
   renderAllergyBanner(b, pp);
   renderPreviousConsultations(previous, summary);
@@ -952,8 +953,9 @@ function renderAllDocuments(prescriptions, documents) {
 function docCard(d) {
   const fields = JSON.parse(d.fields);
   const isSickCert = d.doc_type === 'sick_cert';
+  const noEmail = !currentPatientEmail;
   const sendButton = isSickCert
-    ? `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendSickCertToPatient(${d.id})">Send to Patient</button>`
+    ? (noEmail ? '<span style="color:var(--ink-500);font-size:0.8rem;align-self:center;">No email on file — download and hand it over</span>' : `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendSickCertToPatient(${d.id})">Send to Patient</button>`)
     : `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendDocument(${d.id})">Send by Email</button>`;
   return `
     <div class="card" style="margin-bottom:8px;">
@@ -961,6 +963,7 @@ function docCard(d) {
       <p style="color:var(--ink-500);font-size:0.8rem;">Created ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
       <div style="display:flex; gap:10px;">
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
+        <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" href="/api/doctor/documents/${d.id}/pdf">Download PDF</a>
         ${sendButton}
       </div>
     </div>
@@ -1015,6 +1018,7 @@ async function issuePrescription() {
   const duration = document.getElementById('rxDuration').value;
   const quantity = document.getElementById('rxQty').value;
   const instructions = document.getElementById('rxInstructions').value;
+  const pharmacyName = document.getElementById('rxPharmacy').value;
   if (!medication || !dose || !frequency || !duration || !quantity || !instructions) {
     alert('Please fill in all prescription fields.');
     return;
@@ -1022,7 +1026,7 @@ async function issuePrescription() {
   await doctorFetch(`/api/doctor/bookings/${currentBookingId}/prescriptions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ medication, dose, frequency, duration, quantity, instructions }),
+    body: JSON.stringify({ medication, dose, frequency, duration, quantity, instructions, pharmacyName }),
   });
   ['rxMed', 'rxDose', 'rxFrequency', 'rxDuration', 'rxQty', 'rxInstructions'].forEach(id => document.getElementById(id).value = '');
   openBooking(currentBookingId);

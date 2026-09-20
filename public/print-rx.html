@@ -33,6 +33,8 @@
     display: inline-block;
   }
   .sig-meta { margin: 6px 0 0; font-size: 0.85rem; color: var(--ink-500); }
+  .letterhead-domain { text-align: right; line-height: 1.5; }
+  .letter-footer { margin-top: 60px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 0.72rem; color: var(--ink-500); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -41,6 +43,7 @@
   <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
 </div>
 
+<script src="/js/print-letter.js?v=a197a20b"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const rxId = params.get('rxId');
@@ -50,37 +53,26 @@ const url = (bookingId && token)
   ? `/api/bookings/${bookingId}/prescriptions/${rxId}?token=${token}`
   : `/api/doctor/prescriptions/${rxId}`;
 
-fetch(url).then(r => r.json()).then(data => {
+fetch(url).then((r) => r.json()).then((data) => {
+  const L = window.PrintLetter;
   if (data.error) { document.getElementById('letter').textContent = data.error; return; }
   const { prescription: p, booking: b, practice } = data;
+  const reference = 'RX-' + String(p.id).padStart(5, '0');
   document.getElementById('letter').innerHTML = `
-    <div class="letterhead">
-      <div>
-        <div class="letterhead-brand">
-          <img src="/img/gp4u-icon.svg" alt="">
-          <h1>${practice.name}</h1>
-        </div>
-        <p class="letterhead-slogan">One Tap. Real Care.</p>
-      </div>
-      <p class="letterhead-domain">www.gp4u.ie</p>
-    </div>
+    ${L.letterhead(practice)}
     <h2>Prescription</h2>
-    <div class="field"><label>Patient</label>${b.patient_name} — DOB ${b.patient_dob}</div>
-    <div class="field"><label>Address</label>${b.patient_address || '—'}</div>
-    <div class="field"><label>Date</label>${new Date(p.issued_at).toLocaleDateString('en-IE')}</div>
+    ${L.patientFields(b)}
+    ${L.field('Seen', L.visitLine(b))}
+    ${L.field('Allergies', b.allergies)}
+    ${L.field('Pharmacy', b.pharmacy_name)}
     <hr>
-    <div class="field"><label>Medication</label>${p.medication}</div>
-    <div class="field"><label>Dose</label>${p.dose}</div>
-    <div class="field"><label>Frequency</label>${p.frequency}</div>
-    <div class="field"><label>Duration</label>${p.duration}</div>
-    <div class="field"><label>Quantity</label>${p.quantity}</div>
-    <div class="field"><label>Instructions</label>${p.instructions}</div>
-    <div class="sig">
-      <p class="sig-name">${p.doctor_name}</p>
-      <p class="sig-meta">IMC Reg No: ${p.doctor_reg_number}</p>
-    </div>
+    <div class="field"><label>Medication</label><strong>${L.esc(p.medication)} — ${L.esc(p.dose)}</strong></div>
+    ${L.field('Frequency', p.frequency)}${L.field('Duration', p.duration)}${L.field('Quantity', p.quantity)}${L.field('Instructions', p.instructions)}
+    ${L.field('Date of issue', L.dateIE(p.issued_at))}
+    ${L.signature(p.doctor_name, p.doctor_reg_number, practice)}
+    ${L.footer(practice, reference, p.issued_at)}
   `;
-});
+}).catch(() => { document.getElementById('letter').textContent = 'This prescription could not be loaded.'; });
 </script>
 </body>
 </html>

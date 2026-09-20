@@ -7,6 +7,7 @@ const { getServices, getService } = require('../services');
 const { getAvailableSlots } = require('../slots');
 const { upsertPatient } = require('../patients');
 const mailer = require('../mailer');
+const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -62,13 +63,15 @@ async function notifyBookingPaid(booking) {
 
   const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
   try {
+    const practice = await getPractice();
     await mailer.sendMail({
       to: booking.patient_email,
-      subject: `Your ${process.env.PRACTICE_NAME || 'GP4U'} booking is confirmed`,
+      subject: `Your ${practice.name} booking is confirmed`,
       html: `
-        <p>Hi ${booking.patient_name},</p>
-        <p>Your <strong>${serviceLabel}</strong> booking is confirmed for
-        ${new Date(booking.slot_start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.</p>
+        ${emailHeader(practice)}
+        <p>Hi ${esc(booking.patient_name)},</p>
+        <p>Your <strong>${esc(serviceLabel)}</strong> booking is confirmed for
+        ${esc(new Date(booking.slot_start).toLocaleString('en-IE', { timeZone: 'Europe/Dublin', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }))}.</p>
         <p>Use this link any time to view your booking, join your video call, message your GP, or
         download anything they issue you: <a href="${link}">${link}</a></p>
         <p>Keep this email safe — this link is how you access your booking.</p>
@@ -83,7 +86,7 @@ async function notifyBookingPaid(booking) {
       await mailer.sendMail({
         to: process.env.DOCTOR_EMAIL,
         subject: `New booking: ${booking.patient_name}`,
-        html: `<p>${booking.patient_name} booked a ${serviceLabel} for ${new Date(booking.slot_start).toLocaleString('en-IE')}.</p>`,
+        html: `<p>${esc(booking.patient_name)} booked a ${esc(serviceLabel)} for ${esc(new Date(booking.slot_start).toLocaleString('en-IE', { timeZone: 'Europe/Dublin' }))}.</p>`,
       });
     } catch (err) {
       console.log('Doctor notification email not sent:', err.message);
@@ -280,7 +283,7 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
       await mailer.sendMail({
         to: process.env.DOCTOR_EMAIL,
         subject: `New message from ${req.booking.patient_name}`,
-        html: `<p>${body.trim()}</p>`,
+        html: `<p>${esc(body.trim()).replace(/\n/g, '<br>')}</p>`,
       });
     } catch (err) {
       console.log('Doctor message notification email not sent:', err.message);
@@ -308,23 +311,15 @@ router.get('/bookings/:id/account-status', requirePatientToken, async (req, res)
 router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, async (req, res) => {
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ? AND booking_id = ?', [req.params.rxId, req.params.id]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
-  const { patient_token, ...safeBooking } = req.booking;
-  res.json({
-    prescription: rx,
-    booking: safeBooking,
-    practice: { name: process.env.PRACTICE_NAME, address: process.env.PRACTICE_ADDRESS, phone: process.env.PRACTICE_PHONE },
-  });
+  const { patient_token, ...safeBooking } = await enrichBooking(req.booking);
+  res.json({ prescription: rx, booking: safeBooking, practice: await getPractice() });
 });
 
 router.get('/bookings/:id/documents/:docId', requirePatientToken, async (req, res) => {
   const doc = await db.get('SELECT * FROM documents WHERE id = ? AND booking_id = ?', [req.params.docId, req.params.id]);
   if (!doc) return res.status(404).json({ error: 'Not found' });
-  const { patient_token, ...safeBooking } = req.booking;
-  res.json({
-    document: { ...doc, fields: JSON.parse(doc.fields) },
-    booking: safeBooking,
-    practice: { name: process.env.PRACTICE_NAME, address: process.env.PRACTICE_ADDRESS, phone: process.env.PRACTICE_PHONE },
-  });
+  const { patient_token, ...safeBooking } = await enrichBooking(req.booking);
+  res.json({ document: { ...doc, fields: JSON.parse(doc.fields) }, booking: safeBooking, practice: await getPractice() });
 });
 
 module.exports = router;

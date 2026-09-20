@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
+const { getPractice, escapeHtml: esc, emailHeader } = require('../practice');
 const loginLimiter = require('../loginLimiter');
 const { getServices } = require('../services');
 const { ensureWalkInBooking, applyWalkInStatus } = require('../walkins');
@@ -96,7 +97,7 @@ router.get('/me', async (req, res) => {
   if (!req.session || !req.session.receptionistId) return res.json({ loggedIn: false });
   const rec = await db.get('SELECT id, name, active FROM receptionists WHERE id = ?', [req.session.receptionistId]);
   if (!rec || rec.active === 0) { req.session.receptionistId = null; return res.json({ loggedIn: false }); }
-  res.json({ loggedIn: true, name: rec.name, practiceName: process.env.PRACTICE_NAME || 'GP4U Clinic' });
+  res.json({ loggedIn: true, name: rec.name, practiceName: (await getPractice()).name });
 });
 
 // ---------------------------------------------------------------- overview counts
@@ -218,11 +219,11 @@ router.post('/registrations', requireReceptionist, async (req, res) => {
       db.encrypt(clean(b.notes, 2000))]);
 
     if (email) {
-      mailer.sendMail({
+      getPractice().then((practice) => mailer.sendMail({
         to: email,
-        subject: `Welcome to ${process.env.PRACTICE_NAME || 'GP4U Clinic'} — your registration`,
-        html: `<p>Hi ${fullName.replace(/[<>&"]/g, '')},</p><p>Thank you for registering with ${process.env.PRACTICE_NAME || 'GP4U Clinic'}. Your reference is <strong>${id}</strong>.</p>`,
-      }).catch(() => {});
+        subject: `Welcome to ${practice.name} — your registration`,
+        html: `${emailHeader(practice)}<p>Hi ${esc(fullName)},</p><p>Thank you for registering with ${esc(practice.name)}. Your reference is <strong>${id}</strong>.</p>`,
+      })).catch(() => {});
     }
     logAccess(req, 'Registered a new patient at the desk', `${fullName} (${id})`);
     res.json({ ok: true, reference: id });

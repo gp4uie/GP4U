@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
+const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
 
 const router = express.Router();
 
@@ -397,10 +398,10 @@ router.post('/patients/:email/send-summary', requireAdmin, async (req, res) => {
     const prescriptions = await db.all('SELECT * FROM prescriptions WHERE booking_id = ? ORDER BY issued_at DESC', [b.id]);
     const documents = await db.all('SELECT * FROM documents WHERE booking_id = ? ORDER BY created_at DESC', [b.id]);
     sections.push(`
-      <h3>${new Date(b.slot_start).toLocaleDateString('en-IE')} — ${b.service_type.replace('_', ' ')}</h3>
-      <p>Reason: ${b.reason || 'N/A'}</p>
-      ${notes.length ? `<p><strong>Clinical notes:</strong><br>${notes.map((n) => `${n.note_text} (${n.doctor_name}, ${new Date(n.created_at).toLocaleDateString('en-IE')})`).join('<br>')}</p>` : ''}
-      ${prescriptions.length ? `<p><strong>Prescriptions:</strong><br>${prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration} — ${p.instructions}`).join('<br>')}</p>` : ''}
+      <h3>${esc(new Date(b.slot_start).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' }))} — ${esc(b.service_type === 'walk_in' ? 'Walk-in visit' : b.service_type.replace('_', ' '))}</h3>
+      <p>Reason: ${esc(b.reason || 'N/A')}</p>
+      ${notes.length ? `<p><strong>Clinical notes:</strong><br>${notes.map((n) => esc(`${n.note_text} (${n.doctor_name}, ${new Date(n.created_at).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' })})`)).join('<br>')}</p>` : ''}
+      ${prescriptions.length ? `<p><strong>Prescriptions:</strong><br>${prescriptions.map((p) => esc(`${p.medication} ${p.dose}, ${p.frequency}, ${p.duration} — ${p.instructions}`)).join('<br>')}</p>` : ''}
       ${documents.length ? `<p><strong>Documents issued:</strong> ${documents.map((d) => d.doc_type).join(', ')}</p>` : ''}
     `);
   }
@@ -408,11 +409,11 @@ router.post('/patients/:email/send-summary', requireAdmin, async (req, res) => {
   try {
     await mailer.sendMail({
       to: toEmail,
-      subject: `Patient summary: ${patient.name} — ${process.env.PRACTICE_NAME || 'GP4U'}`,
+      subject: `Patient summary: ${patient.name} — ${(await getPractice()).name}`,
       html: `
-        <p><strong>${process.env.PRACTICE_NAME || 'GP4U'}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-        <p><strong>Patient summary for:</strong> ${patient.name} (DOB ${patient.dob || 'N/A'})<br>
-        Phone: ${patient.phone || 'N/A'}<br>Email: ${patient.email}</p>
+        ${emailHeader(await getPractice())}
+        <p><strong>Patient summary for:</strong> ${esc(patient.name)} (DOB ${esc(patient.dob || 'N/A')})<br>
+        Phone: ${esc(patient.phone || 'N/A')}<br>Email: ${esc(patient.email)}</p>
         <hr>
         ${sections.join('<hr>') || '<p>No consultation history on file.</p>'}
       `,
@@ -509,6 +510,46 @@ router.post('/receptionists/:id/password', requireAdmin, async (req, res) => {
   const result = await db.run('UPDATE receptionists SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(password, 10), req.params.id]);
   if (!result.changes) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
+});
+
+// --- Go-live checklist: what still needs setting up for the clinic to run for real. Only yes/no answers are returned —
+// never the values of any secret. ---
+router.get('/setup-status', requireAdmin, async (req, res) => {
+  const { getPractice } = require('../practice');
+  const practice = await getPractice();
+  const clinicRow = await db.get("SELECT data FROM site_config WHERE name = 'clinic'");
+  const o = clinicRow ? JSON.parse(clinicRow.data) : {};
+  const doctors = await db.all('SELECT id, totp_enabled FROM doctors WHERE active = 1');
+  const withHours = await db.get('SELECT COUNT(DISTINCT doctor_id) AS n FROM doctor_availability');
+  const item = (key, group, label, ok, todo, why) => ({ key, group, label, ok: !!ok, todo, why });
+  const items = [
+    item('payments', 'Online bookings', 'Card payments are switched on', !!process.env.STRIPE_SECRET_KEY,
+      'Add your Stripe keys (STRIPE_SECRET_KEY and the webhook secret) in the hosting settings.',
+      'Until then, online bookings are confirmed WITHOUT taking payment (demo mode).'),
+    item('email', 'Online bookings', 'Email sending is set up', !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+      'Add SMTP_HOST, SMTP_USER and SMTP_PASS in the hosting settings.',
+      'Without it no emails go out: booking confirmations, password resets, prescription copies, registration confirmations.'),
+    item('availability', 'Online bookings', 'A doctor has online appointment hours', withHours.n > 0,
+      'Admin → Doctors → Edit Schedule.', 'Patients can only book times that a doctor has made available.'),
+    item('notify', 'Online bookings', 'Notification email address for new bookings and registrations', !!process.env.DOCTOR_EMAIL,
+      'Set DOCTOR_EMAIL in the hosting settings.', 'Otherwise nobody is emailed when a booking, message or registration arrives (the dashboards still show them).'),
+    item('address', 'Website', 'Street address entered', !!o.streetAddress,
+      'Admin → Website settings → Clinic details.', 'Until then the website says "Address coming soon" and prescriptions/letters show only "Newbridge, Co. Kildare".'),
+    item('phone', 'Website', 'Phone number entered', !!practice.phone, 'Admin → Website settings → Clinic details.', 'Patients and pharmacies have no number to ring.'),
+    item('company', 'Website', 'Company details entered (name, CRO number, registered office)', !!(o.companyName && o.companyNumber && o.registeredOffice),
+      'Admin → Website settings → Clinic details.', 'Irish company law expects these on a company website; they also print in the footer of letters.'),
+    item('fees', 'Website', 'Walk-in fees entered', !!(o.fees && o.fees.walkIn && o.fees.walkIn.length),
+      'Admin → Website settings → Fees & lead GP.', 'The Fees page otherwise just asks people to contact the clinic.'),
+    item('leadgp', 'Website', 'Lead GP details entered', !!(o.founder && o.founder.name),
+      'Admin → Website settings → Fees & lead GP.', 'The About page has no named doctor.'),
+    item('twofa', 'Security', 'Every doctor has two-factor sign-in switched on', doctors.length > 0 && doctors.every((d) => d.totp_enabled),
+      'Each doctor: Doctor dashboard → Security.', 'Protects patient records if a password is guessed or leaked.'),
+    item('secrets', 'Security', 'Encryption key and session secret are set', !!(process.env.ENCRYPTION_KEY && process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16),
+      'Set ENCRYPTION_KEY and SESSION_SECRET in the hosting settings — and keep a copy of the encryption key somewhere safe.', 'Without the key, saved clinical notes cannot be read.'),
+    item('https', 'Security', 'The site address is https', /^https:\/\//.test(process.env.BASE_URL || ''),
+      'Set BASE_URL=https://www.gp4u.ie in the hosting settings.', 'Links in emails and cookies need it.'),
+  ];
+  res.json({ done: items.filter((i) => i.ok).length, total: items.length, items });
 });
 
 // --- Edit people: an admin can correct a doctor's or receptionist's details, reset a password, or remove a receptionist ---

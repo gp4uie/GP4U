@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
+const { escapeHtml: esc } = require('../practice');
 const { getPatient } = require('../patients');
 
 const router = express.Router();
@@ -208,7 +209,7 @@ router.post('/request-deletion', requirePatient, async (req, res) => {
   const subject = `Data deletion request from ${email}`;
   const html = `
     <p>A patient has requested deletion of their personal data under GDPR Article 17.</p>
-    <p><strong>Patient email:</strong> ${email}<br><strong>Requested at:</strong> ${new Date().toLocaleString('en-IE')}</p>
+    <p><strong>Patient email:</strong> ${esc(email)}<br><strong>Requested at:</strong> ${new Date().toLocaleString('en-IE', { timeZone: 'Europe/Dublin' })}</p>
     <p>Clinical records must be retained for the legally required minimum period — check this
     patient's booking history in the admin dashboard before deciding what can be deleted versus
     must be kept, and reply to the patient within one month as required by GDPR.</p>

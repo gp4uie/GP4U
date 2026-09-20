@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
 const { generateSickCertPdf, generateReferralPdf, generatePrescriptionPdf } = require('../pdf');
+const { getPractice, escapeHtml: esc, emailHeader, enrichBooking, fileSafe } = require('../practice');
 const { DOCUMENT_TYPES } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
 const { getDayHoursRange } = require('../slots');
@@ -480,9 +481,9 @@ router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
     const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
     await mailer.sendMail({
       to: booking.patient_email,
-      subject: `${process.env.PRACTICE_NAME || 'GP4U'}: your GP is ready — join your call now`,
+      subject: `${(await getPractice()).name}: your GP is ready — join your call now`,
       html: `
-        <p>Hi ${booking.patient_name},</p>
+        <p>Hi ${esc(booking.patient_name)},</p>
         <p>Your GP has started your ${mode} consultation. Join now: <a href="${link}">${link}</a></p>
       `,
     });
@@ -510,7 +511,8 @@ router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
         const notes = await db.all('SELECT * FROM clinical_notes WHERE booking_id = ? ORDER BY created_at ASC', [req.params.id]);
         const prescriptions = await db.all('SELECT * FROM prescriptions WHERE booking_id = ? ORDER BY issued_at ASC', [req.params.id]);
         const documents = await db.all('SELECT * FROM documents WHERE booking_id = ? ORDER BY created_at ASC', [req.params.id]);
-        const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+        const practice = await getPractice();
+        const visitKind = booking.service_type === 'walk_in' ? 'Walk-in visit' : `Online: ${String(booking.service_type).replace('_', ' ')}`;
 
         const sickCertLines = documents
           .filter((d) => d.doc_type === 'sick_cert')
@@ -527,17 +529,17 @@ router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
         for (const admin of admins) {
           await mailer.sendMail({
             to: admin.email,
-            subject: `Consultation summary: ${booking.patient_name} — ${practiceName}`,
+            subject: `Consultation summary: ${booking.patient_name} — ${practice.name}`,
             html: `
-              <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-              <p><strong>Patient:</strong> ${booking.patient_name} (DOB ${booking.patient_dob})<br>
-              <strong>Service:</strong> ${booking.service_type.replace('_', ' ')}<br>
-              <strong>Seen:</strong> ${new Date(booking.slot_start).toLocaleString('en-IE')}</p>
-              <p><strong>Presentation/reason:</strong> ${booking.reason || 'N/A'}</p>
-              ${notes.length ? `<p><strong>Clinical notes:</strong><br>${notes.map((n) => n.note_text).join('<br>')}</p>` : ''}
-              ${prescriptions.length ? `<p><strong>Medication issued:</strong><br>${prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`).join('<br>')}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
-              ${sickCertLines.length ? `<p><strong>Sick cert issued:</strong><br>${sickCertLines.join('<br>')}</p>` : ''}
-              ${referralLines.length ? `<p><strong>Referral letters issued:</strong> ${referralLines.join(', ')}</p>` : ''}
+              ${emailHeader(practice)}
+              <p><strong>Patient:</strong> ${esc(booking.patient_name)} (DOB ${esc(booking.patient_dob)})<br>
+              <strong>Visit:</strong> ${esc(visitKind)}<br>
+              <strong>Seen:</strong> ${esc(new Date(booking.slot_start).toLocaleString('en-IE', { timeZone: 'Europe/Dublin' }))}</p>
+              <p><strong>Presentation/reason:</strong> ${esc(booking.reason || 'N/A')}</p>
+              ${notes.length ? `<p><strong>Clinical notes:</strong><br>${notes.map((n) => esc(n.note_text)).join('<br>')}</p>` : ''}
+              ${prescriptions.length ? `<p><strong>Medication issued:</strong><br>${prescriptions.map((p) => esc(`${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`)).join('<br>')}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
+              ${sickCertLines.length ? `<p><strong>Sick cert issued:</strong><br>${sickCertLines.map(esc).join('<br>')}</p>` : ''}
+              ${referralLines.length ? `<p><strong>Referral letters issued:</strong> ${referralLines.map(esc).join(', ')}</p>` : ''}
             `,
           });
         }
@@ -564,12 +566,17 @@ router.post('/bookings/:id/notes', requireDoctor, async (req, res) => {
 
 // --- Prescriptions ---
 router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
-  const { medication, dose, frequency, duration, instructions, quantity } = req.body;
+  const { medication, dose, frequency, duration, instructions, quantity, pharmacyName } = req.body;
   if (!medication || !dose || !frequency || !duration || !instructions || !quantity) {
     return res.status(400).json({ error: 'All prescription fields are required' });
   }
   const doctor = await getCurrentDoctor(req);
-  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  let booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  // Walk-in patients never named a pharmacy when booking, so the doctor can record it here.
+  if (typeof pharmacyName === 'string' && pharmacyName.trim() && pharmacyName.trim() !== booking.pharmacy_name) {
+    await db.run('UPDATE bookings SET pharmacy_name = ? WHERE id = ?', [pharmacyName.trim().slice(0, 255), req.params.id]);
+    booking = { ...booking, pharmacy_name: pharmacyName.trim().slice(0, 255) };
+  }
   const info = await db.run(`
     INSERT INTO prescriptions (booking_id, medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?,?,?,?,?)
@@ -583,10 +590,10 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
   // Best-effort: every admin gets a copy so they can forward it to the pharmacy (e.g. over
   // Healthmail, which this app can't send through directly — see server/pdf.js).
   try {
-    const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+    const practice = await getPractice();
     const pdfBuffer = await generatePrescriptionPdf({
-      rx: { medication, dose, frequency, duration, instructions, quantity, doctor_name: doctor.name, doctor_reg_number: doctor.reg_number, issued_at: new Date() },
-      booking, practiceName,
+      rx: { id: info.lastInsertRowid, medication, dose, frequency, duration, instructions, quantity, doctor_name: doctor.name, doctor_reg_number: doctor.reg_number, issued_at: new Date() },
+      booking: await enrichBooking(booking), practice,
     });
     const admins = await db.all('SELECT email FROM admins');
     for (const admin of admins) {
@@ -594,13 +601,13 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
         to: admin.email,
         subject: `Prescription to send: ${booking.patient_name} — ${booking.pharmacy_name || 'pharmacy not given'}`,
         html: `
-          <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-          <p>A new prescription was issued for <strong>${booking.patient_name}</strong>.</p>
-          <p><strong>Pharmacy:</strong> ${booking.pharmacy_name || 'Not given — check with the patient'}</p>
+          ${emailHeader(practice)}
+          <p>A new prescription was issued for <strong>${esc(booking.patient_name)}</strong> (${booking.service_type === 'walk_in' ? 'walk-in visit' : 'online consultation'}).</p>
+          <p><strong>Pharmacy:</strong> ${esc(booking.pharmacy_name || 'Not given — check with the patient')}</p>
           <p>Please find the prescription attached as a PDF to forward on.</p>
-          <p>Prescribed by ${doctor.name} (${doctor.reg_number})</p>
+          <p>Prescribed by ${esc(doctor.name)} (${esc(doctor.reg_number)})</p>
         `,
-        attachments: [{ filename: `Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+        attachments: [{ filename: `Prescription-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
       });
     }
   } catch (err) {
@@ -613,13 +620,9 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
 router.get('/prescriptions/:rxId', requireDoctor, async (req, res) => {
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ?', [req.params.rxId]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
-  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]);
+  const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]));
   const { patient_token, ...safeBooking } = booking;
-  res.json({
-    prescription: rx,
-    booking: safeBooking,
-    practice: { name: process.env.PRACTICE_NAME, address: process.env.PRACTICE_ADDRESS, phone: process.env.PRACTICE_PHONE },
-  });
+  res.json({ prescription: rx, booking: safeBooking, practice: await getPractice() });
 });
 
 // Lets the doctor download the same PDF that would be emailed — for cases like sending a
@@ -628,11 +631,10 @@ router.get('/prescriptions/:rxId', requireDoctor, async (req, res) => {
 router.get('/prescriptions/:rxId/pdf', requireDoctor, async (req, res) => {
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ?', [req.params.rxId]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
-  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]);
-  const practiceName = process.env.PRACTICE_NAME || 'GP4U';
-  const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practiceName });
+  const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]));
+  const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practice: await getPractice() });
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf"`);
+  res.setHeader('Content-Disposition', `attachment; filename="Prescription-${fileSafe(booking.patient_name)}.pdf"`);
   res.send(pdfBuffer);
 });
 
@@ -641,20 +643,21 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
   if (!toEmail) return res.status(400).json({ error: 'Pharmacy email address is required' });
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ?', [req.params.rxId]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
-  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]);
+  const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]));
 
   try {
-    const practiceName = process.env.PRACTICE_NAME || 'GP4U';
-    const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practiceName });
+    const practice = await getPractice();
+    const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practice });
     await mailer.sendMail({
       to: toEmail,
-      subject: `Prescription for ${booking.patient_name} — ${practiceName}`,
+      subject: `Prescription for ${booking.patient_name} — ${practice.name}`,
       html: `
-        <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-        <p>Please find the prescription for ${booking.patient_name} attached as a PDF.</p>
-        <p>Prescribed by ${rx.doctor_name} (${rx.doctor_reg_number}) on ${new Date(rx.issued_at).toLocaleString('en-IE')}</p>
+        ${emailHeader(practice)}
+        <p>Please find the prescription for ${esc(booking.patient_name)} (DOB ${esc(booking.patient_dob)}) attached as a PDF.</p>
+        <p>Prescribed by ${esc(rx.doctor_name)} (${esc(rx.doctor_reg_number)}) on ${esc(new Date(rx.issued_at).toLocaleString('en-IE', { timeZone: 'Europe/Dublin' }))}</p>
+        <p>Questions? ${esc([practice.phone, practice.email].filter(Boolean).join(' · '))}</p>
       `,
-      attachments: [{ filename: `Prescription-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+      attachments: [{ filename: `Prescription-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE prescriptions SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.rxId]);
     // Sending it counts as the associated task being done, whether or not the doctor also
@@ -685,41 +688,58 @@ router.post('/bookings/:id/documents', requireDoctor, async (req, res) => {
 router.get('/documents/:docId', requireDoctor, async (req, res) => {
   const doc = await db.get('SELECT * FROM documents WHERE id = ?', [req.params.docId]);
   if (!doc) return res.status(404).json({ error: 'Not found' });
-  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]);
+  const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]));
   const { patient_token, ...safeBooking } = booking;
-  res.json({
-    document: { ...doc, fields: JSON.parse(doc.fields) },
-    booking: safeBooking,
-    practice: { name: process.env.PRACTICE_NAME, address: process.env.PRACTICE_ADDRESS, phone: process.env.PRACTICE_PHONE },
-  });
+  res.json({ document: { ...doc, fields: JSON.parse(doc.fields) }, booking: safeBooking, practice: await getPractice() });
+});
+
+// Download the same PDF that would be emailed — for patients with no email address (walk-ins) or to hand over in person.
+router.get('/documents/:docId/pdf', requireDoctor, async (req, res) => {
+  const doc = await db.get('SELECT * FROM documents WHERE id = ?', [req.params.docId]);
+  if (!doc) return res.status(404).json({ error: 'Not found' });
+  const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]));
+  const fields = JSON.parse(doc.fields);
+  const practice = await getPractice();
+  const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number };
+  const pdfBuffer = doc.doc_type === 'sick_cert'
+    ? await generateSickCertPdf({ fields, booking, doctor, practice, id: doc.id })
+    : await generateReferralPdf({ fields, booking, doctor, practice, isAE: doc.doc_type === 'referral_ae', id: doc.id });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileSafe(DOCUMENT_TYPES[doc.doc_type].label)}-${fileSafe(booking.patient_name)}.pdf"`);
+  res.send(pdfBuffer);
 });
 
 router.post('/documents/:docId/send', requireDoctor, async (req, res) => {
   const doc = await db.get('SELECT * FROM documents WHERE id = ?', [req.params.docId]);
   if (!doc) return res.status(404).json({ error: 'Not found' });
-  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]);
+  const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]));
   // Sick certs are always addressed to the patient — fall back to their email if none was given.
   const toEmail = req.body.toEmail || (doc.doc_type === 'sick_cert' ? booking.patient_email : null);
-  if (!toEmail) return res.status(400).json({ error: 'Recipient email address is required' });
+  if (!toEmail) {
+    return res.status(400).json({ error: doc.doc_type === 'sick_cert'
+      ? 'This patient has no email address on file (common for walk-ins). Use Print or Download PDF and hand it to them, or type an email address.'
+      : 'Recipient email address is required' });
+  }
   const fields = JSON.parse(doc.fields);
   const label = DOCUMENT_TYPES[doc.doc_type].label;
-  const practiceName = process.env.PRACTICE_NAME || 'GP4U';
+  const practice = await getPractice();
   const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number };
 
   try {
     const pdfBuffer = doc.doc_type === 'sick_cert'
-      ? await generateSickCertPdf({ fields, booking, doctor, practiceName })
-      : await generateReferralPdf({ fields, booking, doctor, practiceName, isAE: doc.doc_type === 'referral_ae' });
+      ? await generateSickCertPdf({ fields, booking, doctor, practice, id: doc.id })
+      : await generateReferralPdf({ fields, booking, doctor, practice, isAE: doc.doc_type === 'referral_ae', id: doc.id });
 
     await mailer.sendMail({
       to: toEmail,
-      subject: `${label} — ${booking.patient_name} — ${practiceName}`,
+      subject: `${label} — ${booking.patient_name} — ${practice.name}`,
       html: `
-        <p><strong>${practiceName}</strong> — One Tap. Real Care. — www.gp4u.ie</p>
-        <p>Please find the ${label.toLowerCase()} for ${booking.patient_name} attached as a PDF.</p>
-        <p>${doc.doctor_name} (${doc.doctor_reg_number})</p>
+        ${emailHeader(practice)}
+        <p>Please find the ${esc(label.toLowerCase())} for ${esc(booking.patient_name)} attached as a PDF.</p>
+        <p>${esc(doc.doctor_name)} (${esc(doc.doctor_reg_number)})</p>
+        <p>Questions? ${esc([practice.phone, practice.email].filter(Boolean).join(' · '))}</p>
       `,
-      attachments: [{ filename: `${label.replace(/\s+/g, '-')}-${booking.patient_name.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+      attachments: [{ filename: `${fileSafe(label)}-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE documents SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.docId]);
     res.json({ ok: true });

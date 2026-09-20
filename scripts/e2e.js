@@ -618,6 +618,7 @@ async function main() {
     heading('Front desk: receptionist role (health info + reasons visible, no clinical notes), walk-ins become bookings, desk registration, admin-managed accounts');
     const RECEPTION_EMAIL = process.env.E2E_RECEPTION_EMAIL; const RECEPTION_PASSWORD = process.env.E2E_RECEPTION_PASSWORD;
     const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL; const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
+    const sendJson = (method, url, body) => tab.ev(`fetch(${JSON.stringify(url)}, { method: ${JSON.stringify(method)}, headers: { 'Content-Type': 'application/json' }, body: ${body === undefined ? 'undefined' : `JSON.stringify(${JSON.stringify(body)})`} }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => ({})) }))`);
     const postJson = (url, body) => tab.ev(`fetch(${JSON.stringify(url)}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(${JSON.stringify(body || {})}) }).then((r) => r.status)`);
     if (!RECEPTION_EMAIL || !RECEPTION_PASSWORD) {
       await test('reception test account available', async () => { throw new Error('set E2E_RECEPTION_EMAIL and E2E_RECEPTION_PASSWORD (a LOCAL test receptionist)'); });
@@ -702,6 +703,16 @@ async function main() {
         await tab.waitFor(`document.getElementById('regList').innerText.includes(${JSON.stringify(ctx.regName)})`, 8000, 'website registration listed');
         assert(await tab.ev(`!document.getElementById('regList').innerText.includes(${JSON.stringify(ctx.deskRegName)})`), 'desk registration shown in the website tab');
       });
+      await test('documents setup: the registered person and a person with markup in their name are seen as walk-ins', async () => {
+        const post = (name, dob, reason) => tab.ev(`fetch('/api/reception/walk-ins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName: ${JSON.stringify(name)}, dob: ${JSON.stringify(dob)}, phone: '0000000000', reason: ${JSON.stringify(reason)} }) }).then((r) => r.json())`);
+        const reg = await post(ctx.deskRegName, '1990-02-02', 'E2E document test');
+        assert(reg.ok && reg.bookingId, 'walk-in for the registered person failed: ' + JSON.stringify(reg));
+        ctx.docWalkinBookingId = reg.bookingId;
+        ctx.tagName = 'ZZ <b>Tag</b> ' + STAMP;
+        const tag = await post(ctx.tagName, '1970-01-01', 'E2E markup test');
+        assert(tag.ok && tag.bookingId, 'walk-in with markup in the name failed: ' + JSON.stringify(tag));
+        ctx.tagWalkinBookingId = tag.bookingId;
+      });
       await test('website registrations: contact AND health details are visible to the front desk', async () => {
         const det = `[...document.querySelectorAll('#regList details')].find((d) => d.innerText.includes(${JSON.stringify(ctx.regName)}))`;
         await tab.ev(`${det}.open = true`);
@@ -775,6 +786,54 @@ async function main() {
         const badges = await tab.ev(`(() => { const d = (n) => [...document.querySelectorAll('#registrationList details')].find((x) => x.innerText.includes(n)); return { desk: d(${JSON.stringify(ctx.deskRegName)}).innerText.includes('At desk'), web: d(${JSON.stringify(ctx.regName)}).innerText.includes('At desk') }; })()`);
         assert(badges.desk && !badges.web, 'only desk registrations should carry the At desk badge: ' + JSON.stringify(badges));
         await tab.shot('doctor-desk-registration');
+        await tab.ev(`fetch('/api/doctor/logout', { method: 'POST' })`);
+      });
+      await test('documents for walk-in patients: PDFs and printable letters carry the clinic details, registration address and allergies; no email is handled; markup is escaped', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/dashboard.html');
+        assert(await postJson('/api/doctor/login', { email: DOCTOR_EMAIL, password: DOCTOR_PASSWORD }) === 200, 'doctor login failed');
+        assert(ctx.docWalkinBookingId && ctx.tagWalkinBookingId, 'the document-test walk-ins should exist (desk registration test must have run)');
+        const id = ctx.docWalkinBookingId;
+        // prescription with a pharmacy recorded by the doctor
+        assert((await sendJson('POST', `/api/doctor/bookings/${id}/prescriptions`, { medication: 'E2E Docazole', dose: '20mg', frequency: 'daily', duration: '3 days', quantity: '3', instructions: 'test only', pharmacyName: 'ZZ Test Pharmacy' })).status === 200, 'issuing a prescription failed');
+        const chart = (await sendJson('GET', `/api/doctor/bookings/${id}`)).json;
+        assert(chart.booking.pharmacy_name === 'ZZ Test Pharmacy', 'the pharmacy typed with the prescription should be saved on the visit');
+        const rx = chart.prescriptions[0];
+        const pdf = await tab.ev(`fetch('/api/doctor/prescriptions/${rx.id}/pdf').then(async (r) => { const b = new Uint8Array(await r.arrayBuffer()); return { status: r.status, type: r.headers.get('content-type'), head: String.fromCharCode(...b.slice(0, 5)), size: b.length }; })`);
+        assert(pdf.status === 200 && pdf.type === 'application/pdf' && pdf.head === '%PDF-' && pdf.size > 1500, 'the prescription PDF should download: ' + JSON.stringify(pdf));
+        // sick cert + referral: PDF download, and "send to patient" with no email on file is refused kindly
+        const cert = await sendJson('POST', `/api/doctor/bookings/${id}/documents`, { docType: 'sick_cert', fields: { dateFrom: '2026-09-21', dateTo: '2026-09-23', diagnosis: 'Viral illness', fitForWork: 'unfit for work' } });
+        assert(cert.status === 200, 'issuing a sick certificate failed');
+        const ref = await sendJson('POST', `/api/doctor/bookings/${id}/documents`, { docType: 'referral_specialist', fields: { specialty: 'Cardiology', consultantOrDept: '', urgency: 'Routine', clinicalSummary: 'E2E summary', reasonForReferral: 'E2E reason' } });
+        assert(ref.status === 200, 'issuing a referral failed');
+        for (const d of [cert.json.id, ref.json.id]) {
+          const r = await tab.ev(`fetch('/api/doctor/documents/${d}/pdf').then(async (r) => { const b = new Uint8Array(await r.arrayBuffer()); return { status: r.status, type: r.headers.get('content-type'), head: String.fromCharCode(...b.slice(0, 5)) }; })`);
+          assert(r.status === 200 && r.type === 'application/pdf' && r.head === '%PDF-', 'the document PDF should download: ' + JSON.stringify(r));
+        }
+        const send = await sendJson('POST', `/api/doctor/documents/${cert.json.id}/send`, {});
+        assert(send.status === 400 && /no email/i.test(send.json.error || ''), 'sending a certificate to a patient with no email should explain what to do: ' + JSON.stringify(send));
+        // printable prescription
+        await tab.goto(`/print-rx.html?rxId=${rx.id}`);
+        await tab.waitFor(`document.getElementById('letter').innerText.includes('E2E Docazole')`, 8000, 'printable prescription');
+        const p = await tab.ev(`document.getElementById('letter').innerText`);
+        assert(/RX-\d{5}/.test(p) && /Walk-in clinic visit/.test(p) && /ZZ Test Pharmacy/.test(p) && /DESK TEST ADDRESS/.test(p) && /ZZ TEST latex allergy/.test(p), 'the printout should show the visit, pharmacy, and the address/allergies from the desk registration: ' + p.slice(0, 400));
+        assert(!/One Tap/.test(p) && /Confidential/.test(p) && /Newbridge/.test(p), 'old slogan should be gone; clinic details and confidentiality note should be there: ' + p.slice(-300));
+        await tab.shot('print-prescription');
+        // printable sick certificate + referral
+        await tab.goto(`/print-doc.html?docId=${cert.json.id}`);
+        await tab.waitFor(`document.getElementById('letter').innerText.includes('Medical Certificate')`, 8000, 'printable certificate');
+        assert(/CERT-\d{5}/.test(await tab.ev(`document.getElementById('letter').innerText`)), 'certificate reference missing');
+        await tab.goto(`/print-doc.html?docId=${ref.json.id}`);
+        await tab.waitFor(`document.getElementById('letter').innerText.includes('Dear Colleague')`, 8000, 'printable referral');
+        const rf = await tab.ev(`document.getElementById('letter').innerText`);
+        assert(/REF-\d{5}/.test(rf) && /ZZ TEST latex allergy/.test(rf), 'referral should show the reference and the allergies: ' + rf.slice(0, 300));
+        // markup in a patient's name must appear as text, never run
+        const t = (await sendJson('POST', `/api/doctor/bookings/${ctx.tagWalkinBookingId}/prescriptions`, { medication: 'E2E Tagazole', dose: '1mg', frequency: 'daily', duration: '1 day', quantity: '1', instructions: 'x' }));
+        assert(t.status === 200, 'issuing the markup test prescription failed');
+        const rx2 = (await sendJson('GET', `/api/doctor/bookings/${ctx.tagWalkinBookingId}`)).json.prescriptions[0];
+        await tab.goto(`/print-rx.html?rxId=${rx2.id}`);
+        await tab.waitFor(`document.getElementById('letter').innerText.includes('E2E Tagazole')`, 8000, 'markup test printout');
+        assert(await tab.ev(`document.getElementById('letter').innerText.includes('<b>Tag</b>') && !document.querySelector('#letter b')`), 'markup in a name must be shown as text');
         await tab.ev(`fetch('/api/doctor/logout', { method: 'POST' })`);
       });
       await test('patient chart sync: a walk-in and an online booking by the same person appear in each other\'s history', async () => {
@@ -1068,6 +1127,10 @@ async function main() {
         await tab.goto('/admin-dashboard.html');
         await tab.waitFor(`!!document.getElementById('tabBtn_account')`, 6000, 'admin tabs');
         assert(await tab.ev(`!!document.querySelector('a[href="/admin-site.html"]') && !!document.getElementById('tabBtn_website')`), 'a link to Website settings should be on the admin dashboard');
+        await tab.waitFor(`!!document.querySelector('#setupCard .setup-card') && /of \\d+ done/.test(document.getElementById('setupCard').innerText)`, 6000, 'setup checklist');
+        const setup = (await sendJson('GET', '/api/admin/setup-status')).json;
+        assert(setup.total >= 10 && setup.items.every((i) => i.key && i.label && typeof i.ok === 'boolean') && !JSON.stringify(setup).match(/sk_(live|test)_|whsec_/i), 'the setup checklist should list what is missing, without revealing any secret');
+        assert(setup.items.find((i) => i.key === 'payments').ok === false || !!process.env.STRIPE_SECRET_KEY, 'payments should be flagged as not set up when there is no Stripe key');
         await tab.ev(`showAdminTab('doctors')`);
         await tab.waitFor(`/Edit details/.test(document.getElementById('doctorsBody').innerText)`, 6000, 'edit buttons');
         await tab.ev(`showAdminTab('account')`);
