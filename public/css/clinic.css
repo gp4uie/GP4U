@@ -1024,3 +1024,29 @@ body.staff-page { background: var(--cream); }
 }
 .phero-grid { position: static; }
 .phero-grid > div:first-child { position: relative; z-index: 1; }
+
+/* ================= Smoother photo blend: the picture itself fades out (eased mask) instead of a colour overlay ================= */
+.hero3-photo::after, .phero-media::after { display: none; }
+.hero3-photo { width: 60%; }
+.phero-media { width: 52%; }
+.hero3-photo img, .phero-media img {
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.03) 6%, rgba(0,0,0,.1) 12%, rgba(0,0,0,.21) 18%, rgba(0,0,0,.35) 24%, rgba(0,0,0,.51) 30%, rgba(0,0,0,.67) 36%, rgba(0,0,0,.81) 42%, rgba(0,0,0,.92) 48%, rgba(0,0,0,.98) 54%, #000 60%),
+                      linear-gradient(180deg, #000 0%, #000 90%, rgba(0,0,0,0) 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.03) 6%, rgba(0,0,0,.1) 12%, rgba(0,0,0,.21) 18%, rgba(0,0,0,.35) 24%, rgba(0,0,0,.51) 30%, rgba(0,0,0,.67) 36%, rgba(0,0,0,.81) 42%, rgba(0,0,0,.92) 48%, rgba(0,0,0,.98) 54%, #000 60%),
+              linear-gradient(180deg, #000 0%, #000 90%, rgba(0,0,0,0) 100%);
+  mask-composite: intersect;
+}
+@media (max-width: 860px) {
+  .hero3-photo, .phero-media { width: 100%; }
+  .hero3-photo img {
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 12%, rgba(0,0,0,.6) 26%, rgba(0,0,0,.9) 42%, #000 55%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 12%, rgba(0,0,0,.6) 26%, rgba(0,0,0,.9) 42%, #000 55%);
+    -webkit-mask-composite: source-over; mask-composite: add;
+  }
+  .phero-media img {
+    -webkit-mask-image: linear-gradient(180deg, #000 45%, rgba(0,0,0,.9) 58%, rgba(0,0,0,.6) 74%, rgba(0,0,0,.25) 88%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(180deg, #000 45%, rgba(0,0,0,.9) 58%, rgba(0,0,0,.6) 74%, rgba(0,0,0,.25) 88%, rgba(0,0,0,0) 100%);
+    -webkit-mask-composite: source-over; mask-composite: add;
+  }
+}
