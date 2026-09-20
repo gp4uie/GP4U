@@ -4,7 +4,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const formLimiter = require('../formLimiter');
 const { requireDoctor } = require('./doctor');
-const { applyWalkInStatus } = require('../walkins');
+const { applyWalkInStatus, ensureWalkInBooking } = require('../walkins');
 
 const router = express.Router();
 
@@ -185,6 +185,18 @@ router.post('/doctor/clinic/walk-ins/:id/status', requireDoctor, async (req, res
   if (!result.changes) return res.status(404).json({ error: 'Not found' });
   await applyWalkInStatus(req.params.id, status);
   res.json({ ok: true });
+});
+
+// "Open chart" from the walk-in queue: the patient is treated as arrived, a booking is created if there isn't one
+// yet, and its id is returned so the dashboard can open the chart straight away.
+router.post('/doctor/clinic/walk-ins/:id/open', requireDoctor, async (req, res) => {
+  const w = await db.get('SELECT status FROM walkin_checkins WHERE id = ?', [req.params.id]);
+  if (!w) return res.status(404).json({ error: 'Not found' });
+  if (w.status === 'expected' || w.status === 'cancelled') {
+    await db.run("UPDATE walkin_checkins SET status = 'arrived', updated_at = NOW() WHERE id = ?", [req.params.id]);
+    await applyWalkInStatus(req.params.id, 'arrived');
+  }
+  res.json({ ok: true, bookingId: await ensureWalkInBooking(req.params.id) });
 });
 
 router.get('/doctor/clinic/registrations', requireDoctor, async (req, res) => {

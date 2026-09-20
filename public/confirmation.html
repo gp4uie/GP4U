@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=a74f129b">
+<link rel="stylesheet" href="/css/clinic.css?v=adacdb08">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light" data-sticky="off">
@@ -235,7 +235,7 @@ async function loadBooking() {
   const start = new Date(b.slot_start);
   document.getElementById('bookingDetails').innerHTML = `
     <p><strong>Reference:</strong> ${b.id}</p>
-    <p><strong>Service:</strong> ${b.service_type.replace('_',' ')}</p>
+    <p><strong>Service:</strong> ${b.service_type === 'walk_in' ? 'Walk-in visit' : b.service_type.replace('_',' ')}</p>
     <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}</p>
     <p><strong>Status:</strong> ${b.status}</p>
   `;

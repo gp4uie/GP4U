@@ -1,13 +1,41 @@
-// Readable name for a booking's service key (walk-in bookings are created by the front desk / check-in).
-function svcLabel(t) { return t === 'walk_in' ? 'Walk-in visit' : String(t || '').replace(/_/g, ' '); }
+// Names for the service keys stored on bookings ('phone', 'video', ...). Loaded once after sign-in; walk-in bookings
+// (created when someone walks in or is added at the front desk) are always "Walk-in visit".
+let SERVICE_LABELS = {};
+function svcLabel(t) {
+  if (t === 'walk_in') return 'Walk-in visit';
+  return (SERVICE_LABELS[t] && SERVICE_LABELS[t].label) || String(t || '').replace(/_/g, ' ');
+}
+async function loadServiceLabels() {
+  try { SERVICE_LABELS = await fetch('/api/services').then((r) => r.json()); } catch (err) { /* labels fall back to the key */ }
+  window.todayServiceLabels = SERVICE_LABELS;
+}
+// Anything a patient (or the front desk) typed is escaped before it goes into the page.
+function esc(v) {
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+const isWalkIn = (b) => !!b && b.service_type === 'walk_in';
+function visitBadge(serviceType) {
+  return serviceType === 'walk_in' ? '<span class="badge badge-walkin">Walk-in</span>' : '<span class="badge badge-online">Online</span>';
+}
+function statusBadge(b) {
+  if (b.status === 'completed') return '<span class="badge badge-green">Completed</span>';
+  return `<span class="badge badge-amber">${isWalkIn(b) ? 'In clinic' : 'Booked'}</span>`;
+}
+function fmtDob(dob) {
+  if (!dob) return 'DOB not given';
+  const d = new Date(dob + 'T00:00:00');
+  return Number.isNaN(d.getTime()) ? esc(dob) : d.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 let currentBookingId = null;
 let currentPatientEmail = null;
 let scheduleDate = new Date();
 let activeTab = 'today';
 let activeChartTab = 'overview';
 
-let currentListType = null; // 'schedule' | 'search' | 'recent'
-let scheduleIds = [], searchIds = [], recentIds = [];
+// The list the doctor opened a chart from — drives the Previous / Next case buttons.
+let currentListKey = null; // 'online' | 'walkin' | 'search'
+const caseLists = { online: [], walkin: [], search: [] };
 let MEDICATIONS_LIST = [];
 
 // Sessions now idle-timeout server-side (see requireDoctor in server/routes/doctor.js), so any
@@ -28,10 +56,7 @@ async function doctorFetch(url, options) {
 function showSessionExpired() {
   document.getElementById('detailPanel').style.display = 'none';
   document.getElementById('dashboardBox').classList.remove('chart-open');
-  document.getElementById('mainTabBar').style.display = 'flex';
-  ['today', 'schedule', 'search', 'recent', 'clinic', 'tasks', 'security', 'teammsg'].forEach((t) => {
-    document.getElementById('tab_' + t).style.display = t === 'schedule' ? 'block' : 'none';
-  });
+  document.getElementById('dashApp').style.display = '';
   document.getElementById('dashboardBox').style.display = 'none';
   document.getElementById('notifWrap').style.display = 'none';
   document.getElementById('logoutLink').style.display = 'none';
@@ -54,16 +79,16 @@ async function checkSession() {
     document.getElementById('logoutLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
     doctorTotpEnabled = !!data.totpEnabled;
-    loadSchedule();
+    loadServiceLabels();
     loadNotifications();
     loadMedications();
     loadTasks();
     loadClinicSummary();
-    loadToday();
+    openInitialTab();
     setInterval(loadNotifications, 15000);
-    // Walk-in list stays live while the Clinic tab is open; the registrations list is left alone
+    // Walk-in queue stays live while the Walk-in clinic section is open; the registrations list is left alone
     // on the timer so an expanded registration doesn't collapse while it's being read.
-    setInterval(() => { loadClinicSummary(); if (activeTab === 'clinic') loadWalkIns(); if (activeTab === 'today') loadToday(); }, 15000);
+    setInterval(() => { loadClinicSummary(); if (activeTab === 'walkin') loadWalkinClinic(); if (activeTab === 'today') loadToday(); }, 15000);
     // Keep an open chart current — e.g. a new patient message — without disturbing whatever
     // sub-tab, scroll position, or in-progress typing the doctor currently has (openBooking only
     // re-renders read-only display lists, never the live form fields; see keepTab/isSameBooking
@@ -144,20 +169,39 @@ async function submitForgot() {
   document.getElementById('forgotMsg').textContent = data.message || data.error;
 }
 
-// --- Top-level tabs ---
-function showTab(tab) {
+// --- Top-level sections (left menu) ---
+// Exactly one section is on screen at a time and it opens at the top of the page.
+const TAB_TITLES = {
+  today: 'Today', online: 'Online clinic', walkin: 'Walk-in clinic', search: 'Find a patient',
+  registrations: 'Registrations', tasks: 'Tasks', teammsg: 'Team messages', security: 'Security',
+};
+const TAB_ALIASES = { clinic: 'walkin', schedule: 'online', recent: 'online' };
+
+function showTab(tab, opts) {
+  if (TAB_ALIASES[tab]) { if (tab === 'recent') onlineView = 'recent'; tab = TAB_ALIASES[tab]; }
+  if (!TAB_TITLES[tab]) tab = 'today';
   activeTab = tab;
-  ['schedule', 'search', 'recent', 'tasks', 'security', 'teammsg'].forEach((t) => {
+  Object.keys(TAB_TITLES).forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
-    document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
+    const btn = document.getElementById('tabBtn_' + t);
+    btn.classList.toggle('active', t === tab);
+    if (t === tab) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
   });
+  if (!(opts && opts.keepScroll)) window.scrollTo(0, 0);
+  try { history.replaceState(null, '', '#' + tab); } catch (err) { /* not important */ }
   if (tab === 'today') loadToday();
-  if (tab === 'recent') loadRecent();
-  if (tab === 'schedule') loadSchedule();
+  if (tab === 'online') { setOnlineView(onlineView); }
+  if (tab === 'walkin') loadWalkinClinic();
+  if (tab === 'registrations') loadRegistrations();
   if (tab === 'tasks') loadTasks();
-  if (tab === 'clinic') loadClinic();
   if (tab === 'security') renderSecurityTab();
   if (tab === 'teammsg') { loadStaffDirectory(); loadStaffMessages(); }
+  if (tab === 'search') { const i = document.getElementById('searchInput'); if (i && !i.value) i.focus({ preventScroll: true }); }
+}
+
+function openInitialTab() {
+  const wanted = (location.hash || '').replace('#', '');
+  showTab(TAB_TITLES[wanted] ? wanted : 'today', { keepScroll: true });
 }
 
 // --- Team Messages: "Everyone" broadcast board, or a 1:1 DM with one admin/doctor ---
@@ -301,10 +345,10 @@ async function loadTasks() {
   else { badge.style.display = 'none'; }
 
   document.getElementById('tasksList').innerHTML = tasks.length ? tasks.map((t) => `
-    <div class="card task-card" style="margin-bottom:10px; ${t.status === 'completed' ? 'opacity:0.6;' : ''}" onclick="openBooking('${t.booking_id}', null)">
-      <p>${t.description}</p>
+    <div class="card task-card" style="margin-bottom:10px; ${t.status === 'completed' ? 'opacity:0.6;' : ''}" onclick="openBooking('${esc(t.booking_id)}', null)">
+      <p>${esc(t.description)}</p>
       <p style="color:var(--ink-500); font-size:0.8rem;">
-        Patient: ${t.patient_name} • Created ${new Date(t.created_at).toLocaleString('en-IE')}
+        Patient: ${esc(t.patient_name)} • Created ${new Date(t.created_at).toLocaleString('en-IE')}
         ${t.status === 'completed' ? ` • Completed ${new Date(t.completed_at).toLocaleString('en-IE')}` : ''}
       </p>
       ${t.status === 'pending' ? `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="event.stopPropagation(); completeTask(${t.id})">Mark Complete</button>` : '<span class="badge badge-green">Done</span>'}
@@ -317,29 +361,59 @@ async function completeTask(id) {
   loadTasks();
 }
 
-// --- Schedule (day view, 15-minute slots) ---
+// --- Online clinic: day list, calendar, recent ---
+let onlineView = 'day';
+
 function isoDate(d) {
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD in the doctor's own timezone
 }
 
 function changeDay(delta) {
   scheduleDate.setDate(scheduleDate.getDate() + delta);
-  loadSchedule();
+  loadOnline();
 }
 
 function goToToday() {
   scheduleDate = new Date();
-  loadSchedule();
+  loadOnline();
 }
 
-async function loadSchedule() {
+function setOnlineView(view) {
+  onlineView = view;
+  document.querySelectorAll('[data-onlineview]').forEach((b) => b.classList.toggle('active', b.dataset.onlineview === view));
+  document.getElementById('onlineDay').style.display = view === 'day' ? 'block' : 'none';
+  document.getElementById('onlineCalendar').style.display = view === 'calendar' ? 'block' : 'none';
+  document.getElementById('onlineRecent').style.display = view === 'recent' ? 'block' : 'none';
+  document.getElementById('onlineDayNav').style.display = view === 'recent' ? 'none' : 'flex';
+  loadOnline();
+}
+
+async function loadOnline() {
+  if (onlineView === 'recent') return loadRecent();
   document.getElementById('scheduleDateLabel').textContent = scheduleDate.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
-  const res = await doctorFetch('/api/doctor/schedule?date=' + isoDate(scheduleDate));
+  const res = await doctorFetch('/api/doctor/schedule?type=online&date=' + isoDate(scheduleDate));
   const data = await res.json();
-  scheduleIds = data.bookings.map((b) => b.id);
-  renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins);
+  caseLists.online = data.bookings.map((b) => b.id);
+  if (onlineView === 'calendar') renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins);
+  else renderOnlineDay(data.bookings);
 }
 
+function renderOnlineDay(bookings) {
+  const box = document.getElementById('onlineDay');
+  if (!bookings.length) { box.innerHTML = '<div class="empty">No online appointments on this day.</div>'; return; }
+  box.innerHTML = bookings.map((b) => `
+    <article class="visit-card ${b.status === 'completed' ? 'is-done' : ''}">
+      <span class="vc-time">${esc(new Date(b.slot_start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }))}</span>
+      <div class="vc-main">
+        <strong class="vc-name">${esc(b.patient_name)}</strong>
+        <span class="vc-sub">${esc(clinicAge(b.patient_dob))} · ${esc(svcLabel(b.service_type))}</span>
+        <p class="vc-reason">${esc(b.reason || '')}</p>
+      </div>
+      <div class="vc-side">${statusBadge(b)}<button class="btn btn-primary" onclick="openBooking('${esc(b.id)}', 'online')">Open chart</button></div>
+    </article>`).join('');
+}
+
+// Calendar view: 15-minute rows across the day's working hours.
 const SCHEDULE_ROW_PX = 34;
 
 function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
@@ -356,7 +430,7 @@ function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
     html += `<div class="schedule-row-line${isHour ? ' hour' : ''}" style="grid-row:${i + 1};"></div>`;
   }
   if (bookings.length === 0) {
-    html += `<div class="schedule-empty" style="grid-row: 1 / span ${totalSlots};">No bookings for this day.</div>`;
+    html += `<div class="schedule-empty" style="grid-row: 1 / span ${totalSlots};">No online appointments on this day.</div>`;
   }
   bookings.forEach((b) => {
     const start = new Date(b.slot_start), end = new Date(b.slot_end);
@@ -366,7 +440,7 @@ function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
     const rowSpan = Math.max(1, Math.round(durMin / stepMin));
     const timeLabel = start.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
     const reasonPreview = b.reason ? b.reason.slice(0, 40) + (b.reason.length > 40 ? '…' : '') : '';
-    html += `<div class="schedule-booking ${b.status === 'completed' ? 'completed' : ''}" style="grid-row:${rowStart} / span ${rowSpan};" onclick="openBooking('${b.id}', 'schedule')" title="${reasonPreview.replace(/"/g, '&quot;')}">${timeLabel} <strong>${b.patient_name}</strong> — ${reasonPreview || svcLabel(b.service_type)}</div>`;
+    html += `<div class="schedule-booking ${b.status === 'completed' ? 'completed' : ''}" style="grid-row:${rowStart} / span ${rowSpan};" onclick="openBooking('${esc(b.id)}', 'online')" title="${esc(reasonPreview)}">${timeLabel} <strong>${esc(b.patient_name)}</strong> — ${esc(reasonPreview || svcLabel(b.service_type))}</div>`;
   });
 
   // Current-time line, only when this is actually today.
@@ -398,53 +472,62 @@ function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
   if (scrollToPx !== null) grid.scrollTop = scrollToPx;
 }
 
-// --- Search Patients ---
+// --- Find a patient: results are grouped per person, walk-in and online visits together ---
 async function runSearch() {
   const q = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
   if (!q) { resultsEl.innerHTML = ''; return; }
   const res = await doctorFetch('/api/doctor/search?q=' + encodeURIComponent(q));
   const results = await res.json();
-  searchIds = results.map((b) => b.id);
   if (!results.length) {
-    resultsEl.innerHTML = '<p style="color:var(--ink-500);">No matching records found.</p>';
+    caseLists.search = [];
+    resultsEl.innerHTML = '<div class="empty">No matching records found.</div>';
     return;
   }
-  resultsEl.innerHTML = `
-    <div class="table-scroll">
-    <table class="bookings-table">
-      <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>DOB</th><th>Phone</th><th>Status</th></tr></thead>
-      <tbody>
-        ${results.map(b => `
-          <tr onclick="openBooking('${b.id}', 'search')">
-            <td>${new Date(b.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-            <td>${svcLabel(b.service_type)}</td>
-            <td>${b.patient_name}</td>
-            <td>${b.patient_dob}</td>
-            <td>${b.patient_phone}</td>
-            <td><span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-    </div>
-  `;
+  // Same name + date of birth = same person, whether they came in online or walked in.
+  const people = new Map();
+  results.forEach((b) => {
+    const key = (b.patient_name || '').trim().toLowerCase() + '|' + b.patient_dob;
+    if (!people.has(key)) people.set(key, { name: b.patient_name, dob: b.patient_dob, phone: b.patient_phone, visits: [] });
+    people.get(key).visits.push(b);
+  });
+  const list = [...people.values()];
+  caseLists.search = list.flatMap((p) => p.visits.map((v) => v.id));
+  resultsEl.innerHTML = list.map((p) => {
+    const walk = p.visits.filter(isWalkIn).length;
+    const online = p.visits.length - walk;
+    const visitRow = (v) => `
+      <div class="pv-row">
+        <span class="pv-date">${esc(new Date(v.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }))}</span>
+        ${visitBadge(v.service_type)}${isWalkIn(v) ? '' : `<span class="pv-svc">${esc(svcLabel(v.service_type))}</span>`}${statusBadge(v)}
+        <button class="btn btn-secondary" onclick="openBooking('${esc(v.id)}', 'search')">Open chart</button>
+      </div>`;
+    return `
+      <article class="card patient-card">
+        <div class="pc-head">
+          <div><strong class="pc-name">${esc(p.name)}</strong><span class="pc-sub">${esc(clinicAge(p.dob))} · DOB ${esc(fmtDob(p.dob))} · ${esc(p.phone)}</span></div>
+          <div class="pc-counts"><span class="badge">${p.visits.length} visit${p.visits.length === 1 ? '' : 's'}</span>${walk ? `<span class="badge badge-walkin">${walk} walk-in</span>` : ''}${online ? `<span class="badge badge-online">${online} online</span>` : ''}</div>
+        </div>
+        ${p.visits.slice(0, 4).map(visitRow).join('')}
+        ${p.visits.length > 4 ? `<details class="pv-more"><summary>Show ${p.visits.length - 4} earlier visit${p.visits.length - 4 === 1 ? '' : 's'}</summary>${p.visits.slice(4).map(visitRow).join('')}</details>` : ''}
+      </article>`;
+  }).join('');
 }
 
-// --- Recent Cases ---
+// --- Recent online cases ---
 async function loadRecent() {
-  const res = await doctorFetch('/api/doctor/recent');
+  const res = await doctorFetch('/api/doctor/recent?type=online');
   const bookings = await res.json();
-  recentIds = bookings.map((b) => b.id);
+  caseLists.online = bookings.map((b) => b.id);
   const body = document.getElementById('recentBody');
   body.innerHTML = bookings.length ? bookings.map((b) => `
-    <tr onclick="openBooking('${b.id}', 'recent')">
-      <td>${new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-      <td>${svcLabel(b.service_type)}</td>
-      <td>${b.patient_name}</td>
-      <td><span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></td>
+    <tr onclick="openBooking('${esc(b.id)}', 'online')" tabindex="0" onkeydown="if(event.key==='Enter')openBooking('${esc(b.id)}', 'online')">
+      <td>${esc(new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td>
+      <td>${esc(svcLabel(b.service_type))}</td>
+      <td>${esc(b.patient_name)}</td>
+      <td>${statusBadge(b)}</td>
     </tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No cases yet.</td></tr>';
+  `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No online cases yet.</td></tr>';
 }
 
 // --- Notifications ---
@@ -461,8 +544,8 @@ async function loadNotifications() {
   const el = document.getElementById('notifDropdown');
   el.innerHTML = data.notifications.length
     ? data.notifications.map(n => `
-        <div class="notif-item ${n.read_at ? '' : 'unread'}" onclick="handleNotifClick(${n.id}, '${n.booking_id}')">
-          ${n.message}<small>${new Date(n.created_at).toLocaleString('en-IE')}</small>
+        <div class="notif-item ${n.read_at ? '' : 'unread'}" onclick="handleNotifClick(${n.id}, '${esc(n.booking_id)}')">
+          ${esc(n.message)}<small>${esc(new Date(n.created_at).toLocaleString('en-IE'))}</small>
         </div>
       `).join('')
     : '<div class="notif-item">No notifications yet.</div>';
@@ -498,7 +581,7 @@ function showChartTab(name) {
 }
 
 function getCurrentList() {
-  return { schedule: scheduleIds, search: searchIds, recent: recentIds }[currentListType] || [];
+  return caseLists[currentListKey] || [];
 }
 
 function navigateCase(delta) {
@@ -506,81 +589,97 @@ function navigateCase(delta) {
   const idx = list.indexOf(currentBookingId);
   if (idx === -1) return;
   const newIdx = idx + delta;
-  if (newIdx >= 0 && newIdx < list.length) openBooking(list[newIdx], currentListType, true);
+  if (newIdx >= 0 && newIdx < list.length) openBooking(list[newIdx], currentListKey, true);
 }
 
-const LIST_LABELS = { schedule: 'Schedule', search: 'Search Results', recent: 'Recent Cases' };
-
-// Opens the chart as its own full page — hides the tab bar and whichever list sits behind it, and
-// widens the shell — instead of an inline panel stacked under the list, which is what made the
-// chart feel cramped next to a proper EMR. See closeChart() for the reverse.
+// The chart is its own full page: the left menu and the section behind it are hidden, and "Back" returns to the
+// section the doctor came from (see closeChart).
 function openChartView() {
-  document.getElementById('mainTabBar').style.display = 'none';
-  ['schedule', 'search', 'recent', 'tasks', 'security'].forEach((t) => {
-    document.getElementById('tab_' + t).style.display = 'none';
-  });
+  document.getElementById('dashApp').style.display = 'none';
   document.getElementById('dashboardBox').classList.add('chart-open');
-  document.getElementById('chartBackLabel').textContent = LIST_LABELS[currentListType] || 'List';
+  document.getElementById('chartBackLabel').textContent = TAB_TITLES[activeTab] || 'list';
 }
 
 function closeChart() {
   document.getElementById('detailPanel').style.display = 'none';
   document.getElementById('dashboardBox').classList.remove('chart-open');
-  document.getElementById('mainTabBar').style.display = 'flex';
+  document.getElementById('dashApp').style.display = '';
   currentBookingId = null;
   showTab(activeTab);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // --- Booking detail panel ---
 // keepTab: preserve whichever chart sub-tab (Notes, Prescription, ...) was already open instead
 // of jumping back to Overview. Used for same-booking refreshes (a save/issue action, the
-// background poll below, Mark Complete) and for Previous/Next Case paging — landing back on
-// Overview every time you save something or move to the next case was the single biggest
-// papercut in the chart-review, see dashboard-chart-review notes.
-async function openBooking(id, listType, keepTab) {
+// background poll, Mark Complete) and for Previous/Next Case paging.
+async function openBooking(id, listKey, keepTab) {
   const isSameBooking = id === currentBookingId && document.getElementById('detailPanel').style.display !== 'none';
   currentBookingId = id;
-  if (listType !== undefined && listType !== null) currentListType = listType;
-  const res = await doctorFetch(`/api/doctor/bookings/${id}`);
+  if (listKey !== undefined && listKey !== null) currentListKey = listKey;
+  const res = await doctorFetch(`/api/doctor/bookings/${encodeURIComponent(id)}`);
   const data = await res.json();
   const b = data.booking;
+  const walk = isWalkIn(b);
   currentPatientEmail = b.patient_email;
-  document.getElementById('chartHeader').textContent = `${b.patient_name} — ${svcLabel(b.service_type)}`;
-  const dobLabel = b.patient_dob
-    ? new Date(b.patient_dob + 'T00:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'DOB not given';
-  document.getElementById('chartPatientMeta').textContent = `DOB: ${dobLabel} • ${b.patient_address || 'Address not given'}`;
   const pp = data.patientProfile || {};
+  const summary = data.patientSummary || {};
+  const previous = data.previousConsultations || [];
+
+  document.getElementById('chartHeader').textContent = b.patient_name;
+  const allergyText = (b.allergies || '').trim() || (pp.allergies || '').trim();
+  const prevCount = summary.onlineVisits + summary.walkInVisits;
+  document.getElementById('chartPatientMeta').innerHTML = `
+    <div class="pb-row">${visitBadge(b.service_type)} ${statusBadge(b)}<span class="pb-ref">Ref ${esc(b.id)}</span></div>
+    <div class="pb-facts">
+      <span><b>DOB</b> ${esc(fmtDob(b.patient_dob))} (${esc(clinicAge(b.patient_dob))})</span>
+      ${b.patient_phone ? `<span><b>Phone</b> ${esc(b.patient_phone)}</span>` : ''}
+      ${b.patient_email ? `<span><b>Email</b> ${esc(b.patient_email)}</span>` : ''}
+      <span><b>Address</b> ${esc(b.patient_address || pp.address || 'not given')}</span>
+    </div>
+    <div class="pb-alerts">
+      ${allergyText ? `<span class="pb-pill danger">⚠ Allergies: ${esc(allergyText)}</span>` : '<span class="pb-pill">No allergies recorded</span>'}
+      <span class="pb-pill">${prevCount ? `${prevCount} previous visit${prevCount === 1 ? '' : 's'}: ${summary.walkInVisits} walk-in · ${summary.onlineVisits} online` : 'First visit'}</span>
+    </div>`;
+
+  const profileNote = summary.profileSource === 'patient portal' ? 'Kept up to date by the patient in their own portal.'
+    : summary.profileSource === 'clinic registration' ? 'From this patient\'s registration with the clinic.' : 'No medical profile on file for this patient yet.';
+  const pRow = (label, value) => `<p><strong>${label}:</strong> ${esc(value) || '—'}</p>`;
   document.getElementById('patientProfileInfo').innerHTML = `
-    <h3 style="margin-top:0;">Patient-Maintained Medical Profile</h3>
-    <p style="color:var(--ink-500); font-size:0.85rem;">Kept up to date by the patient in their own portal — may not match what they entered for this specific visit below.</p>
-    <p><strong>Address:</strong> ${pp.address || '—'}</p>
-    <p><strong>Known conditions / diagnoses:</strong> ${pp.known_conditions || '—'}</p>
-    <p><strong>Allergies:</strong> ${pp.allergies || '—'}</p>
-    <p><strong>Current medications:</strong> ${pp.current_medications || '—'}</p>
-  `;
+    <h3 style="margin-top:0;">Medical profile</h3>
+    <p style="color:var(--ink-500); font-size:0.85rem;">${profileNote} It may not match what they gave for this specific visit below.</p>
+    ${pRow('Known conditions / diagnoses', pp.known_conditions)}${pRow('Allergies', pp.allergies)}${pRow('Current medications', pp.current_medications)}${pRow('Address', pp.address)}`;
+
+  const dRow = (label, value, force) => (value || force) ? `<p><strong>${label}:</strong> ${esc(value) || '—'}</p>` : '';
   document.getElementById('detailInfo').innerHTML = `
-    <p><strong>Reference:</strong> ${b.id}</p>
-    <p><strong>Patient:</strong> ${b.patient_name} (DOB ${b.patient_dob})</p>
-    <p><strong>Address:</strong> ${b.patient_address || '—'}</p>
-    <p><strong>Contact:</strong> ${b.patient_phone} • ${b.patient_email}</p>
-    <p><strong>Pharmacy:</strong> ${b.pharmacy_name || '—'}</p>
-    <p><strong>Service:</strong> ${svcLabel(b.service_type)}</p>
-    <p><strong>When:</strong> ${new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
-    <p><strong>Reason given:</strong> ${b.reason}</p>
-    <p><strong>Symptom duration:</strong> ${b.symptoms_duration || '—'}</p>
-    <p><strong>Current medications:</strong> ${b.current_medications || '—'}</p>
-    <p><strong>Allergies:</strong> ${b.allergies || '—'}</p>
-    <p><strong>Additional details:</strong> ${b.extra_details || '—'}</p>
-    ${b.safety_answers ? `<p><strong>Safety questionnaire:</strong><br>${b.safety_answers.replace(/\n/g, '<br>')}</p>` : ''}
-    <p><strong>Status:</strong> <span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status}</span></p>
-  `;
+    <h3 style="margin-top:0;">This visit</h3>
+    ${dRow('Service', svcLabel(b.service_type), true)}
+    <p><strong>${walk ? 'Arrived' : 'When'}:</strong> ${esc(new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }))}</p>
+    ${dRow(walk ? 'Reason for visit' : 'Reason given', b.reason, true)}
+    ${dRow('Symptom duration', b.symptoms_duration)}
+    ${dRow('Medications (this visit)', b.current_medications)}
+    ${dRow('Allergies (this visit)', b.allergies)}
+    ${dRow('Additional details', b.extra_details)}
+    ${walk ? '' : dRow('Pharmacy', b.pharmacy_name)}
+    ${b.safety_answers ? `<p><strong>Safety questionnaire:</strong><br>${esc(b.safety_answers).replace(/\n/g, '<br>')}</p>` : ''}`;
+
+  // Video / audio calls and patient messaging only make sense for online consultations.
+  document.getElementById('joinCallBtn').style.display = walk ? 'none' : '';
+  document.getElementById('joinAudioCallBtn').style.display = walk ? 'none' : '';
+  document.getElementById('chartTabBtn_messages').style.display = walk ? 'none' : '';
+  const completeBtn = document.getElementById('markCompleteBtn');
+  completeBtn.textContent = b.status === 'completed' ? 'Completed ✓' : (walk ? 'Mark visit seen' : 'Mark Complete');
+  completeBtn.disabled = b.status === 'completed';
+  if (walk && activeChartTab === 'messages') activeChartTab = 'overview';
+
+  // Previous / Next only when this chart was opened from a list that contains it.
+  document.querySelectorAll('.chart-view-header-row button[onclick^="navigateCase"]').forEach((btn) => {
+    btn.style.display = getCurrentList().includes(id) ? '' : 'none';
+  });
+
   // The doctor starting a call is what makes it startable at all — this marks it started
   // server-side (and emails the patient a join link) before the doctor's own call window opens.
-  // The patient's side never initiates; it only reacts to this (see consult.js, confirmation.html).
   async function startCall(mode) {
-    await fetch(`/api/doctor/bookings/${id}/start-call`, {
+    await fetch(`/api/doctor/bookings/${encodeURIComponent(id)}/start-call`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode }),
@@ -588,7 +687,7 @@ async function openBooking(id, listType, keepTab) {
   }
 
   const joinCallBtn = document.getElementById('joinCallBtn');
-  const callUrl = `/consult.html?id=${id}&role=doctor`;
+  const callUrl = `/consult.html?id=${encodeURIComponent(id)}&role=doctor`;
   joinCallBtn.href = callUrl;
   // Opened as its own window rather than a same-tab navigation, so the dashboard (notes,
   // prescriptions, etc.) stays open and usable in the original tab for the whole call.
@@ -599,7 +698,7 @@ async function openBooking(id, listType, keepTab) {
   };
 
   const joinAudioCallBtn = document.getElementById('joinAudioCallBtn');
-  const audioCallUrl = `/consult.html?id=${id}&role=doctor&mode=audio`;
+  const audioCallUrl = `/consult.html?id=${encodeURIComponent(id)}&role=doctor&mode=audio`;
   joinAudioCallBtn.href = audioCallUrl;
   joinAudioCallBtn.onclick = (e) => {
     e.preventDefault();
@@ -608,24 +707,22 @@ async function openBooking(id, listType, keepTab) {
   };
   renderAttachments(data.attachments);
   renderAllergyBanner(b, pp);
-  renderPreviousConsultations(data.previousConsultations);
+  renderPreviousConsultations(previous, summary);
   renderMessages(data.messages);
   renderNotes(data.notes);
   renderPrescriptions(data.prescriptions);
   renderDocuments(data.documents);
   renderAllDocuments(data.prescriptions, data.documents);
-  renderPreviousSidePanels(data.previousConsultations);
+  renderPreviousSidePanels(previous);
   showChartTab((isSameBooking || keepTab) ? activeChartTab : 'overview');
   openChartView();
   document.getElementById('detailPanel').style.display = 'block';
-  if (!isSameBooking) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  if (!isSameBooking) window.scrollTo(0, 0);
 }
 
 function renderAttachments(attachments) {
   document.getElementById('attachmentsList').innerHTML = attachments.length
-    ? attachments.map(a => `<a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;margin:0 8px 8px 0;display:inline-block;" target="_blank" href="/api/doctor/attachments/${a.id}">${a.original_name}</a>`).join('')
+    ? attachments.map(a => `<a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;margin:0 8px 8px 0;display:inline-block;" target="_blank" href="/api/doctor/attachments/${a.id}">${esc(a.original_name)}</a>`).join('')
     : '<p style="color:var(--ink-500);">None uploaded.</p>';
 }
 
@@ -641,8 +738,8 @@ function renderAllergyBanner(booking, patientProfile) {
     return;
   }
   const lines = [];
-  if (visitAllergies) lines.push(`<span class="source-label">This visit:</span> ${visitAllergies}`);
-  if (profileAllergies && profileAllergies !== visitAllergies) lines.push(`<span class="source-label">Patient profile:</span> ${profileAllergies}`);
+  if (visitAllergies) lines.push(`<span class="source-label">This visit:</span> ${esc(visitAllergies)}`);
+  if (profileAllergies && profileAllergies !== visitAllergies) lines.push(`<span class="source-label">Patient profile:</span> ${esc(profileAllergies)}`);
   el.innerHTML = `<div class="allergy-banner"><strong>⚠ Allergies</strong>${lines.join('<br>')}</div>`;
 }
 
@@ -653,31 +750,38 @@ const DOC_TYPE_LABELS = { sick_cert: 'Sick Certificate', referral_ae: 'Referral 
 // patient's history doesn't turn into one very long fully-expanded scroll. See chart-review notes.
 const PREVIOUS_VISITS_EXPANDED = 2;
 
-function renderPreviousConsultations(previous) {
+function renderPreviousConsultations(previous, summary) {
   const container = document.getElementById('previousConsultationsList');
+  const badge = document.getElementById('historyCount');
+  badge.style.display = previous.length ? 'inline-block' : 'none';
+  badge.textContent = previous.length;
+  const s = summary || {};
+  document.getElementById('historySummary').textContent = previous.length
+    ? `${previous.length} previous visit${previous.length === 1 ? '' : 's'} for this patient — ${s.walkInVisits || 0} walk-in and ${s.onlineVisits || 0} online — with notes, prescriptions and documents from each.`
+    : '';
   if (!previous.length) {
-    container.innerHTML = '<p style="color:var(--ink-500);">No previous consultations for this patient.</p>';
+    container.innerHTML = '<div class="empty">No previous visits for this patient. This is their first consultation.</div>';
     return;
   }
   container.innerHTML = previous.map((p, idx) => {
     const notesHtml = p.notes.length
-      ? p.notes.map(n => `<div style="margin-bottom:6px;"><p style="white-space:pre-wrap; margin:0;">${n.note_text}</p><p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${n.doctor_name} • ${new Date(n.created_at).toLocaleString('en-IE')}</p></div>`).join('')
+      ? p.notes.map(n => `<div style="margin-bottom:6px;"><p style="white-space:pre-wrap; margin:0;">${esc(n.note_text)}</p><p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${esc(n.doctor_name)} • ${esc(new Date(n.created_at).toLocaleString('en-IE'))}</p></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">No notes recorded.</p>';
     const rxHtml = p.prescriptions.length
-      ? p.prescriptions.map(rx => `<div style="margin-bottom:6px;"><strong>${rx.medication}</strong> — ${rx.dose}, qty ${rx.quantity} <a href="/print-rx.html?rxId=${rx.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
+      ? p.prescriptions.map(rx => `<div style="margin-bottom:6px;"><strong>${esc(rx.medication)}</strong> — ${esc(rx.dose)}, qty ${esc(rx.quantity)} <a href="/print-rx.html?rxId=${rx.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
     const docsHtml = p.documents.length
-      ? p.documents.map(d => `<div style="margin-bottom:6px;">${DOC_TYPE_LABELS[d.doc_type] || d.doc_type} — ${new Date(d.created_at).toLocaleDateString('en-IE')} <a href="/print-doc.html?docId=${d.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
+      ? p.documents.map(d => `<div style="margin-bottom:6px;">${esc(DOC_TYPE_LABELS[d.doc_type] || d.doc_type)} — ${esc(new Date(d.created_at).toLocaleDateString('en-IE'))} <a href="/print-doc.html?docId=${d.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
 
     const dateLabel = new Date(p.slot_start).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const summaryLine = `
-      <strong>${dateLabel}</strong>
-      — ${svcLabel(p.service_type)}
-      <span class="badge ${p.status === 'completed' ? 'badge-green' : 'badge-amber'}">${p.status}</span>
+      <strong>${esc(dateLabel)}</strong>
+      ${visitBadge(p.service_type)} ${p.service_type === 'walk_in' ? '' : `<span class="pv-svc">${esc(svcLabel(p.service_type))}</span>`}
+      ${statusBadge(p)}
     `;
     const body = `
-      <p style="margin:10px 0 4px;"><strong>Reason:</strong> ${p.reason || '—'}</p>
+      <p style="margin:10px 0 4px;"><strong>Reason:</strong> ${esc(p.reason) || '—'}</p>
       <div style="margin-top:10px;">
         <p style="font-weight:600; margin-bottom:4px;">Clinical Notes</p>
         ${notesHtml}
@@ -691,7 +795,7 @@ function renderPreviousConsultations(previous) {
         ${docsHtml}
       </div>
       <div style="margin-top:14px;">
-        <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="event.stopPropagation(); openBooking('${p.id}', currentListType)">Open This Visit</button>
+        <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="event.stopPropagation(); openBooking('${esc(p.id)}', currentListKey)">Open This Visit</button>
       </div>
     `;
 
@@ -724,13 +828,13 @@ function renderPreviousSidePanels(previousConsultations) {
   const dateLabel = (iso) => new Date(iso).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const allNotes = previousConsultations
-    .flatMap((p) => p.notes.map((n) => ({ ...n, visitDate: p.slot_start })))
+    .flatMap((p) => p.notes.map((n) => ({ ...n, visitDate: p.slot_start, walk: p.service_type === 'walk_in' })))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   document.getElementById('previousNotesPanel').innerHTML = allNotes.length
     ? allNotes.map((n) => `
         <div style="margin-bottom:12px;">
-          <p style="white-space:pre-wrap; margin:0; font-size:0.9rem;">${n.note_text}</p>
-          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${n.doctor_name} • ${dateLabel(n.visitDate)}</p>
+          <p style="white-space:pre-wrap; margin:0; font-size:0.9rem;">${esc(n.note_text)}</p>
+          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${esc(n.doctor_name)} • ${esc(dateLabel(n.visitDate))} • ${n.walk ? 'Walk-in' : 'Online'}</p>
         </div>
       `).join('')
     : '<p style="color:var(--ink-500); font-size:0.85rem;">No previous notes.</p>';
@@ -741,9 +845,9 @@ function renderPreviousSidePanels(previousConsultations) {
   document.getElementById('previousRxPanel').innerHTML = allRx.length
     ? allRx.map((rx) => `
         <div style="margin-bottom:12px;">
-          <p style="margin:0; font-size:0.9rem;"><strong>${rx.medication}</strong> — ${rx.dose}</p>
-          <p style="margin:0; font-size:0.85rem;">${rx.frequency}, ${rx.duration}, qty ${rx.quantity}</p>
-          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${dateLabel(rx.visitDate)} • <a href="/print-rx.html?rxId=${rx.id}" target="_blank">Print</a></p>
+          <p style="margin:0; font-size:0.9rem;"><strong>${esc(rx.medication)}</strong> — ${esc(rx.dose)}</p>
+          <p style="margin:0; font-size:0.85rem;">${esc(rx.frequency)}, ${esc(rx.duration)}, qty ${esc(rx.quantity)}</p>
+          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${esc(dateLabel(rx.visitDate))} • <a href="/print-rx.html?rxId=${rx.id}" target="_blank">Print</a></p>
         </div>
       `).join('')
     : '<p style="color:var(--ink-500); font-size:0.85rem;">No previous prescriptions.</p>';
@@ -754,8 +858,8 @@ function renderPreviousSidePanels(previousConsultations) {
   document.getElementById('previousReferralsPanel').innerHTML = allReferrals.length
     ? allReferrals.map((d) => `
         <div style="margin-bottom:12px;">
-          <p style="margin:0; font-size:0.9rem;"><strong>${DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</strong></p>
-          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${dateLabel(d.visitDate)} • <a href="/print-doc.html?docId=${d.id}" target="_blank">Print</a></p>
+          <p style="margin:0; font-size:0.9rem;"><strong>${esc(DOC_TYPE_LABELS[d.doc_type] || d.doc_type)}</strong></p>
+          <p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${esc(dateLabel(d.visitDate))} • <a href="/print-doc.html?docId=${d.id}" target="_blank">Print</a></p>
         </div>
       `).join('')
     : '<p style="color:var(--ink-500); font-size:0.85rem;">No previous referral letters.</p>';
@@ -764,14 +868,14 @@ function renderPreviousSidePanels(previousConsultations) {
 function renderMessages(messages) {
   const thread = document.getElementById('messageThread');
   thread.innerHTML = messages.length
-    ? messages.map(m => `<div class="msg ${m.sender}">${m.body}<small>${m.sender === 'doctor' ? 'You' : 'Patient'} • ${new Date(m.created_at).toLocaleString('en-IE')}</small></div>`).join('')
+    ? messages.map(m => `<div class="msg ${m.sender === 'doctor' ? 'doctor' : 'patient'}">${esc(m.body)}<small>${m.sender === 'doctor' ? 'You' : 'Patient'} • ${esc(new Date(m.created_at).toLocaleString('en-IE'))}</small></div>`).join('')
     : '<p style="color:var(--ink-500);">No messages yet.</p>';
 }
 
 function renderNotes(notes) {
   const el = document.getElementById('notesList');
   el.innerHTML = notes.length
-    ? notes.map(n => `<div class="card" style="margin-bottom:8px;"><p style="white-space:pre-wrap;">${n.note_text}</p><p style="color:var(--ink-500);font-size:0.8rem;">${n.doctor_name} • ${new Date(n.created_at).toLocaleString('en-IE')}</p></div>`).join('')
+    ? notes.map(n => `<div class="card" style="margin-bottom:8px;"><p style="white-space:pre-wrap;">${esc(n.note_text)}</p><p style="color:var(--ink-500);font-size:0.8rem;">${esc(n.doctor_name)} • ${esc(new Date(n.created_at).toLocaleString('en-IE'))}</p></div>`).join('')
     : '<p style="color:var(--ink-500);">No notes yet.</p>';
 }
 
@@ -791,8 +895,8 @@ function renderPrescriptions(prescriptions) {
   document.getElementById('existingRx').innerHTML = prescriptions.length
     ? '<h4>Issued prescriptions</h4>' + prescriptions.map(p => `
       <div class="card" style="margin-bottom:8px;">
-        <strong>${p.medication}</strong> — ${p.dose}, ${p.frequency}, ${p.duration}, qty ${p.quantity}<br>${p.instructions}
-        <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${p.sent_to_email}` : ''}</p>
+        <strong>${esc(p.medication)}</strong> — ${esc(p.dose)}, ${esc(p.frequency)}, ${esc(p.duration)}, qty ${esc(p.quantity)}<br>${esc(p.instructions)}
+        <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${esc(p.sent_to_email)}` : ''}</p>
         <div style="display:flex; gap:10px;">
           <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}">Print</a>
           <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" href="/api/doctor/prescriptions/${p.id}/pdf">Download PDF</a>
@@ -829,7 +933,7 @@ function renderDocuments(documents) {
 function renderAllDocuments(prescriptions, documents) {
   const rxCards = prescriptions.map(p => `
     <div class="card" style="margin-bottom:8px;">
-      <p><strong>Prescription</strong> — ${p.medication} (${p.dose})</p>
+      <p><strong>Prescription</strong> — ${esc(p.medication)} (${esc(p.dose)})</p>
       <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${p.sent_to_email}` : ''}</p>
       <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}">Print</a>
     </div>
@@ -853,7 +957,7 @@ function docCard(d) {
     : `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendDocument(${d.id})">Send by Email</button>`;
   return `
     <div class="card" style="margin-bottom:8px;">
-      <p style="font-size:0.85rem; color:var(--ink-700);">${Object.entries(fields).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>')}</p>
+      <p style="font-size:0.85rem; color:var(--ink-700);">${Object.entries(fields).map(([k, v]) => `<strong>${esc(k)}:</strong> ${esc(v)}`).join('<br>')}</p>
       <p style="color:var(--ink-500);font-size:0.8rem;">Created ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
       <div style="display:flex; gap:10px;">
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
@@ -971,9 +1075,8 @@ function collectReferralAndIssue() {
 }
 
 async function markComplete() {
-  await doctorFetch(`/api/doctor/bookings/${currentBookingId}/complete`, { method: 'POST' });
-  if (activeTab === 'schedule') loadSchedule();
-  if (activeTab === 'recent') loadRecent();
+  await doctorFetch(`/api/doctor/bookings/${encodeURIComponent(currentBookingId)}/complete`, { method: 'POST' });
+  loadClinicSummary();
   openBooking(currentBookingId);
 }
 

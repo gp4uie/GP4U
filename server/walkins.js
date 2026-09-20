@@ -41,14 +41,17 @@ async function ensureWalkInBooking(walkinId) {
   }
 }
 
-// Keep the booking in step when a walk-in is cancelled / no-show, or reopened.
+// Keep the booking in step when a walk-in is cancelled / no-show, seen, or reopened.
 async function syncWalkInBookingStatus(walkinId, walkinStatus) {
   const w = await db.get('SELECT booking_id FROM walkin_checkins WHERE id = ?', [walkinId]);
   if (!w || !w.booking_id) return;
   if (walkinStatus === 'cancelled') {
-    await db.run("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status = 'paid'", [w.booking_id]);
+    await db.run("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status IN ('paid', 'completed')", [w.booking_id]);
+  } else if (walkinStatus === 'seen') {
+    // "Seen" means the visit is finished, so the booking is completed and counts in the patient's history and the stats.
+    await db.run("UPDATE bookings SET status = 'completed' WHERE id = ? AND status = 'paid'", [w.booking_id]);
   } else {
-    await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status = 'cancelled'", [w.booking_id]);
+    await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status IN ('cancelled', 'completed')", [w.booking_id]);
   }
 }
 

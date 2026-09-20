@@ -244,13 +244,20 @@ router.get('/bookings', requireDoctor, async (req, res) => {
 // Schedule view for one day — used by the main dashboard's 15-minute-slot calendar. Includes the
 // actual working-hours span for that day of week (see slots.js) so the calendar sizes itself to
 // real hours instead of a fixed 9-5 window — e.g. an evening shift shows in full, not cut off.
+// ?type=online (everything booked online) or ?type=walkin (walk-in visits); omitted = both.
+function typeFilter(type) {
+  if (type === 'walkin') return " AND service_type = 'walk_in'";
+  if (type === 'online') return " AND service_type <> 'walk_in'";
+  return '';
+}
+
 router.get('/schedule', requireDoctor, async (req, res) => {
   const date = req.query.date; // 'YYYY-MM-DD'
   if (!date) return res.status(400).json({ error: 'date is required' });
   const bookings = await db.all(`
-    SELECT id, patient_name, service_type, reason, slot_start, slot_end, status
+    SELECT id, patient_name, patient_dob, service_type, reason, slot_start, slot_end, status
     FROM bookings
-    WHERE status IN ('paid', 'completed') AND DATE(slot_start) = ?
+    WHERE status IN ('paid', 'completed') AND DATE(slot_start) = ?${typeFilter(req.query.type)}
     ORDER BY slot_start ASC
   `, [date]);
   const dayOfWeek = new Date(date + 'T00:00:00').getDay();
@@ -261,9 +268,9 @@ router.get('/schedule', requireDoctor, async (req, res) => {
 // Most recently handled cases (paid or completed), newest first — the "Recent Cases" tab.
 router.get('/recent', requireDoctor, async (req, res) => {
   const bookings = await db.all(`
-    SELECT id, patient_name, patient_dob, patient_phone, service_type, slot_start, status
-    FROM bookings WHERE status IN ('paid', 'completed')
-    ORDER BY slot_start DESC LIMIT 40
+    SELECT id, patient_name, patient_dob, patient_phone, service_type, reason, slot_start, status
+    FROM bookings WHERE status IN ('paid', 'completed')${typeFilter(req.query.type)}
+    ORDER BY slot_start DESC LIMIT 60
   `);
   res.json(bookings);
 });
@@ -315,12 +322,13 @@ router.get('/search', requireDoctor, async (req, res) => {
   if (!q) return res.json([]);
   const like = `%${q}%`;
   const results = await db.all(`
-    SELECT id, patient_name, patient_dob, patient_phone, service_type, slot_start, status
+    SELECT id, patient_name, patient_dob, patient_phone, patient_email, service_type, slot_start, status
     FROM bookings
     WHERE status IN ('paid', 'completed')
-      AND (patient_name LIKE ? OR patient_phone LIKE ? OR patient_dob LIKE ?)
+      AND (patient_name LIKE ? OR patient_phone LIKE ? OR patient_dob LIKE ? OR patient_email LIKE ?)
     ORDER BY slot_start DESC
-  `, [like, like, like]);
+    LIMIT 300
+  `, [like, like, like, like]);
   res.json(results);
 });
 
@@ -351,10 +359,10 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   // without having to click into each past booking separately.
   const previousBookings = await db.all(`
     SELECT id, service_type, reason, slot_start, status FROM bookings
-    WHERE ((patient_email <> '' AND patient_email = ?) OR (patient_name = ? AND patient_dob = ?))
+    WHERE ((patient_email <> '' AND patient_email = ?) OR (LOWER(TRIM(patient_name)) = ? AND patient_dob = ?))
       AND id != ? AND status IN ('paid', 'completed')
-    ORDER BY slot_start DESC LIMIT 20
-  `, [booking.patient_email || '', booking.patient_name, booking.patient_dob, req.params.id]);
+    ORDER BY slot_start DESC LIMIT 50
+  `, [booking.patient_email || '', (booking.patient_name || '').trim().toLowerCase(), booking.patient_dob, req.params.id]);
   const previousConsultations = [];
   for (const b of previousBookings) {
     previousConsultations.push({
@@ -368,13 +376,29 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   // The patient's own standing medical profile (allergies/current medications/known
   // conditions/address, kept up to date by the patient in their portal) — distinct from this
   // visit's intake answers on the booking itself, and visible regardless of which booking is open.
-  const patientProfile = await db.get(
+  let patientProfile = booking.patient_email ? await db.get(
     'SELECT address, allergies, current_medications, known_conditions FROM patients WHERE email = ?',
     [booking.patient_email]
-  );
+  ) : null;
+  // Walk-in patients have no portal account, so fall back to what they gave when they registered with the clinic
+  // (website or at the desk) — matched by name and date of birth. This is how a registration reaches the chart.
+  let profileSource = patientProfile ? 'patient portal' : null;
+  if (!patientProfile) {
+    const reg = await db.get(`
+      SELECT address, allergies, current_medications, known_conditions FROM patient_registrations
+      WHERE LOWER(TRIM(full_name)) = ? AND dob = ? ORDER BY created_at DESC LIMIT 1`,
+    [(booking.patient_name || '').trim().toLowerCase(), booking.patient_dob]);
+    if (reg) { patientProfile = reg; profileSource = 'clinic registration'; }
+  }
+  // One line of history across both routes into the clinic, for the chart banner.
+  const patientSummary = {
+    onlineVisits: previousConsultations.filter((p) => p.service_type !== 'walk_in').length,
+    walkInVisits: previousConsultations.filter((p) => p.service_type === 'walk_in').length,
+    profileSource,
+  };
 
   const { patient_token, ...safeBooking } = booking;
-  res.json({ booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile });
+  res.json({ booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile, patientSummary });
 });
 
 router.get('/attachments/:attId', requireDoctor, async (req, res) => {
@@ -473,6 +497,8 @@ router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   const wasAlreadyCompleted = booking.status === 'completed';
   await db.run("UPDATE bookings SET status = 'completed' WHERE id = ?", [req.params.id]);
+  // A walk-in finished in the chart leaves the waiting list too.
+  await db.run("UPDATE walkin_checkins SET status = 'seen', updated_at = NOW() WHERE booking_id = ? AND status IN ('expected', 'arrived')", [req.params.id]);
 
   // Best-effort, and only once per booking (consultation_summary_log guards against a repeat
   // "Mark Complete" click re-sending it) — a summary of presentation, medication issued, and any

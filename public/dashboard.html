@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=a74f129b">
+<link rel="stylesheet" href="/css/clinic.css?v=adacdb08">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -68,74 +68,110 @@
 
 <div id="dashboardBox" class="wide-shell" style="display:none;">
 
-  <div class="tab-bar" id="mainTabBar">
-    <button class="tab-btn active" id="tabBtn_today" onclick="showTab('today')">Today</button>
-    <button class="tab-btn" id="tabBtn_schedule" onclick="showTab('schedule')">Schedule</button>
-    <button class="tab-btn" id="tabBtn_search" onclick="showTab('search')">Search Patients</button>
-    <button class="tab-btn" id="tabBtn_recent" onclick="showTab('recent')">Recent Cases</button>
-    <button class="tab-btn" id="tabBtn_clinic" onclick="showTab('clinic')">Clinic <span id="clinicCount" class="side-badge" style="display:none;">0</span></button>
-    <button class="tab-btn" id="tabBtn_tasks" onclick="showTab('tasks')">Tasks <span id="taskCount" class="side-badge" style="display:none;">0</span></button>
-    <button class="tab-btn" id="tabBtn_security" onclick="showTab('security')">Security</button>
-    <button class="tab-btn" id="tabBtn_teammsg" onclick="showTab('teammsg')">Team Messages</button>
-  </div>
+  <div class="dash-app" id="dashApp">
+
+    <nav class="dash-nav" id="mainTabBar" aria-label="Doctor dashboard sections">
+      <button class="dash-link active" id="tabBtn_today" onclick="showTab('today')">Today</button>
+
+      <p class="dash-group">Clinics</p>
+      <button class="dash-link" id="tabBtn_online" onclick="showTab('online')">Online clinic <span id="onlineCount" class="side-badge" style="display:none;">0</span></button>
+      <button class="dash-link" id="tabBtn_walkin" onclick="showTab('walkin')">Walk-in clinic <span id="walkinCount" class="side-badge" style="display:none;">0</span></button>
+
+      <p class="dash-group">Patients</p>
+      <button class="dash-link" id="tabBtn_search" onclick="showTab('search')">Find a patient</button>
+      <button class="dash-link" id="tabBtn_registrations" onclick="showTab('registrations')">Registrations <span id="regCount" class="side-badge" style="display:none;">0</span></button>
+
+      <p class="dash-group">Work</p>
+      <button class="dash-link" id="tabBtn_tasks" onclick="showTab('tasks')">Tasks <span id="taskCount" class="side-badge" style="display:none;">0</span></button>
+      <button class="dash-link" id="tabBtn_teammsg" onclick="showTab('teammsg')">Team messages</button>
+
+      <p class="dash-group">Account</p>
+      <button class="dash-link" id="tabBtn_security" onclick="showTab('security')">Security</button>
+    </nav>
+
+    <div class="dash-main">
 
   <div id="tab_today">
+    <div class="page-head"><h1>Today</h1><p id="todayDate"></p></div>
     <div class="desk-stats four" aria-live="polite">
-      <div class="stat"><span class="stat-num" id="tdWaiting">–</span><span class="stat-label">Waiting now</span></div>
+      <div class="stat"><span class="stat-num" id="tdWaiting">–</span><span class="stat-label">Waiting in walk-in clinic</span></div>
       <div class="stat"><span class="stat-num" id="tdAppts">–</span><span class="stat-label">Online appointments today</span></div>
       <div class="stat"><span class="stat-num" id="tdRegs">–</span><span class="stat-label">New registrations</span></div>
       <div class="stat"><span class="stat-num" id="tdTasks">–</span><span class="stat-label">Tasks to do</span></div>
     </div>
     <div class="today-cols">
       <section aria-labelledby="tdQueueTitle">
-        <div class="today-head"><h2 id="tdQueueTitle">Walk-in queue</h2><a href="#" onclick="showTab('clinic'); return false;">Open Clinic tab →</a></div>
+        <div class="today-head"><h2 id="tdQueueTitle">Walk-in queue</h2><a href="#" onclick="showTab('walkin'); return false;">Open walk-in clinic →</a></div>
         <div id="tdQueue"></div>
       </section>
       <section aria-labelledby="tdApptTitle">
-        <div class="today-head"><h2 id="tdApptTitle">Today's online appointments</h2><a href="#" onclick="showTab('schedule'); return false;">Open schedule →</a></div>
+        <div class="today-head"><h2 id="tdApptTitle">Today's online appointments</h2><a href="#" onclick="showTab('online'); return false;">Open online clinic →</a></div>
         <div id="tdAppts2"></div>
       </section>
     </div>
   </div>
 
-  <div id="tab_schedule" style="display:none;">
-    <div class="schedule-nav">
-      <button class="btn btn-secondary" onclick="changeDay(-1)">← Prev</button>
-      <h3 id="scheduleDateLabel"></h3>
-      <button class="btn btn-secondary" onclick="changeDay(1)">Next →</button>
-      <button class="btn btn-secondary" onclick="goToToday()">Today</button>
+  <div id="tab_online" style="display:none;">
+    <div class="page-head"><h1>Online clinic</h1><p>Video, phone and prescription consultations booked on the website.</p></div>
+    <div class="view-bar">
+      <div class="seg" role="tablist" aria-label="Online clinic views">
+        <button class="seg-btn active" data-onlineview="day" onclick="setOnlineView('day')">Day list</button>
+        <button class="seg-btn" data-onlineview="calendar" onclick="setOnlineView('calendar')">Calendar</button>
+        <button class="seg-btn" data-onlineview="recent" onclick="setOnlineView('recent')">Recent</button>
+      </div>
+      <div class="schedule-nav" id="onlineDayNav">
+        <button class="btn btn-secondary" onclick="changeDay(-1)" aria-label="Previous day">←</button>
+        <h3 id="scheduleDateLabel"></h3>
+        <button class="btn btn-secondary" onclick="changeDay(1)" aria-label="Next day">→</button>
+        <button class="btn btn-secondary" onclick="goToToday()">Today</button>
+      </div>
     </div>
-    <div class="schedule-grid" id="scheduleGrid"></div>
+    <div id="onlineDay"></div>
+    <div id="onlineCalendar" style="display:none;"><div class="schedule-grid" id="scheduleGrid"></div></div>
+    <div id="onlineRecent" style="display:none;">
+      <div class="table-scroll">
+        <table class="bookings-table">
+          <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>Status</th></tr></thead>
+          <tbody id="recentBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <div id="tab_search" style="display:none;">
-    <h1>Find a Patient Record</h1>
-    <p style="color:var(--ink-500);">Search by first name, last name, phone number, or date of birth (full or partial — e.g. just "1990"). Matches paid or completed bookings.</p>
-    <div style="display:flex; gap:10px; max-width:500px;">
-      <input id="searchInput" placeholder="e.g. Mary, Byrne, 0851234567, or 1990-04-12" style="flex:1; padding:10px 12px; border:1.5px solid var(--line); border-radius:8px;">
-      <button class="btn btn-primary" onclick="runSearch()">Search</button>
+  <div id="tab_walkin" style="display:none;">
+    <div class="page-head"><h1>Walk-in clinic</h1><p>People who check in online or are added at the front desk. No appointment needed — refreshes automatically.</p></div>
+    <div class="desk-stats" aria-live="polite">
+      <div class="stat"><span class="stat-num" id="wcWaiting">–</span><span class="stat-label">Waiting now</span></div>
+      <div class="stat"><span class="stat-num" id="wcSeen">–</span><span class="stat-label">Seen today</span></div>
+      <div class="stat"><span class="stat-num" id="wcTotal">–</span><span class="stat-label">Walk-ins today</span></div>
     </div>
-    <div id="searchResults" style="margin-top:16px;"></div>
-  </div>
-
-  <div id="tab_recent" style="display:none;">
-    <h1>Recent Cases</h1>
+    <h2 class="sect">Queue</h2>
+    <div id="walkInList"></div>
+    <h2 class="sect">Recent walk-in visits</h2>
     <div class="table-scroll">
       <table class="bookings-table">
-        <thead><tr><th>When</th><th>Service</th><th>Patient</th><th>Status</th></tr></thead>
-        <tbody id="recentBody"></tbody>
+        <thead><tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead>
+        <tbody id="walkinRecentBody"></tbody>
       </table>
     </div>
   </div>
 
-  <div id="tab_clinic" style="display:none;">
-    <h1>Clinic</h1>
-    <h2 style="font-size:1.25rem;margin:18px 0 6px;">Walk-in list</h2>
-    <p style="color:var(--ink-500);margin-top:0;">People who have checked in online for the walk-in clinic in the last 24 hours, in the order they checked in. This refreshes automatically.</p>
-    <div id="walkInList"></div>
+  <div id="tab_search" style="display:none;">
+    <div class="page-head"><h1>Find a patient</h1><p>Search by name, phone, email or date of birth (full or partial, e.g. just "1990"). Walk-in and online visits are shown together under each patient.</p></div>
+    <form class="search-bar" onsubmit="runSearch(); return false;">
+      <input id="searchInput" type="search" placeholder="e.g. Mary Byrne, 0851234567 or 1990-04-12" aria-label="Search patients" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+    <div id="searchResults" style="margin-top:18px;"></div>
+  </div>
 
-    <h2 style="font-size:1.25rem;margin:32px 0 6px;">New patient registrations</h2>
-    <p style="color:var(--ink-500);margin-top:0;">Submitted from the public New Patients form. Open one to see the full details, then mark it processed once the patient (and any family members) are set up.</p>
+  <div id="tab_registrations" style="display:none;">
+    <div class="page-head"><h1>Registrations</h1><p>New patients registering with the clinic, from the website or at the front desk. Open one, then mark it processed once the patient (and family) are set up.</p></div>
+    <div class="seg" role="tablist" aria-label="Registration source" style="margin-bottom:16px;">
+      <button class="seg-btn active" data-regsource="all" onclick="setRegSource('all')">All</button>
+      <button class="seg-btn" data-regsource="online" onclick="setRegSource('online')">Website</button>
+      <button class="seg-btn" data-regsource="desk" onclick="setRegSource('desk')">At desk</button>
+    </div>
     <div id="registrationList"></div>
   </div>
 
@@ -194,24 +230,28 @@
     </div>
   </div>
 
+
+    </div><!-- /dash-main -->
+  </div><!-- /dash-app -->
+
   <div id="detailPanel" class="chart-view" style="display:none;">
     <div class="chart-view-header">
       <div class="chart-view-header-row">
-        <button class="btn btn-secondary" id="chartBackBtn" onclick="closeChart()">← Back to <span id="chartBackLabel">List</span></button>
+        <button class="btn btn-secondary" id="chartBackBtn" onclick="closeChart()">← Back to&nbsp;<span id="chartBackLabel">List</span></button>
         <h2 id="chartHeader">Booking Detail</h2>
         <div style="display:flex; gap:10px;">
           <button class="btn btn-secondary" onclick="navigateCase(-1)">◀ Previous Case</button>
           <button class="btn btn-secondary" onclick="navigateCase(1)">Next Case ▶</button>
         </div>
       </div>
-      <p id="chartPatientMeta" class="chart-patient-meta"></p>
+      <div id="chartPatientMeta" class="chart-patient-meta"></div>
     </div>
 
     <div class="side-layout" style="margin-top:20px;">
       <div class="side-nav">
         <button class="chart-tab-btn active" data-chart-tab="overview" onclick="showChartTab('overview')">Overview</button>
-        <button class="chart-tab-btn" data-chart-tab="previous" onclick="showChartTab('previous')">Previous Consultations</button>
-        <button class="chart-tab-btn" data-chart-tab="messages" onclick="showChartTab('messages')">Message Patient</button>
+        <button class="chart-tab-btn" data-chart-tab="previous" onclick="showChartTab('previous')">History <span class="side-badge" id="historyCount" style="display:none;">0</span></button>
+        <button class="chart-tab-btn" id="chartTabBtn_messages" data-chart-tab="messages" onclick="showChartTab('messages')">Message Patient</button>
         <button class="chart-tab-btn" data-chart-tab="notes" onclick="showChartTab('notes')">Clinical Notes</button>
         <button class="chart-tab-btn" data-chart-tab="prescription" onclick="showChartTab('prescription')">Prescription</button>
         <button class="chart-tab-btn" data-chart-tab="sickcert" onclick="showChartTab('sickcert')">Sick Cert</button>
@@ -227,15 +267,15 @@
           <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
             <a id="joinCallBtn" class="btn btn-primary">Join Video Call</a>
             <a id="joinAudioCallBtn" class="btn btn-secondary">Join Audio Call</a>
-            <button class="btn btn-secondary" onclick="markComplete()">Mark Complete</button>
+            <button class="btn btn-primary" id="markCompleteBtn" onclick="markComplete()">Mark Complete</button>
           </div>
           <h3 style="margin-top:24px;">Patient Attachments</h3>
           <div id="attachmentsList"><p style="color:var(--ink-500);">None uploaded.</p></div>
         </div>
 
         <div id="chartSection_previous" style="display:none;">
-          <h3 style="margin-top:0;">Previous Consultations for this Patient</h3>
-          <p style="color:var(--ink-500); font-size:0.9rem;">Every past visit's notes, prescriptions, and documents — visible here without opening each one separately.</p>
+          <h3 style="margin-top:0;">Patient history</h3>
+          <p id="historySummary" style="color:var(--ink-500); font-size:0.9rem;"></p>
           <div id="previousConsultationsList"></div>
         </div>
 
@@ -377,8 +417,8 @@
 
 </main>
 
-<script src="/js/dashboard.js?v=e01c4d2d"></script>
-<script src="/js/dashboard-clinic.js?v=1a8c870b"></script>
+<script src="/js/dashboard.js?v=82056b64"></script>
+<script src="/js/dashboard-clinic.js?v=d1d39645"></script>
 <script src="/js/clinic.js?v=12af1e11"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>

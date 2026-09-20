@@ -439,42 +439,94 @@ async function main() {
       await tab.ev(`document.querySelector('#loginBox button.btn-primary').click()`);
       await tab.waitFor(`getComputedStyle(document.getElementById('dashboardBox')).display !== 'none'`, 10000, 'dashboard');
     });
-    await test('doctor dashboard: staff header (no public menu), Today overview with queue and appointments', async () => {
-      const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), publicNav: !!document.querySelector('a[href="/walk-in.html"]'), todayVisible: getComputedStyle(document.getElementById('tab_today')).display !== 'none', scheduleHidden: getComputedStyle(document.getElementById('tab_schedule')).display === 'none' })`);
+    await test('doctor dashboard: staff header, left menu with separate Online / Walk-in clinics, Today overview', async () => {
+      const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), publicNav: !!document.querySelector('a[href="/walk-in.html"]'), todayVisible: getComputedStyle(document.getElementById('tab_today')).display !== 'none', onlineHidden: getComputedStyle(document.getElementById('tab_online')).display === 'none', menu: [...document.querySelectorAll('.dash-link')].map((b) => b.textContent.trim().replace(/\\s+\\d+$/, '')) })`);
       assert(r.role === 'Doctor' && !r.publicNav, 'doctor header should be the staff header without the public menu: ' + JSON.stringify(r));
-      assert(r.todayVisible && r.scheduleHidden, 'the Today tab should be the default');
-      await tab.waitFor(`[...document.querySelectorAll('.desk-stats .stat-num')].every((e) => /^\\d+$/.test(e.textContent)) && document.getElementById('tdQueue').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'Today overview with the walk-in in the queue');
-      assert(await tab.ev(`!!([...document.querySelectorAll('#tdQueue button')].find((b) => /Mark seen/.test(b.textContent)))`), 'a quick "Mark seen" action should be available');
+      assert(r.todayVisible && r.onlineHidden, 'the Today section should be the default');
+      assert(r.menu.includes('Online clinic') && r.menu.includes('Walk-in clinic') && r.menu.includes('Find a patient') && r.menu.includes('Registrations'), 'menu should list the clinics separately: ' + r.menu.join(' | '));
+      await tab.waitFor(`[...document.querySelectorAll('#tab_today .stat-num')].every((e) => /^\\d+$/.test(e.textContent)) && document.getElementById('tdQueue').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'Today overview with the walk-in in the queue');
+      assert(await tab.ev(`!!([...document.querySelectorAll('#tdQueue button')].find((b) => /Open chart/.test(b.textContent))) && !!([...document.querySelectorAll('#tdQueue button')].find((b) => /Mark seen/.test(b.textContent)))`), 'quick "Open chart" and "Mark seen" actions should be available');
       assert(await tab.ev(`document.querySelector('#tdQueue img') === null`), 'patient text was rendered as HTML');
       const codes = await tab.ev(`Promise.all(['/api/reception/summary', '/api/reception/walk-ins', '/api/reception/registrations'].map((u) => fetch(u).then((r) => r.status)))`);
       assert(codes.every((c) => c === 401), 'a doctor session must not be accepted by the front-desk API: ' + codes.join(','));
       await tab.shot('doctor-today');
     });
-    await test('Clinic tab: walk-in appears, text is escaped, status buttons work', async () => {
-      await tab.ev(`showTab('clinic')`);
-      await tab.waitFor(`document.getElementById('walkInList').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'walk-in in list');
+    await test('every section opens on its own, at the top of the page — no scrolling to find it', async () => {
+      for (const t of ['online', 'walkin', 'search', 'registrations', 'tasks', 'teammsg', 'security', 'today']) {
+        await tab.ev(`window.scrollTo(0, 600); showTab('${t}')`); await sleep(300);
+        const r = await tab.ev(`(() => { const shown = [...document.querySelectorAll('[id^="tab_"]')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.id); const el = document.getElementById('tab_${t}'); return { shown, top: Math.round(el.getBoundingClientRect().top), scrollY: Math.round(window.scrollY), active: document.getElementById('tabBtn_${t}').classList.contains('active'), h: window.innerHeight }; })()`);
+        assert(r.shown.length === 1 && r.shown[0] === 'tab_' + t, t + ': only its own section should be showing, got ' + r.shown.join(','));
+        assert(r.active && r.scrollY === 0 && r.top < r.h / 2, t + ': should open at the top and be visible immediately: ' + JSON.stringify(r));
+      }
+      await tab.ev(`showTab('online')`); await sleep(300); await tab.shot('doctor-online');
+      await tab.ev(`showTab('walkin')`); await sleep(400); await tab.shot('doctor-walkin');
+    });
+    await test('doctor dashboard fits a phone: menu becomes a scrolling strip, no sideways scrolling in any section', async () => {
+      await tab.mobile(true);
+      try {
+        for (const t of ['today', 'online', 'walkin', 'search', 'registrations']) {
+          await tab.ev(`showTab('${t}')`); await sleep(400);
+          const r = await tab.ev(`({ over: document.documentElement.scrollWidth - document.documentElement.clientWidth, dir: getComputedStyle(document.getElementById('mainTabBar')).flexDirection })`);
+          assert(r.over <= 1 && r.dir === 'row', t + ' overflows or the menu is not a strip on a phone: ' + JSON.stringify(r));
+        }
+        await tab.shot('doctor-mobile-walkin');
+      } finally { await tab.mobile(false); }
+      await tab.ev(`showTab('today')`);
+    });
+    await test('Walk-in clinic: queue, escaped text, Open chart creates the walk-in chart (no call buttons), Mark seen', async () => {
+      await tab.ev(`showTab('walkin')`);
+      await tab.waitFor(`document.getElementById('walkInList').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'walk-in in queue');
       assert(await tab.ev(`document.querySelector('#walkInList img') === null`), 'patient text was rendered as HTML');
-      const card = `[...document.querySelectorAll('#walkInList .card')].find((c) => c.innerText.includes(${JSON.stringify(ctx.walkinName)}))`;
-      await tab.ev(`[...${card}.querySelectorAll('button')].find((b) => /Mark arrived/.test(b.textContent)).click()`);
-      await tab.waitFor(`${card}.innerText.includes('Arrived')`, 6000, 'status Arrived');
+      const card = `[...document.querySelectorAll('#walkInList .queue-card')].find((c) => c.innerText.includes(${JSON.stringify(ctx.walkinName)}))`;
+      await tab.ev(`[...${card}.querySelectorAll('button')].find((b) => /Open chart/.test(b.textContent)).click()`);
+      await tab.waitFor(`getComputedStyle(document.getElementById('detailPanel')).display !== 'none' && document.getElementById('chartHeader').textContent === ${JSON.stringify(ctx.walkinName)}`, 10000, 'walk-in chart');
+      const c = await tab.ev(`({ banner: document.getElementById('chartPatientMeta').innerText, callHidden: getComputedStyle(document.getElementById('joinCallBtn')).display === 'none', msgHidden: getComputedStyle(document.getElementById('chartTabBtn_messages')).display === 'none', img: !!document.querySelector('#detailPanel img'), xss: window.__xss === undefined, menuHidden: getComputedStyle(document.getElementById('dashApp')).display === 'none', back: document.getElementById('chartBackLabel').textContent })`);
+      assert(/Walk-in/.test(c.banner) && /First visit/.test(c.banner), 'banner should show a walk-in, first visit: ' + c.banner);
+      assert(c.callHidden && c.msgHidden, 'video/audio call and patient messaging do not apply to a walk-in');
+      assert(!c.img && c.xss, 'patient text was rendered as HTML in the chart');
+      assert(c.menuHidden && c.back === 'Walk-in clinic', 'chart should be full page with a Back link to the section it came from: ' + JSON.stringify(c));
+      await tab.shot('doctor-walkin-chart');
+      await tab.ev(`closeChart()`);
+      await tab.waitFor(`getComputedStyle(document.getElementById('tab_walkin')).display !== 'none' && getComputedStyle(document.getElementById('dashApp')).display !== 'none'`, 5000, 'back on the walk-in clinic');
+      await tab.waitFor(`${card}.innerText.includes('Arrived')`, 6000, 'status Arrived after opening the chart');
       await tab.ev(`[...${card}.querySelectorAll('button')].find((b) => /Mark seen/.test(b.textContent)).click()`);
       await tab.waitFor(`${card}.innerText.includes('Seen')`, 6000, 'status Seen');
+      await tab.waitFor(`document.getElementById('walkinRecentBody').innerText.includes(${JSON.stringify(ctx.walkinName)}) && /Completed/.test(document.getElementById('walkinRecentBody').innerText)`, 8000, 'walk-in in recent visits, completed');
     });
-    await test('Clinic tab: registration shows family members and can be marked processed', async () => {
+    await test('Registrations section: family members, health info, website vs at-desk filter, mark processed', async () => {
+      await tab.ev(`showTab('registrations')`);
       await tab.waitFor(`document.getElementById('registrationList').innerText.includes(${JSON.stringify(ctx.regName)})`, 8000, 'registration in list');
       const det = `[...document.querySelectorAll('#registrationList details')].find((d) => d.innerText.includes(${JSON.stringify(ctx.regName)}))`;
       await tab.ev(`${det}.open = true`);
       const text = await tab.ev(`${det}.innerText`);
-      assert(/Family members to register \(1\)/.test(text) && text.includes('ZZ TEST Kid'), 'family member missing');
+      assert(/Family members \(1\)/.test(text) && text.includes('ZZ TEST Kid'), 'family member missing');
       assert(text.includes('TEST ADDRESS'), 'encrypted address did not decrypt for the doctor');
+      await tab.ev(`document.querySelector('[data-regsource=desk]').click()`);
+      assert(await tab.ev(`!document.getElementById('registrationList').innerText.includes(${JSON.stringify(ctx.regName)})`), 'a website registration should not be under "At desk"');
+      await tab.ev(`document.querySelector('[data-regsource=all]').click()`);
       await tab.ev(`[...${det}.querySelectorAll('button')].find((b) => /Mark as processed/.test(b.textContent)).click()`);
       await tab.waitFor(`document.getElementById('registrationList').innerText.includes('Processed')`, 6000, 'status Processed');
     });
-    await test('the online booking appears in Recent Cases and its chart opens with the patient message', async () => {
-      await tab.ev(`showTab('recent')`);
-      await tab.waitFor(`document.getElementById('recentBody').innerText.includes(${JSON.stringify(ctx.patientName)})`, 8000, 'booking in recent cases');
+    await test('Online clinic: the booking is under Online (day list and Recent), not Walk-in; its chart opens with the patient message', async () => {
+      await tab.ev(`showTab('online'); goToToday(); setOnlineView('day')`);
+      let found = false;
+      for (let i = 0; i < 15 && !found; i++) {
+        await sleep(500);
+        found = await tab.ev(`document.getElementById('onlineDay').innerText.includes(${JSON.stringify(ctx.patientName)})`);
+        if (!found) await tab.ev(`changeDay(1)`);
+      }
+      assert(found, 'the online booking should be on a day of the Online clinic list');
+      assert(await tab.ev(`document.getElementById('onlineDay').innerText.includes('E2E test consultation')`), 'the reason should show on the appointment card');
+      const walkIn = await tab.ev(`fetch('/api/doctor/recent?type=walkin').then((r) => r.text())`);
+      const online = await tab.ev(`fetch('/api/doctor/recent?type=online').then((r) => r.text())`);
+      assert(!walkIn.includes(ctx.patientName) && online.includes(ctx.patientName), 'online and walk-in lists must be separate');
+      assert(!(await tab.ev(`fetch('/api/doctor/recent?type=online').then((r) => r.text())`)).includes(ctx.walkinName), 'a walk-in appeared in the online list');
+      await tab.ev(`setOnlineView('recent')`);
+      await tab.waitFor(`document.getElementById('recentBody').innerText.includes(${JSON.stringify(ctx.patientName)})`, 8000, 'booking in recent online cases');
       await tab.ev(`[...document.querySelectorAll('#recentBody tr')].find((r) => r.innerText.includes(${JSON.stringify(ctx.patientName)})).click()`);
       await tab.waitFor(`getComputedStyle(document.getElementById('detailPanel')).display !== 'none' && document.getElementById('detailPanel').textContent.includes('E2E: hello doctor')`, 10000, 'chart with patient message');
+      assert(await tab.ev(`getComputedStyle(document.getElementById('joinCallBtn')).display !== 'none' && getComputedStyle(document.getElementById('chartTabBtn_messages')).display !== 'none'`), 'call buttons and messaging should be there for an online consultation');
+      await tab.shot('doctor-chart-online');
     });
     await test('doctor replies, records a note, issues a prescription and completes the consultation', async () => {
       const post = (url, body) => tab.ev(`fetch(${JSON.stringify(url)}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(${JSON.stringify(body)}) }).then((r) => r.status)`);
@@ -557,6 +609,11 @@ async function main() {
         const again = (await tab.ev(`fetch('/api/reception/walk-ins').then((r) => r.json())`)).find((r) => r.id === ctx.deskWalkinId);
         assert(again.booking_id === ctx.deskBookingId, 'the walk-in must keep the same single booking');
         await tab.waitFor(`document.getElementById('statWaiting').textContent !== '–'`, 4000, 'stats');
+      });
+      await test('history sync setup: the same person (who booked online) is also added as a walk-in at the desk', async () => {
+        const r = await tab.ev(`fetch('/api/reception/walk-ins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName: ${JSON.stringify(ctx.patientName)}, dob: '1985-03-04', phone: '0851112222', reason: 'E2E earlier walk-in visit' }) }).then((r) => r.json())`);
+        assert(r.ok && /^WALK-/.test(r.bookingId || ''), 'desk walk-in for an existing patient failed: ' + JSON.stringify(r));
+        ctx.syncWalkinBookingId = r.bookingId;
       });
       await test('"Register to clinic" tab: register a patient at the desk (validation, consent, family) — separate from website registrations', async () => {
         await tab.ev(`document.getElementById('tabBtn_desk').click()`);
@@ -655,11 +712,36 @@ async function main() {
         // Clinic tab: desk registration shows the At desk badge; website one does not
         await tab.goto('/dashboard.html');
         await tab.waitFor(`getComputedStyle(document.getElementById('dashboardBox')).display !== 'none'`, 10000, 'dashboard');
-        await tab.ev(`showTab('clinic')`);
-        await tab.waitFor(`document.getElementById('registrationList').innerText.includes(${JSON.stringify(ctx.deskRegName)})`, 8000, 'desk registration in doctor Clinic tab');
+        await tab.ev(`showTab('registrations')`);
+        await tab.waitFor(`document.getElementById('registrationList').innerText.includes(${JSON.stringify(ctx.deskRegName)})`, 8000, 'desk registration in the doctor Registrations section');
         const badges = await tab.ev(`(() => { const d = (n) => [...document.querySelectorAll('#registrationList details')].find((x) => x.innerText.includes(n)); return { desk: d(${JSON.stringify(ctx.deskRegName)}).innerText.includes('At desk'), web: d(${JSON.stringify(ctx.regName)}).innerText.includes('At desk') }; })()`);
         assert(badges.desk && !badges.web, 'only desk registrations should carry the At desk badge: ' + JSON.stringify(badges));
         await tab.shot('doctor-desk-registration');
+        await tab.ev(`fetch('/api/doctor/logout', { method: 'POST' })`);
+      });
+      await test('patient chart sync: a walk-in and an online booking by the same person appear in each other\'s history', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/dashboard.html');
+        assert(await postJson('/api/doctor/login', { email: DOCTOR_EMAIL, password: DOCTOR_PASSWORD }) === 200, 'doctor login failed');
+        const walkChart = await tab.ev(`fetch('/api/doctor/bookings/${ctx.syncWalkinBookingId}').then((r) => r.json())`);
+        assert(walkChart.previousConsultations.some((p) => p.id === ctx.bookingId), 'the walk-in chart should list the earlier online consultation');
+        assert(walkChart.patientSummary.onlineVisits === 1, 'summary should count the online visit: ' + JSON.stringify(walkChart.patientSummary));
+        const onlineChart = await tab.ev(`fetch('/api/doctor/bookings/${ctx.bookingId}').then((r) => r.json())`);
+        const hit = onlineChart.previousConsultations.find((p) => p.id === ctx.syncWalkinBookingId);
+        assert(hit && hit.service_type === 'walk_in', 'the online chart should list the walk-in visit in its history');
+        // ...and in the UI
+        await tab.goto('/dashboard.html');
+        await tab.waitFor(`getComputedStyle(document.getElementById('dashboardBox')).display !== 'none'`, 10000, 'dashboard');
+        await tab.ev(`openBooking(${JSON.stringify(ctx.bookingId)}, 'search')`);
+        await tab.waitFor(`getComputedStyle(document.getElementById('detailPanel')).display !== 'none' && /1 previous visit/.test(document.getElementById('chartPatientMeta').innerText)`, 10000, 'online chart banner mentions the walk-in');
+        await tab.ev(`showChartTab('previous')`);
+        assert(await tab.ev(`/Walk-in/.test(document.getElementById('previousConsultationsList').innerText) && /E2E earlier walk-in visit/.test(document.getElementById('previousConsultationsList').innerText)`), 'the History tab should show the walk-in visit and its reason');
+        await tab.shot('doctor-chart-history');
+        await tab.ev(`closeChart(); showTab('search'); document.getElementById('searchInput').value = ${JSON.stringify(ctx.patientName)}; runSearch();`);
+        await tab.waitFor(`document.querySelectorAll('#searchResults .patient-card').length === 1`, 8000, 'one grouped patient card');
+        const card = await tab.ev(`document.querySelector('#searchResults .patient-card').innerText`);
+        assert(/2 visits/.test(card) && /1 walk-in/.test(card) && /1 online/.test(card), 'search should group both visits under one patient: ' + card);
+        await tab.shot('doctor-search');
         await tab.ev(`fetch('/api/doctor/logout', { method: 'POST' })`);
       });
     }
