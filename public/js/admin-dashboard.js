@@ -28,12 +28,13 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['analytics', 'doctors', 'patients', 'rx', 'accesslog', 'messages'].forEach((t) => {
+  ['analytics', 'doctors', 'reception', 'patients', 'rx', 'accesslog', 'messages'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'analytics') loadAnalytics();
   if (tab === 'doctors') loadDoctors();
+  if (tab === 'reception') loadReception();
   if (tab === 'patients') loadPatients();
   if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
   if (tab === 'accesslog') loadAccessLog();
@@ -360,3 +361,64 @@ async function sendStaffMessage() {
 }
 
 checkAdminSession();
+
+
+// ---------------------------------------------------------------- Reception (front-desk) accounts
+function recEsc(v) {
+  return String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+async function loadReception() {
+  const res = await fetch('/api/admin/receptionists');
+  const rows = await res.json();
+  document.getElementById('receptionBody').innerHTML = rows.map((r) => `
+    <tr>
+      <td>${recEsc(r.name)}</td>
+      <td>${recEsc(r.email)}</td>
+      <td><span class="badge ${r.active ? 'badge-green' : 'badge-amber'}">${r.active ? 'Active' : 'Deactivated'}</span></td>
+      <td><span class="online-dot ${r.online ? 'online' : ''}"></span>${r.online ? 'Online' : 'Offline'}</td>
+      <td>${r.last_login_at ? new Date(r.last_login_at).toLocaleString('en-IE') : 'Never'}</td>
+      <td>
+        <details><summary style="cursor:pointer;font-weight:700;">Set new password</summary>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <input type="password" id="recPw${r.id}" placeholder="New password" aria-label="New password for ${recEsc(r.name)}" autocomplete="new-password" style="min-width:150px;">
+            <button class="btn btn-secondary" style="padding:8px 14px;" onclick="setReceptionPassword(${r.id})">Save</button>
+          </div>
+        </details>
+      </td>
+      <td>${r.active
+        ? `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, false)">Deactivate</button>`
+        : `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, true)">Reactivate</button>`}</td>
+    </tr>`).join('') || '<tr><td colspan="7">No reception accounts yet.</td></tr>';
+}
+
+async function addReceptionist() {
+  const msg = document.getElementById('receptionMsg');
+  msg.style.color = ''; msg.textContent = '';
+  const body = {
+    name: document.getElementById('newRecName').value,
+    email: document.getElementById('newRecEmail').value,
+    password: document.getElementById('newRecPassword').value,
+  };
+  const res = await fetch('/api/admin/receptionists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { msg.textContent = data.error || 'Could not add this account.'; return; }
+  ['newRecName', 'newRecEmail', 'newRecPassword'].forEach((id) => { document.getElementById(id).value = ''; });
+  msg.style.color = 'var(--teal-700)'; msg.textContent = 'Receptionist added. Give them their email and password in person — they sign in at /reception.html.';
+  loadReception();
+}
+
+async function setReceptionActive(id, active) {
+  await fetch('/api/admin/receptionists/' + id + (active ? '/reactivate' : '/deactivate'), { method: 'POST' });
+  loadReception();
+}
+
+async function setReceptionPassword(id) {
+  const input = document.getElementById('recPw' + id);
+  const msg = document.getElementById('receptionMsg');
+  const res = await fetch('/api/admin/receptionists/' + id + '/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: input.value }) });
+  const data = await res.json().catch(() => ({}));
+  msg.style.color = res.ok ? 'var(--teal-700)' : '';
+  msg.textContent = res.ok ? 'Password updated.' : (data.error || 'Could not update the password.');
+  if (res.ok) input.value = '';
+}

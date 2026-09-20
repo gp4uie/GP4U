@@ -20,6 +20,7 @@
   });
 
   if (!document.body.classList.contains('clinic-page')) return;
+  if (document.body.classList.contains('staff-page')) return; // staff tools: no public-site behaviour (login swap, reveal)
 
   // Mark the link for the page you're on (helps everyone, and screen readers announce it).
   const here = location.pathname === '/' ? '/index.html' : location.pathname;

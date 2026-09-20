@@ -304,6 +304,22 @@ async function initSchema() {
   // Same online-heartbeat idea as doctors.last_active_at (see requireAdmin in routes/admin.js).
   await ensureColumn('admins', 'last_active_at', 'DATETIME NULL');
 
+  // Front-desk staff. A separate, deliberately low-privilege role: they run the walk-in queue, see the day's
+  // appointments and process registrations (see routes/reception.js for exactly what they can and cannot see).
+  // Accounts are created by an admin; `active = 0` blocks login immediately without losing the account.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS receptionists (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      last_login_at DATETIME NULL,
+      last_active_at DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Internal staff chat: either a broadcast to the whole team (recipient_type/recipient_id NULL,
   // the "Everyone" board) or a private 1:1 message between one admin and one doctor
   // (recipient_type/recipient_id identify who it's addressed to; a row also shows in the sender's

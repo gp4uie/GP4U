@@ -6,24 +6,27 @@
 <title>Edit Website Content — GP4U</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
-<!-- @fonts -->
+<!-- @head -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
-<!-- @/fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
+<link rel="stylesheet" href="/css/clinic.css?v=0a3e5814">
+<!-- @/head -->
 </head>
-<body>
+<body class="clinic-page staff-page">
 
-<header class="site-header">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header staff-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
-    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
-    <nav class="main-nav">
-      <a href="/admin-dashboard.html">← Back to Admin Dashboard</a>
+    <a class="brand" href="/admin-dashboard.html" aria-label="GP4U Clinic — Admin"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
+    <span class="staff-role">Admin</span>
+    <nav class="main-nav" aria-label="Account">
+      <a href="/admin-dashboard.html">← Back to admin dashboard</a>
     </nav>
   </div>
 </header>
+<main id="main">
 
 <div id="loginNotice" class="page-shell" style="display:none;">
   <div class="notice"><strong>Please log in</strong> Go to the <a href="/admin-login.html">admin login</a> and log in first, then come back to this page.</div>
@@ -89,7 +92,9 @@
   <button class="btn btn-primary" onclick="addPost()">Add Post</button>
 </div>
 
+</main>
+
 <script src="/js/content-editor.js?v=4fbb4241"></script>
-<script src="/js/nav-toggle.js?v=6617be3e"></script>
+<script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

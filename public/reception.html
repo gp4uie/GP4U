@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Front desk — GP4U Clinic</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<!-- @head -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="/css/style.css?v=8533d8cb">
+<link rel="stylesheet" href="/css/clinic.css?v=0a3e5814">
+<!-- @/head -->
+</head>
+<body class="clinic-page staff-page">
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header staff-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/reception.html" aria-label="GP4U Clinic — front desk"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
+    <span class="staff-role">Front desk</span>
+    <nav class="main-nav" aria-label="Account">
+      <span id="whoami" class="staff-who"></span>
+      <a href="#" id="logoutLink" hidden>Log out</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- SIGN IN -->
+<div id="loginBox" class="staff-login">
+  <div class="card">
+    <h1>Front desk sign in</h1>
+    <p>Sign in with the account your practice administrator created for you.</p>
+    <form id="loginForm" novalidate>
+      <div class="form-row"><label for="emailInput">Email</label><input id="emailInput" type="email" autocomplete="username" inputmode="email"></div>
+      <div class="form-row"><label for="passwordInput">Password</label><input id="passwordInput" type="password" autocomplete="current-password"></div>
+      <p id="loginError" role="alert" class="staff-error"></p>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in</button>
+    </form>
+    <p class="staff-hint">Forgotten your password? Ask your practice administrator to set a new one.</p>
+  </div>
+</div>
+
+<!-- DESK -->
+<div id="deskBox" class="staff-shell" hidden>
+
+  <div class="desk-stats" aria-live="polite">
+    <div class="stat"><span class="stat-num" id="statWaiting">–</span><span class="stat-label">Waiting now</span></div>
+    <div class="stat"><span class="stat-num" id="statAppts">–</span><span class="stat-label">Online appointments today</span></div>
+    <div class="stat"><span class="stat-num" id="statRegs">–</span><span class="stat-label">New registrations</span></div>
+  </div>
+
+  <div class="tab-bar" role="tablist" aria-label="Front desk sections">
+    <button class="tab-btn active" role="tab" id="tabBtn_queue" aria-selected="true" aria-controls="panel_queue" data-tab="queue">Walk-in queue <span class="side-badge" id="badgeQueue" hidden>0</span></button>
+    <button class="tab-btn" role="tab" id="tabBtn_appts" aria-selected="false" aria-controls="panel_appts" data-tab="appts">Today's appointments</button>
+    <button class="tab-btn" role="tab" id="tabBtn_regs" aria-selected="false" aria-controls="panel_regs" data-tab="regs">New registrations <span class="side-badge" id="badgeRegs" hidden>0</span></button>
+  </div>
+
+  <!-- Walk-in queue -->
+  <section id="panel_queue" role="tabpanel" aria-labelledby="tabBtn_queue">
+    <details class="desk-add card" id="addWalkin">
+      <summary><span class="btn btn-secondary">+ Add a walk-in at the desk</span></summary>
+      <form id="addForm" novalidate>
+        <p class="staff-hint" style="margin-top:0;">For someone who has arrived without checking in online. They are added to the queue as "arrived".</p>
+        <div class="form-grid">
+          <div class="form-row"><label for="addName">Full name <span class="req">*</span></label><input id="addName" maxlength="255" autocomplete="off"></div>
+          <div class="form-row"><label for="addDob">Date of birth <span class="req">*</span></label><input id="addDob" type="date" min="1900-01-01"></div>
+          <div class="form-row"><label for="addPhone">Phone <span class="req">*</span></label><input id="addPhone" type="tel" maxlength="64" autocomplete="off"></div>
+          <div class="form-row"><label for="addReason">Reason for visit <span class="req">*</span></label><input id="addReason" maxlength="500" autocomplete="off"></div>
+        </div>
+        <p id="addError" role="alert" class="staff-error"></p>
+        <button class="btn btn-primary" type="submit">Add to queue</button>
+      </form>
+    </details>
+    <p class="staff-hint">People who checked in online in the last 24 hours, plus anyone added at the desk. Refreshes automatically.</p>
+    <div id="queueList" aria-live="polite"></div>
+  </section>
+
+  <!-- Today's appointments -->
+  <section id="panel_appts" role="tabpanel" aria-labelledby="tabBtn_appts" hidden>
+    <div class="schedule-nav">
+      <button class="btn btn-secondary" type="button" id="dayPrev">← Previous day</button>
+      <h2 id="dayLabel" style="margin:0;"></h2>
+      <button class="btn btn-secondary" type="button" id="dayNext">Next day →</button>
+      <button class="btn btn-secondary" type="button" id="dayToday">Today</button>
+    </div>
+    <p class="staff-hint">Online GP appointments for the day. Clinical details are visible to doctors only.</p>
+    <div id="apptList" aria-live="polite"></div>
+  </section>
+
+  <!-- Registrations -->
+  <section id="panel_regs" role="tabpanel" aria-labelledby="tabBtn_regs" hidden>
+    <p class="staff-hint">New patient registrations from the website. Open one to see contact and registration details, then mark it processed once the patient (and family) are set up. Health details are visible to doctors only.</p>
+    <div id="regList"></div>
+  </section>
+
+</div>
+</main>
+
+<script src="/js/reception.js?v=a65c4aaa"></script>
+<script src="/js/nav-toggle.js?v=f65c51ad"></script>
+</body>
+</html>

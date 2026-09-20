@@ -80,6 +80,7 @@ async function setWalkInStatus(id, status) {
     body: JSON.stringify({ status }),
   });
   loadClinic();
+  if (typeof activeTab !== 'undefined' && activeTab === 'today') loadToday();
 }
 
 async function loadRegistrations() {
@@ -131,4 +132,46 @@ async function setRegistrationStatus(id, status) {
     body: JSON.stringify({ status }),
   });
   loadClinic();
+}
+
+// ---------------------------------------------------------------- "Today" overview (the doctor's default tab)
+async function loadToday() {
+  const date = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the browser's timezone
+  try {
+    const [sum, walkins, sched, tasks] = await Promise.all([
+      doctorFetch('/api/doctor/clinic/summary').then((r) => r.json()),
+      doctorFetch('/api/doctor/clinic/walk-ins').then((r) => r.json()),
+      doctorFetch('/api/doctor/schedule?date=' + date).then((r) => r.json()),
+      doctorFetch('/api/doctor/tasks').then((r) => r.json()),
+    ]);
+    if (!window.todayServiceLabels) window.todayServiceLabels = await fetch('/api/services').then((r) => r.json()).catch(() => ({}));
+    const queue = walkins.filter((r) => r.status === 'expected' || r.status === 'arrived');
+    const appts = sched.bookings || [];
+    const pendingTasks = tasks.filter((t) => t.status === 'pending').length;
+    document.getElementById('tdWaiting').textContent = sum.activeWalkIns;
+    document.getElementById('tdAppts').textContent = appts.length;
+    document.getElementById('tdRegs').textContent = sum.newRegistrations;
+    document.getElementById('tdTasks').textContent = pendingTasks;
+
+    const qBox = document.getElementById('tdQueue');
+    qBox.innerHTML = queue.length ? queue.slice(0, 6).map((r) => `
+      <article class="queue-card st-${clinicEsc(r.status)}">
+        <div class="qc-main">
+          <div class="qc-top"><strong class="qc-name">${clinicEsc(r.full_name)}</strong><span class="qc-age">${clinicEsc(clinicAge(r.dob))}</span><span class="badge badge-amber">${WALKIN_STATUS_LABEL[r.status] || clinicEsc(r.status)}</span></div>
+          <p class="qc-reason">${clinicEsc(r.reason)}</p>
+          <p class="qc-meta">${r.status === 'expected' && r.arrival_minutes > 0 ? 'Expected in ~' + r.arrival_minutes + ' min · ' : ''}Checked in ${clinicEsc(clinicFmtTime(r.created_at))}</p>
+        </div>
+        <div class="qc-actions"><button class="btn btn-primary" onclick="setWalkInStatus('${clinicEsc(r.id)}','seen')">Mark seen</button></div>
+      </article>`).join('') + (queue.length > 6 ? `<p class="staff-hint">+ ${queue.length - 6} more in the Clinic tab</p>` : '')
+      : '<div class="empty">No one is waiting.</div>';
+
+    const aBox = document.getElementById('tdAppts2');
+    aBox.innerHTML = appts.length ? appts.map((b) => `
+      <div class="appt-row">
+        <span class="appt-time">${clinicEsc(new Date(b.slot_start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }))}</span>
+        <span class="appt-who"><strong>${clinicEsc(b.patient_name)}</strong><span class="appt-svc">${clinicEsc((window.todayServiceLabels[b.service_type] || {}).label || String(b.service_type).replace('_', ' '))}</span></span>
+        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span class="badge ${b.status === 'completed' ? 'badge-green' : 'badge-amber'}">${b.status === 'completed' ? 'Completed' : 'Booked'}</span>
+        <button class="btn btn-secondary" style="padding:8px 16px;" onclick="openBooking('${clinicEsc(b.id)}', null)">Open</button></span>
+      </div>`).join('') : '<div class="empty">No online appointments today.</div>';
+  } catch (err) { /* session-expired handled by doctorFetch */ }
 }

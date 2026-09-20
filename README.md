@@ -491,3 +491,18 @@ content-based version stamp (`/css/clinic.css?v=1a2b3c4d`). **After changing any
   Nothing unconfirmed is published.
 - Registration is now five steps (About you → Health information → Next of kin → Family members → Review & submit); it sends the same
   data to the same API as before. The booking wizard shows a progress bar and a live "Your consultation" summary with the real price.
+
+### Front desk (receptionist) role and the staff screens
+
+- **Front desk:** `/reception.html`. A receptionist can run the walk-in queue (mark arrived / seen / cancelled, and add someone who arrives
+  without checking in online), see the day's online appointments (name, time, service), and process new-patient registrations.
+- **Least privilege, enforced on the server** (`server/routes/reception.js`): receptionists never receive clinical notes, prescriptions,
+  documents, patient charts, the reason/questionnaire of an online consultation, or the health fields of a registration (conditions,
+  medicines, allergies, notes) — those columns are simply not selected. They cannot reach doctor or admin endpoints. To change what the
+  front desk may see, change the queries in that one file.
+- **Accounts:** an admin creates them in *Admin dashboard → Reception* (name, email, password), and can deactivate/reactivate an account or
+  set a new password. Sessions end after 30 idle minutes; repeated wrong passwords are rate-limited. There is no two-factor step for
+  receptionists yet (doctors have one).
+- **Doctor dashboard:** now uses the shared staff header (no public-site menu) and opens on a **Today** tab — walk-in queue with quick "Mark seen",
+  today's online appointments with "Open", and counts for waiting / appointments / registrations / tasks. The other tabs are unchanged.
+- The doctor dashboard, admin dashboard, admin login and content editor share the same design system as the public site (`staff-page`).

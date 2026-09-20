@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard.html
+Disallow: /reception.html
 Disallow: /patient-login.html
 Disallow: /patient-portal.html
 Disallow: /content-editor.html

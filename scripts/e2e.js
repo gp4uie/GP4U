@@ -54,6 +54,12 @@ class Tab {
   async waitFor(expr, ms = 12000, label) { const t = Date.now(); let last; while (Date.now() - t < ms) { try { if (await this.ev(expr)) return true; } catch (e) { last = e.message; } await sleep(250); } throw new Error(`timed out waiting for: ${label || expr}${last ? ' (' + last + ')' : ''}`); }
   async clickNav(expr) { const loaded = this.once('Page.loadEventFired'); await this.ev(`(${expr}).click()`); await Promise.race([loaded, sleep(15000)]); await sleep(700); }
   set(sel, value) { return this.ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) throw new Error('no element ${sel.replace(/'/g, '')}'); e.value = ${JSON.stringify(value)}; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); })()`); }
+  async shot(name) {
+    if (!process.env.E2E_SHOTS) return;
+    fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true });
+    const r = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+    fs.writeFileSync(path.join(process.env.E2E_SHOTS, name + '.png'), Buffer.from(r.data, 'base64'));
+  }
   async mobile(on) {
     if (on) await this.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     else await this.send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
@@ -433,6 +439,17 @@ async function main() {
       await tab.ev(`document.querySelector('#loginBox button.btn-primary').click()`);
       await tab.waitFor(`getComputedStyle(document.getElementById('dashboardBox')).display !== 'none'`, 10000, 'dashboard');
     });
+    await test('doctor dashboard: staff header (no public menu), Today overview with queue and appointments', async () => {
+      const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), publicNav: !!document.querySelector('a[href="/walk-in.html"]'), todayVisible: getComputedStyle(document.getElementById('tab_today')).display !== 'none', scheduleHidden: getComputedStyle(document.getElementById('tab_schedule')).display === 'none' })`);
+      assert(r.role === 'Doctor' && !r.publicNav, 'doctor header should be the staff header without the public menu: ' + JSON.stringify(r));
+      assert(r.todayVisible && r.scheduleHidden, 'the Today tab should be the default');
+      await tab.waitFor(`[...document.querySelectorAll('.desk-stats .stat-num')].every((e) => /^\\d+$/.test(e.textContent)) && document.getElementById('tdQueue').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'Today overview with the walk-in in the queue');
+      assert(await tab.ev(`!!([...document.querySelectorAll('#tdQueue button')].find((b) => /Mark seen/.test(b.textContent)))`), 'a quick "Mark seen" action should be available');
+      assert(await tab.ev(`document.querySelector('#tdQueue img') === null`), 'patient text was rendered as HTML');
+      const codes = await tab.ev(`Promise.all(['/api/reception/summary', '/api/reception/walk-ins', '/api/reception/registrations'].map((u) => fetch(u).then((r) => r.status)))`);
+      assert(codes.every((c) => c === 401), 'a doctor session must not be accepted by the front-desk API: ' + codes.join(','));
+      await tab.shot('doctor-today');
+    });
     await test('Clinic tab: walk-in appears, text is escaped, status buttons work', async () => {
       await tab.ev(`showTab('clinic')`);
       await tab.waitFor(`document.getElementById('walkInList').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'walk-in in list');
@@ -487,6 +504,133 @@ async function main() {
       await tab.ev(`fetch('/api/doctor/logout', { method: 'POST' })`); await sleep(400);
       assert(await tab.ev(`fetch('/api/doctor/clinic/registrations').then((r) => r.status)`) === 401, 'staff data still reachable after logout');
     });
+
+    // ---------------------------------------------------------------- 6b. front desk (receptionist) + admin-managed accounts
+    heading('Front desk: receptionist role, least-privilege access, admin-managed accounts');
+    const RECEPTION_EMAIL = process.env.E2E_RECEPTION_EMAIL; const RECEPTION_PASSWORD = process.env.E2E_RECEPTION_PASSWORD;
+    const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL; const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
+    const postJson = (url, body) => tab.ev(`fetch(${JSON.stringify(url)}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(${JSON.stringify(body || {})}) }).then((r) => r.status)`);
+    if (!RECEPTION_EMAIL || !RECEPTION_PASSWORD) {
+      await test('reception test account available', async () => { throw new Error('set E2E_RECEPTION_EMAIL and E2E_RECEPTION_PASSWORD (a LOCAL test receptionist)'); });
+    } else {
+      await tab.send('Network.clearBrowserCookies');
+      await test('front desk data is locked when signed out', async () => {
+        await tab.goto('/reception.html');
+        const codes = await tab.ev(`Promise.all(['/api/reception/summary', '/api/reception/walk-ins', '/api/reception/registrations', '/api/reception/schedule?date=2026-01-01'].map((u) => fetch(u).then((r) => r.status)))`);
+        assert(codes.every((c) => c === 401), 'expected 401s, got ' + codes.join(','));
+        assert(await tab.ev(`!document.getElementById('loginBox').hidden && document.getElementById('deskBox').hidden`), 'the sign-in form should be showing');
+      });
+      await test('wrong password is refused with a clear message', async () => {
+        await tab.set('#emailInput', RECEPTION_EMAIL); await tab.set('#passwordInput', 'not-the-password');
+        await tab.ev(`document.querySelector('#loginForm button[type=submit]').click()`);
+        await tab.waitFor(`document.getElementById('loginError').textContent.length > 0`, 4000, 'error message');
+        assert(/incorrect email or password/i.test(await tab.ev(`document.getElementById('loginError').textContent`)), 'unexpected message');
+      });
+      await test('receptionist signs in on the front-desk page', async () => {
+        await tab.set('#passwordInput', RECEPTION_PASSWORD);
+        await tab.ev(`document.querySelector('#loginForm button[type=submit]').click()`);
+        await tab.waitFor(`!document.getElementById('deskBox').hidden`, 8000, 'front desk');
+        const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), who: document.getElementById('whoami').textContent, publicNav: !!document.querySelector('a[href="/walk-in.html"]'), stats: [...document.querySelectorAll('.stat-num')].map((e) => e.textContent) })`);
+        assert(r.role === 'Front desk' && r.who.length > 0, 'staff header wrong: ' + JSON.stringify(r));
+        assert(!r.publicNav, 'the staff header must not show the public website menu');
+        await tab.waitFor(`[...document.querySelectorAll('.stat-num')].every((e) => /^\\d+$/.test(e.textContent))`, 6000, 'stat numbers');
+        await tab.shot('reception-queue');
+      });
+      await test('walk-in queue: online check-in is listed (text escaped); a walk-in can be added at the desk and worked through', async () => {
+        await tab.waitFor(`document.getElementById('queueList').innerText.includes(${JSON.stringify(ctx.walkinName)})`, 8000, 'online check-in in queue');
+        assert(await tab.ev(`document.querySelector('#queueList img') === null`), 'patient text was rendered as HTML');
+        // empty submit
+        await tab.ev(`document.getElementById('addWalkin').open = true; document.querySelector('#addForm button[type=submit]').click()`);
+        assert(/fill in every field/i.test(await tab.ev(`document.getElementById('addError').textContent`)), 'no validation message');
+        ctx.deskName = `ZZ TEST Desk ${STAMP}`;
+        await tab.set('#addName', ctx.deskName); await tab.set('#addDob', '1975-03-03'); await tab.set('#addPhone', '0000000000'); await tab.set('#addReason', 'Desk walk-in test');
+        await tab.ev(`document.querySelector('#addForm button[type=submit]').click()`);
+        const card = `[...document.querySelectorAll('#queueList .queue-card')].find((c) => c.innerText.includes(${JSON.stringify(ctx.deskName)}))`;
+        await tab.waitFor(`!!(${card}) && ${card}.innerText.includes('Arrived')`, 6000, 'desk walk-in shown as Arrived');
+        await tab.ev(`[...${card}.querySelectorAll('button')].find((b) => /Mark seen/.test(b.textContent)).click()`);
+        await tab.waitFor(`${card}.innerText.includes('Seen')`, 6000, 'status Seen');
+        await tab.waitFor(`document.getElementById('statWaiting').textContent !== '–'`, 4000, 'stats');
+      });
+      await test('registrations: administrative details only — health details are never sent to the front desk', async () => {
+        await tab.ev(`document.getElementById('tabBtn_regs').click()`);
+        await tab.waitFor(`document.getElementById('regList').innerText.includes(${JSON.stringify(ctx.regName)})`, 8000, 'registration listed');
+        const det = `[...document.querySelectorAll('#regList details')].find((d) => d.innerText.includes(${JSON.stringify(ctx.regName)}))`;
+        await tab.ev(`${det}.open = true`);
+        const text = await tab.ev(`${det}.innerText`);
+        assert(text.includes('TEST ADDRESS') && text.includes('ZZ TEST Kid'), 'contact / family details should be visible');
+        assert(!/allerg|long-term conditions|current medicines|notes/i.test(text), 'health details are showing in the UI');
+        const raw = await tab.ev(`fetch('/api/reception/registrations').then((r) => r.text())`);
+        assert(!/known_conditions|current_medications|allergies|reg_notes/.test(raw), 'the API sent health fields to the receptionist');
+        await tab.shot('reception-registrations');
+        const before = await tab.ev(`${det}.innerText.includes('Processed')`);
+        await tab.ev(`[...${det}.querySelectorAll('button')].find((b) => /Mark as/.test(b.textContent)).click()`);
+        await tab.waitFor(`document.getElementById('regList').innerText.includes('${before ? 'New' : 'Processed'}')`, 6000, 'status toggled');
+      });
+      await test('appointments: bookings show name, time and service — never the reason or questionnaire', async () => {
+        await tab.ev(`document.getElementById('tabBtn_appts').click()`);
+        await tab.waitFor(`document.getElementById('dayLabel').textContent.length > 0 && !document.getElementById('apptList').innerText.includes('Loading')`, 5000, 'appointments panel');
+        let found = null;
+        for (let i = 0; i < 14 && !found; i++) {
+          const rows = await tab.ev(`(async () => { const d = new Date(); d.setDate(d.getDate() + ${i}); return fetch('/api/reception/schedule?date=' + d.toLocaleDateString('en-CA')).then((r) => r.text()); })()`);
+          if (rows.includes(ctx.patientName)) found = rows;
+        }
+        assert(found, 'the online booking should appear on the front-desk schedule');
+        const row = JSON.parse(found).find((r) => r.patient_name === ctx.patientName);
+        assert(row.service === 'Phone Consultation', 'service label wrong: ' + row.service);
+        assert(Object.keys(row).sort().join(',') === 'id,patient_name,service,service_type,slot_end,slot_start,status', 'unexpected fields sent: ' + Object.keys(row).join(','));
+        assert(!found.includes('E2E test consultation'), 'the consultation reason must not reach the front desk');
+      });
+      await test('privilege separation: the front desk cannot reach doctor, admin or patient-record endpoints', async () => {
+        const urls = ['/api/doctor/clinic/summary', '/api/doctor/recent', `/api/doctor/bookings/${ctx.bookingId}`, '/api/doctor/notifications', '/api/admin/doctors', '/api/admin/receptionists', '/api/patient/bookings'];
+        const codes = await tab.ev(`Promise.all(${JSON.stringify(urls)}.map((u) => fetch(u).then((r) => r.status)))`);
+        assert(codes.every((c) => c === 401 || c === 403), 'front desk reached protected areas: ' + urls.map((u, i) => u + '=' + codes[i]).join(', '));
+        assert(await postJson('/api/admin/receptionists', { name: 'x', email: 'x@example.invalid', password: 'password123' }) === 401, 'a receptionist must not be able to create accounts');
+      });
+      await test('receptionist signs out and the desk is locked again', async () => {
+        await tab.ev(`document.getElementById('logoutLink').click()`);
+        await tab.waitFor(`!document.getElementById('loginBox').hidden`, 5000, 'sign-in form');
+        assert(await tab.ev(`fetch('/api/reception/summary').then((r) => r.status)`) === 401, 'still signed in after logout');
+      });
+    }
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      await test('admin manages reception accounts: create, sign in, deactivate (blocked), reactivate, new password', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/admin-login.html');
+        assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) === 200, 'admin login failed');
+        const mail = `zz-e2e-desk-${STAMP}@example.invalid`;
+        assert(await postJson('/api/admin/receptionists', { name: 'ZZ E2E Desk', email: mail, password: 'short' }) === 400, 'weak passwords should be refused');
+        assert(await postJson('/api/admin/receptionists', { name: 'ZZ E2E Desk', email: mail, password: 'Desk-Pass-12345' }) === 200, 'create failed');
+        assert(await postJson('/api/admin/receptionists', { name: 'ZZ E2E Desk', email: mail, password: 'Desk-Pass-12345' }) === 409, 'duplicate email should be refused');
+        const list = await tab.ev(`fetch('/api/admin/receptionists').then((r) => r.json())`);
+        const acct = list.find((r) => r.email === mail);
+        assert(acct && acct.active === 1 && !('password_hash' in acct), 'account missing, or the password hash was exposed');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: mail, password: 'Desk-Pass-12345' }) === 200, 'new receptionist could not sign in');
+        assert(await tab.ev(`fetch('/api/reception/summary').then((r) => r.status)`) === 200, 'new receptionist should see the desk');
+        await tab.send('Network.clearBrowserCookies');
+        await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+        assert(await postJson(`/api/admin/receptionists/${acct.id}/deactivate`) === 200, 'deactivate failed');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: mail, password: 'Desk-Pass-12345' }) === 403, 'a deactivated account must not sign in');
+        await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+        assert(await postJson(`/api/admin/receptionists/${acct.id}/reactivate`) === 200, 'reactivate failed');
+        assert(await postJson(`/api/admin/receptionists/${acct.id}/password`, { password: 'New-Desk-Pass-777' }) === 200, 'password reset failed');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: mail, password: 'Desk-Pass-12345' }) === 401, 'the old password must stop working');
+        assert(await postJson('/api/reception/login', { email: mail, password: 'New-Desk-Pass-777' }) === 200, 'the new password should work');
+      });
+      await test('admin dashboard shows the Reception tab in the shared staff design', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/admin-login.html');
+        await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+        await tab.goto('/admin-dashboard.html');
+        await tab.waitFor(`!!document.getElementById('tabBtn_reception')`, 6000, 'reception tab');
+        await tab.ev(`showAdminTab('reception')`);
+        await tab.waitFor(`document.getElementById('receptionBody').innerText.includes('ZZ E2E Desk')`, 6000, 'reception accounts listed');
+        assert(await tab.ev(`document.querySelector('.staff-role').textContent.trim() === 'Admin' && !document.querySelector('a[href="/walk-in.html"]')`), 'admin header should be the staff header');
+        await tab.shot('admin-reception');
+      });
+    }
 
     // ---------------------------------------------------------------- 7. abuse protection (last — it blocks this network for a while)
     heading('Abuse protection');

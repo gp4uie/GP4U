@@ -476,4 +476,39 @@ router.get('/completed-summaries', requireAdmin, async (req, res) => {
   res.json(summaries);
 });
 
+// --- Reception (front-desk) accounts: created and managed by an admin, never by the receptionist themselves ---
+router.get('/receptionists', requireAdmin, async (req, res) => {
+  const rows = await db.all('SELECT id, name, email, active, last_login_at, last_active_at, created_at FROM receptionists ORDER BY created_at ASC');
+  res.json(rows.map((r) => ({ ...r, online: isOnline(r.last_active_at) })));
+});
+
+router.post('/receptionists', requireAdmin, async (req, res) => {
+  const { name, email, password } = req.body || {};
+  if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password are all required' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const clean = email.toLowerCase().trim();
+  if (await db.get('SELECT id FROM receptionists WHERE email = ?', [clean])) return res.status(409).json({ error: 'A reception account with that email already exists' });
+  const info = await db.run('INSERT INTO receptionists (name, email, password_hash) VALUES (?, ?, ?)', [name.trim(), clean, bcrypt.hashSync(password, 10)]);
+  res.json({ ok: true, id: info.lastInsertRowid });
+});
+
+router.post('/receptionists/:id/deactivate', requireAdmin, async (req, res) => {
+  await db.run('UPDATE receptionists SET active = 0 WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+router.post('/receptionists/:id/reactivate', requireAdmin, async (req, res) => {
+  await db.run('UPDATE receptionists SET active = 1 WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// Set a new password for a receptionist (e.g. forgotten) — the admin chooses it and passes it on in person.
+router.post('/receptionists/:id/password', requireAdmin, async (req, res) => {
+  const { password } = req.body || {};
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const result = await db.run('UPDATE receptionists SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(password, 10), req.params.id]);
+  if (!result.changes) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
 module.exports = { router, requireAdmin };

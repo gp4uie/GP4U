@@ -663,3 +663,93 @@ body.clinic-page { line-height: var(--lh-body); }
 
 .why-grid.why-3 { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 860px) { .why-grid.why-3 { grid-template-columns: 1fr; } }
+
+
+/* =====================================================================================
+   Staff tools (front desk, doctor dashboard, admin) — the same design system as the public site,
+   with a staff header instead of the public navigation.
+   ===================================================================================== */
+body.staff-page { background: var(--cream); }
+.staff-header .nav-wrap { flex-wrap: nowrap; gap: 14px; }
+.staff-role { font-weight: 800; font-size: 0.78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--teal-deep); background: var(--teal-soft); padding: 7px 13px; border-radius: 999px; white-space: nowrap; }
+/* the public-site menu collapse must never hide the staff account area */
+.clinic-page .staff-header nav.main-nav { display: flex; position: static; flex-direction: row; align-items: center; margin-left: auto; padding: 0; box-shadow: none; border: 0; background: none; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+.clinic-page .staff-header nav.main-nav a:not(.btn) { padding: 6px 0; border: 0; font-size: 0.95rem; color: var(--ink); }
+.staff-who { color: var(--muted); font-weight: 600; font-size: 0.93rem; }
+.staff-shell { max-width: 1080px; margin: 0 auto; padding: 28px 24px 96px; }
+.staff-shell.wide { max-width: 1240px; }
+.staff-login { max-width: 460px; margin: 0 auto; padding: 56px 24px 96px; }
+.staff-login .card { padding: 32px; }
+.staff-login h1 { font-size: 1.9rem; margin: 0 0 8px; }
+.staff-hint { color: var(--muted); font-size: 0.95rem; }
+.staff-error { color: #b3261e; font-weight: 600; min-height: 1.4em; margin: 6px 0 12px; }
+.req { color: #c0392b; }
+[hidden] { display: none !important; }
+
+.desk-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px; }
+.stat { background: #fff; border: 1px solid var(--line-warm); border-radius: var(--r-md); padding: 18px 22px; display: flex; flex-direction: column; }
+.stat-num { font-family: 'Fraunces', Georgia, serif; font-size: 2.5rem; line-height: 1; font-weight: 600; color: var(--navy); }
+.stat-label { color: var(--muted); font-weight: 600; margin-top: 8px; }
+
+.staff-page .tab-bar { border-bottom: 1px solid var(--line-warm); margin-bottom: 24px; }
+.staff-page .tab-btn { font-family: inherit; font-weight: 700; color: var(--muted); min-height: 46px; }
+.staff-page .tab-btn.active { color: var(--teal-deep); border-bottom-color: var(--teal); }
+.staff-page .side-badge { background: var(--teal-deep); color: #fff; }
+.staff-page .badge-amber { background: #fdf1dc; color: #7d5209; }
+.staff-page .badge-green { background: #e2f5ea; color: #185f3a; }
+
+.queue-card { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: #fff; border: 1px solid var(--line-warm); border-left: 6px solid var(--teal); border-radius: var(--r-md); padding: 18px 22px; margin-bottom: 12px; }
+.queue-card.st-expected { border-left-color: var(--warm); }
+.queue-card.is-done { opacity: .62; border-left-color: var(--line-warm); }
+.qc-main { flex: 1 1 340px; min-width: 0; }
+.qc-top { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.qc-name { font-size: 1.15rem; color: var(--navy); }
+.qc-age { color: var(--muted); font-size: 0.93rem; }
+.qc-reason { margin: 6px 0 4px; color: var(--navy); overflow-wrap: anywhere; }
+.qc-meta { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.qc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.qc-actions .btn { padding: 10px 18px; }
+.empty { background: #fff; border: 1px dashed var(--line-warm); border-radius: var(--r-md); padding: 32px; text-align: center; color: var(--muted); }
+
+.appt-row { display: grid; grid-template-columns: 90px 1fr auto; gap: 16px; align-items: center; background: #fff; border: 1px solid var(--line-warm); border-radius: 16px; padding: 14px 20px; margin-bottom: 10px; }
+.appt-time { font-family: 'Fraunces', Georgia, serif; font-size: 1.4rem; font-weight: 600; color: var(--navy); }
+.appt-svc { display: block; color: var(--muted); font-size: 0.9rem; }
+.staff-page .schedule-nav { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+
+.desk-add { margin-bottom: 18px; padding: 14px 18px; }
+.desk-add summary { list-style: none; cursor: pointer; }
+.desk-add summary::-webkit-details-marker { display: none; }
+.desk-add form { margin-top: 16px; }
+.reg-card { margin-bottom: 12px; padding: 4px 22px 18px; }
+.reg-card.is-done { opacity: .68; }
+.reg-card summary { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; padding: 16px 0; cursor: pointer; list-style: none; }
+.reg-card summary::-webkit-details-marker { display: none; }
+.reg-fam, .reg-when { color: var(--muted); font-size: 0.9rem; }
+.reg-card .review-list { margin: 4px 0 18px; }
+.reg-card .review-list dd { text-align: right; }
+
+@media (max-width: 720px) {
+  .desk-stats { grid-template-columns: 1fr; }
+  .staff-role { display: none; }
+  .appt-row { grid-template-columns: 70px 1fr; }
+  .appt-row .badge { grid-column: 2; justify-self: start; }
+  .qc-actions .btn { flex: 1 1 100%; }
+  .staff-header .nav-wrap { flex-wrap: wrap; }
+}
+
+/* doctor "Today" overview + notification bell */
+.desk-stats.four { grid-template-columns: repeat(4, 1fr); }
+.today-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+.today-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.today-head h2 { margin: 0; font-size: 1.35rem; }
+.today-head a { font-weight: 700; font-size: 0.93rem; }
+.staff-page .notif-bell { background: none; border: 0; color: var(--ink); cursor: pointer; padding: 8px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; position: relative; }
+.staff-page .notif-bell:hover { background: var(--teal-soft); }
+.staff-page .notif-count { position: absolute; top: 2px; right: 0; background: var(--teal-deep); color: #fff; }
+@media (max-width: 1000px) { .desk-stats.four { grid-template-columns: repeat(2, 1fr); } .today-cols { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .desk-stats.four { grid-template-columns: 1fr 1fr; } }
+.staff-page .wide-shell { max-width: 1240px; }
+
+/* staff pages: no public-page section padding */
+.clinic-page.staff-page section { padding-top: 0; padding-bottom: 0; }
+.clinic-page.staff-page .today-cols { margin-top: 28px; }
