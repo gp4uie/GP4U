@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
+<link rel="stylesheet" href="/css/clinic.css?v=25c39b17">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -78,7 +78,7 @@
     <div>
       <p class="eyebrow">Online GP</p>
       <h1 id="heroTitle">See a GP online, from anywhere in Ireland.</h1>
-      <p class="lead" id="heroSubtitle">GP4U connects you with Irish-registered GPs for video and phone consultations, repeat prescriptions and sick certs — book in minutes, no waiting room.</p>
+      <p class="lead" id="heroSubtitle">GP4U connects you with Irish-registered GPs for video and phone consultations, repeat prescriptions and sick certs — quick to book, no waiting room.</p>
       <div class="hero2-actions">
         <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
         <a href="/repeat-prescription.html" class="btn btn-secondary btn-lg">Request a repeat prescription</a>
@@ -96,7 +96,7 @@
 <section class="sec">
   <div class="container">
     <div class="sec-head center"><p class="eyebrow">Choose a consultation</p><h2>What would you like to see a GP about?</h2><p>Prices are shown upfront — no surprises.</p></div>
-    <div class="svc-cards" data-services="cards" aria-live="polite"><p>Loading services…</p></div>
+    <div class="svc-cards" data-services="cards" aria-live="polite" aria-busy="true"><span class="sr-only">Loading services…</span><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div></div>
     <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/fees.html">See all fees →</a></p>
   </div>
 </section>
@@ -147,7 +147,9 @@
     <div class="sec-head center"><p class="eyebrow">Online GP questions</p><h2>Common questions</h2></div>
     <div class="faq">
   <details><summary>What is an online GP consultation?</summary><p>A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer.</p></details>
-  <details><summary>How do I book an online GP consultation?</summary><p>Choose <a href="/book.html">Book an Online GP Consultation</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.</p></details>
+  <details><summary>Can I see a GP online?</summary><p>Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose <a href="/book.html">Book Online</a>, pick a service and a time that suits you.</p></details>
+  <details><summary>How do I book an online GP consultation?</summary><p>Choose <a href="/book.html">Book Online</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.</p></details>
+  <details><summary>What happens during an online consultation?</summary><p>At your appointment time you join a private video or phone call using the link on your confirmation page. Your GP will talk through what's going on, ask the questions they need to, and advise on next steps. Where clinically appropriate that may include a prescription, a certificate, a letter or a referral — or a recommendation to be seen in person.</p></details>
   <details><summary>What do I need for a video consultation?</summary><p>A phone, tablet or computer with a camera and microphone, a stable internet connection, and somewhere private. For a phone consultation you just need your phone.</p></details>
   <details><summary>Is an online consultation right for every problem?</summary><p>No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.</p></details>
   <details><summary>How do I pay for an online consultation?</summary><p>By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details.</p></details>
@@ -199,7 +201,6 @@
           <li><a href="/fees.html">Fees</a></li>
           <li><a href="/about.html">About GP4U</a></li>
           <li><a href="/faq.html">FAQs</a></li>
-          <li><a href="/blog.html">Health info</a></li>
         </ul>
       </div>
       <div>
@@ -228,7 +229,7 @@
 <!-- @/sticky -->
 
 <script src="/js/questionnaires.js?v=1201355e"></script>
-<script src="/js/services-list.js?v=46dc96a9"></script>
+<script src="/js/services-list.js?v=da2a9e12"></script>
 <script>
 // Headline, intro and the four "how it works" steps are editable from the admin content editor.
 fetch('/api/content').then((r) => r.json()).then((c) => {
@@ -238,7 +239,7 @@ fetch('/api/content').then((r) => r.json()).then((c) => {
   [1, 2, 3, 4].forEach((n) => { set('howItWorks' + n + 'Title', c['how_it_works_' + n + '_title']); set('howItWorks' + n + 'Text', c['how_it_works_' + n + '_text']); });
 }).catch(() => { /* the built-in text above stays */ });
 </script>
-<script src="/js/clinic.js?v=7f65d4d5"></script>
-<script src="/js/nav-toggle.js?v=5e2bdc4f"></script>
+<script src="/js/clinic.js?v=12af1e11"></script>
+<script src="/js/nav-toggle.js?v=6617be3e"></script>
 </body>
 </html>

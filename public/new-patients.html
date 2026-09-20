@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
+<link rel="stylesheet" href="/css/clinic.css?v=25c39b17">
 <!-- @/head -->
 <!-- @/head -->
 <!-- @/head -->
@@ -82,53 +82,78 @@
   <div class="container form-wrap">
     <div class="card" id="registerCard">
       <h2 style="margin-top:0;">Register as a new patient</h2>
-      <p style="color:var(--ink-700);">Takes about five minutes. Fields marked <span style="color:#c0392b;">*</span> are required. You can add your family members at the bottom so everyone is registered together.</p>
+      <p style="color:var(--ink-700);">Five short steps, about five minutes. Fields marked <span style="color:#c0392b;">*</span> are required. You can register your family members in step 4, so everyone is set up together.</p>
       <div class="notice"><strong>Need to be seen today?</strong>You don't need to register online first — <a href="/walk-in.html#book-in">check in online for our walk-in clinic</a> or just come in. If it's an emergency, call 112 or 999.</div>
 
       <form id="registerForm" novalidate>
-        <h3>About you</h3>
-        <div class="form-grid">
-          <div class="form-row"><label for="fullName">Full name <span style="color:#c0392b;">*</span></label><input id="fullName" autocomplete="name" maxlength="255"></div>
-          <div class="form-row"><label for="dob">Date of birth <span style="color:#c0392b;">*</span></label><input id="dob" type="date" min="1900-01-01" autocomplete="bday"></div>
-          <div class="form-row"><label for="sex">Sex</label>
-            <select id="sex"><option value="">Prefer not to say</option><option>Female</option><option>Male</option><option>Other</option></select></div>
-          <div class="form-row"><label for="phone">Mobile / phone <span style="color:#c0392b;">*</span></label><input id="phone" type="tel" autocomplete="tel" maxlength="64"></div>
-          <div class="form-row" style="grid-column:1/-1;"><label for="email">Email <span style="color:#c0392b;">*</span></label><input id="email" type="email" autocomplete="email" maxlength="255"></div>
-          <div class="form-row" style="grid-column:1/-1;"><label for="address">Home address <span style="color:#c0392b;">*</span></label><textarea id="address" style="min-height:70px;" maxlength="1000" autocomplete="street-address"></textarea></div>
-          <div class="form-row"><label for="eircode">Eircode</label><input id="eircode" maxlength="16" autocomplete="postal-code"></div>
+        <div class="reg-progress">
+          <div class="rp-top"><span class="rp-step" id="rpStep">Step 1 of 5</span><span class="rp-name" id="rpName">About you</span></div>
+          <div class="rp-bar" id="rpBar" role="progressbar" aria-label="Registration progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1"><span></span></div>
+          <ol class="rp-dots" id="rpDots" aria-hidden="true"><li data-n="1" class="active">About you</li><li data-n="2">Health</li><li data-n="3">Next of kin</li><li data-n="4">Family</li><li data-n="5">Review</li></ol>
         </div>
 
-        <h3 style="margin-top:14px;">Your health</h3>
-        <div class="form-grid">
-          <div class="form-row"><label for="medicalCard">Do you have a medical card or GP Visit Card?</label>
-            <select id="medicalCard"><option value="unsure">Not sure</option><option value="none">No</option><option value="medical_card">Medical card</option><option value="gp_visit_card">GP Visit Card</option></select></div>
-          <div class="form-row"><label for="previousGp">Previous GP / practice</label><input id="previousGp" maxlength="255"></div>
+        <fieldset class="reg-step" data-step="1" aria-labelledby="regTitle1">
+          <h3 class="reg-step-title" id="regTitle1" tabindex="-1">About you</h3>
+          <p class="reg-hint">We need these details to set up your record and contact you.</p>
+          <div class="form-grid">
+            <div class="form-row"><label for="fullName">Full name <span style="color:#c0392b;">*</span></label><input id="fullName" autocomplete="name" maxlength="255" aria-required="true"></div>
+            <div class="form-row"><label for="dob">Date of birth <span style="color:#c0392b;">*</span></label><input id="dob" type="date" min="1900-01-01" autocomplete="bday" aria-required="true"></div>
+            <div class="form-row"><label for="sex">Sex</label>
+              <select id="sex"><option value="">Prefer not to say</option><option>Female</option><option>Male</option><option>Other</option></select></div>
+            <div class="form-row"><label for="phone">Mobile / phone <span style="color:#c0392b;">*</span></label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="64" aria-required="true"></div>
+            <div class="form-row" style="grid-column:1/-1;"><label for="email">Email <span style="color:#c0392b;">*</span></label><input id="email" type="email" inputmode="email" autocomplete="email" maxlength="255" aria-required="true"></div>
+            <div class="form-row" style="grid-column:1/-1;"><label for="address">Home address <span style="color:#c0392b;">*</span></label><textarea id="address" style="min-height:70px;" maxlength="1000" autocomplete="street-address" aria-required="true"></textarea></div>
+            <div class="form-row"><label for="eircode">Eircode</label><input id="eircode" maxlength="16" autocomplete="postal-code"></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="reg-step" data-step="2" aria-labelledby="regTitle2" hidden>
+          <h3 class="reg-step-title" id="regTitle2" tabindex="-1">Health information</h3>
+          <p class="reg-hint">This helps your GP care for you safely from your first visit. Share what you can — you can add more when you see us.</p>
+          <div class="form-grid">
+            <div class="form-row"><label for="medicalCard">Do you have a medical card or GP Visit Card?</label>
+              <select id="medicalCard"><option value="unsure">Not sure</option><option value="none">No</option><option value="medical_card">Medical card</option><option value="gp_visit_card">GP Visit Card</option></select></div>
+            <div class="form-row"><label for="previousGp">Previous GP / practice</label><input id="previousGp" maxlength="255"></div>
+          </div>
+          <div class="form-row"><label for="knownConditions">Long-term conditions</label><textarea id="knownConditions" maxlength="2000" placeholder="e.g. asthma, diabetes, high blood pressure — or 'none'"></textarea></div>
+          <div class="form-row"><label for="currentMedications">Current medicines</label><textarea id="currentMedications" maxlength="2000" placeholder="Name and dose if you know it — or 'none'"></textarea></div>
+          <div class="form-row"><label for="allergies">Allergies</label><input id="allergies" maxlength="1000" placeholder="Medicines or other allergies — or 'none'"></div>
+        </fieldset>
+
+        <fieldset class="reg-step" data-step="3" aria-labelledby="regTitle3" hidden>
+          <h3 class="reg-step-title" id="regTitle3" tabindex="-1">Next of kin</h3>
+          <p class="reg-hint">Someone we can contact if we ever need to. This step is optional.</p>
+          <div class="form-grid">
+            <div class="form-row"><label for="nokName">Name</label><input id="nokName" maxlength="255" autocomplete="off"></div>
+            <div class="form-row"><label for="nokRelationship">Relationship</label><input id="nokRelationship" maxlength="64" autocomplete="off"></div>
+            <div class="form-row"><label for="nokPhone">Phone</label><input id="nokPhone" type="tel" inputmode="tel" maxlength="64" autocomplete="off"></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="reg-step" data-step="4" aria-labelledby="regTitle4" hidden>
+          <h3 class="reg-step-title" id="regTitle4" tabindex="-1">Family members</h3>
+          <p class="reg-hint">Registering your partner, children or other family members too? Add each person here (up to 8) so everyone is registered together. You can skip this step.</p>
+          <div id="familyRows"></div>
+          <button type="button" class="btn btn-secondary" id="addFamilyBtn">+ Add a family member</button>
+        </fieldset>
+
+        <fieldset class="reg-step" data-step="5" aria-labelledby="regTitle5" hidden>
+          <h3 class="reg-step-title" id="regTitle5" tabindex="-1">Review &amp; submit</h3>
+          <p class="reg-hint">Please check your details. Use "Change" to fix anything.</p>
+          <dl class="review-list" id="reviewList"></dl>
+          <div class="form-row"><label for="notes">Anything else we should know?</label><textarea id="notes" maxlength="2000"></textarea></div>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin:6px 0 4px;">
+            <input type="checkbox" id="consent" style="width:auto;margin-top:4px;min-height:0;">
+            <span>I confirm the details I've given are correct, and I've read the <a href="/privacy.html" target="_blank" rel="noopener">Privacy &amp; GDPR Notice</a>. <span style="color:#c0392b;">*</span></span>
+          </label>
+        </fieldset>
+
+        <p id="registerError" role="alert" style="color:#b3261e;font-weight:600;margin:18px 0 0;"></p>
+        <div class="reg-nav">
+          <button type="button" class="btn btn-secondary" id="regBack" hidden>Back</button>
+          <button type="button" class="btn btn-primary" id="regNext">Continue</button>
+          <button type="submit" class="btn btn-primary" id="registerSubmit" hidden>Submit registration</button>
         </div>
-        <div class="form-row"><label for="knownConditions">Long-term conditions</label><textarea id="knownConditions" maxlength="2000" placeholder="e.g. asthma, diabetes, high blood pressure — or 'none'"></textarea></div>
-        <div class="form-row"><label for="currentMedications">Current medicines</label><textarea id="currentMedications" maxlength="2000" placeholder="Name and dose if you know it — or 'none'"></textarea></div>
-        <div class="form-row"><label for="allergies">Allergies</label><input id="allergies" maxlength="1000" placeholder="Medicines or other allergies — or 'none'"></div>
-
-        <h3 style="margin-top:14px;">Next of kin</h3>
-        <div class="form-grid">
-          <div class="form-row"><label for="nokName">Name</label><input id="nokName" maxlength="255"></div>
-          <div class="form-row"><label for="nokRelationship">Relationship</label><input id="nokRelationship" maxlength="64"></div>
-          <div class="form-row"><label for="nokPhone">Phone</label><input id="nokPhone" type="tel" maxlength="64"></div>
-        </div>
-
-        <h3 style="margin-top:14px;">Family members</h3>
-        <p style="color:var(--ink-700);margin-top:0;">Registering your partner, children or other family members too? Add each person here (up to 8). You can share their health details when you first see us.</p>
-        <div id="familyRows"></div>
-        <button type="button" class="btn btn-secondary" id="addFamilyBtn">+ Add a family member</button>
-
-        <div class="form-row" style="margin-top:22px;"><label for="notes">Anything else we should know?</label><textarea id="notes" maxlength="2000"></textarea></div>
-
-        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin:6px 0 18px;">
-          <input type="checkbox" id="consent" style="width:auto;margin-top:4px;">
-          <span>I confirm the details I've given are correct, and I've read the <a href="/privacy.html" target="_blank" rel="noopener">Privacy &amp; GDPR Notice</a>. <span style="color:#c0392b;">*</span></span>
-        </label>
-
-        <p id="registerError" role="alert" style="color:#c0392b;font-weight:600;"></p>
-        <button type="submit" class="btn btn-primary btn-block" id="registerSubmit">Submit registration</button>
       </form>
     </div>
 
@@ -160,7 +185,7 @@
       <div class="band-inner">
         <p class="eyebrow">Online consultations</p>
         <h2>Can't get to the clinic? See a GP from home.</h2>
-        <p>Video and audio consultations, repeat prescriptions and sick certs — book in minutes and speak to an Irish-registered GP wherever you are.</p>
+        <p>Video and audio consultations, repeat prescriptions and sick certs — quick to book, with an Irish-registered GP wherever you are.</p>
         <a href="/online.html" class="btn btn-light btn-lg">See a GP online →</a>
       </div>
     </div>
@@ -203,7 +228,6 @@
           <li><a href="/fees.html">Fees</a></li>
           <li><a href="/about.html">About GP4U</a></li>
           <li><a href="/faq.html">FAQs</a></li>
-          <li><a href="/blog.html">Health info</a></li>
         </ul>
       </div>
       <div>
@@ -231,8 +255,8 @@
 </div>
 <!-- @/sticky -->
 
-<script src="/js/register.js?v=bf34e956"></script>
-<script src="/js/clinic.js?v=7f65d4d5"></script>
-<script src="/js/nav-toggle.js?v=5e2bdc4f"></script>
+<script src="/js/register.js?v=0eb640c0"></script>
+<script src="/js/clinic.js?v=12af1e11"></script>
+<script src="/js/nav-toggle.js?v=6617be3e"></script>
 </body>
 </html>

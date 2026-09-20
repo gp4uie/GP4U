@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
+<link rel="stylesheet" href="/css/clinic.css?v=25c39b17">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light" data-sticky="off">
@@ -56,12 +56,21 @@
 <div class="page-shell">
   <h1>Book an online GP consultation</h1>
   <p class="lead-in" style="font-size:1.05rem;">See a GP by video or phone, from wherever you are. It takes about five minutes: choose a service, tell us what's going on, pick a time and pay securely.</p>
-  <div class="notice" style="margin-bottom:24px;"><strong>This is an online booking — not an appointment at the clinic.</strong>Would you rather be seen in person? <a href="/walk-in.html#book-in">Book in for our walk-in clinic in Newbridge</a> — no appointment needed.</div>
-  <div class="wizard-steps">
-    <span id="tab1" class="active">1. Service</span>
-    <span id="tab2">2. About you</span>
-    <span id="tab3">3. Date &amp; time</span>
-    <span id="tab4">4. Review &amp; pay</span>
+  <div class="notice" style="margin-bottom:24px;"><strong>This is an online booking — not an appointment at the clinic.</strong>Would you rather be seen in person? <a href="/walk-in.html">Visit our walk-in clinic in Newbridge</a> — no appointment required.</div>
+  <ol class="progress-steps" aria-label="Booking progress">
+    <li id="tab1" class="active" aria-current="step">Service</li>
+    <li id="tab2">Your details</li>
+    <li id="tab3">Date &amp; time</li>
+    <li id="tab4">Review &amp; pay</li>
+  </ol>
+  <p class="progress-now" id="progressNow" aria-live="polite">Step 1 of 4 — Service</p>
+  <div class="booking-summary" id="bookingSummary" hidden>
+    <div>
+      <div class="bs-label">Your consultation</div>
+      <div class="bs-name" id="bsName"></div>
+      <div class="bs-meta" id="bsMeta"></div>
+    </div>
+    <div class="bs-price" id="bsPrice" aria-label="Price"></div>
   </div>
 
   <p style="color:var(--ink-500); font-size:0.85rem; margin-top:-8px;" id="pharmacyNoticeText">
@@ -80,7 +89,7 @@
     </div>
     <h3 id="step1Heading" style="display:none;"></h3>
     <p id="step1SubText" style="display:none; color:var(--ink-500); font-size:0.9rem; margin-top:-8px;"></p>
-    <div class="grid" id="serviceChoices"></div>
+    <div class="grid" id="serviceChoices" aria-live="polite" aria-busy="true"><span class="sr-only">Loading services…</span><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div></div></div>
   </div>
 
   <!-- STEP 2 -->
@@ -200,7 +209,6 @@
           <li><a href="/fees.html">Fees</a></li>
           <li><a href="/about.html">About GP4U</a></li>
           <li><a href="/faq.html">FAQs</a></li>
-          <li><a href="/blog.html">Health info</a></li>
         </ul>
       </div>
       <div>
@@ -229,8 +237,8 @@
 <!-- @/sticky -->
 
 <script src="/js/questionnaires.js?v=1201355e"></script>
-<script src="/js/book.js?v=b9372425"></script>
-<script src="/js/clinic.js?v=7f65d4d5"></script>
-<script src="/js/nav-toggle.js?v=5e2bdc4f"></script>
+<script src="/js/book.js?v=3ff07bc0"></script>
+<script src="/js/clinic.js?v=12af1e11"></script>
+<script src="/js/nav-toggle.js?v=6617be3e"></script>
 </body>
 </html>

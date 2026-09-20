@@ -1,11 +1,14 @@
-// Shared site behaviour: mobile menu, current-page highlight, and (on public pages) swapping
-// "Patient login" for "My account" when a patient is already signed in.
+// Shared site behaviour: mobile menu, current-page highlight, signed-in link swap, and calm scroll-reveal.
 (function () {
+  // One consistent line-icon style for the menu button (no text glyphs)
+  const MENU = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+  const CLOSE = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>';
+
   document.querySelectorAll('.nav-toggle').forEach((btn) => {
     const nav = btn.closest('.nav-wrap').querySelector('nav.main-nav');
     const setOpen = (open) => {
       nav.classList.toggle('nav-open', open);
-      btn.textContent = open ? '✕' : '☰';
+      btn.innerHTML = open ? CLOSE : MENU;
       btn.setAttribute('aria-expanded', String(open));
       btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     };
@@ -28,5 +31,20 @@
     if (!me || !me.loggedIn) return;
     document.querySelectorAll('#patientLoginLink').forEach((el) => { el.hidden = true; });
     document.querySelectorAll('#patientPortalLink').forEach((el) => { el.hidden = false; });
-  }).catch(() => { /* not signed in, or offline — leave "Patient login" showing */ });
+  }).catch(() => { /* not signed in, or offline — leave "Patient Login" showing */ });
+
+  // Scroll reveal: a gentle fade/slide as sections come into view. Only added by JS (so content is always
+  // visible without it), skipped entirely for people who ask their device to reduce motion, and never applied
+  // to anything already on screen when the page loads.
+  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const targets = document.querySelectorAll('.sec-head, .choose-card, .why-item, .svc, .timeline li, .loc-card, .cta-band, .faq details, .pcard, .opt, .steps-card, .info-card, .trust-item, .split-media, .price-row');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+  const vh = window.innerHeight || 800;
+  targets.forEach((el) => {
+    if (el.getBoundingClientRect().top < vh) return;
+    el.classList.add('reveal');
+    io.observe(el);
+  });
 })();

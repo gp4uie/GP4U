@@ -22,11 +22,31 @@ function qs(name) {
   return new URLSearchParams(location.search).get(name);
 }
 
+const STEP_NAMES = ['Service', 'Your details', 'Date & time', 'Review & pay'];
+
+// "What am I booking, and what will it cost?" — always visible once a service has been chosen.
+function updateBookingSummary(n) {
+  const box = document.getElementById('bookingSummary');
+  const svc = selectedService && SERVICES[selectedService];
+  if (!box) return;
+  if (!svc || n < 2) { box.hidden = true; return; }
+  document.getElementById('bsName').textContent = 'Online GP — ' + svc.label;
+  document.getElementById('bsMeta').textContent = svc.durationMins + ' minute consultation · by video or phone';
+  document.getElementById('bsPrice').textContent = '€' + (svc.priceCents / 100).toFixed(svc.priceCents % 100 ? 2 : 0);
+  box.hidden = false;
+}
+
 function goToStep(n) {
   for (let i = 1; i <= 4; i++) {
     document.getElementById('step' + i).style.display = i === n ? 'block' : 'none';
-    document.getElementById('tab' + i).classList.toggle('active', i === n);
+    const tab = document.getElementById('tab' + i);
+    tab.classList.toggle('active', i === n);
+    tab.classList.toggle('done', i < n);
+    if (i === n) tab.setAttribute('aria-current', 'step'); else tab.removeAttribute('aria-current');
   }
+  const now = document.getElementById('progressNow');
+  if (now) now.textContent = 'Step ' + n + ' of 4 — ' + STEP_NAMES[n - 1];
+  updateBookingSummary(n);
   if (n === 3) loadSlots();
   if (n === 4) renderReview();
 }
@@ -53,9 +73,6 @@ function isRxConditionKey(key) {
 // palette (teal / blue / green), matching the same cycling done on the homepage (index.html).
 const ICON_COLORS = [
   { stroke: '#0f6e6e', cls: 'icon-teal' },
-  { stroke: '#1d4ed8', cls: 'icon-blue' },
-  { stroke: '#128080', cls: 'icon-bright' },
-  { stroke: '#2e9e6b', cls: 'icon-green' },
 ];
 
 function renderServiceChoices() {
@@ -531,9 +548,17 @@ fetch('/api/patient/me').then((r) => r.json()).then((me) => {
   if (me.address) form.patientAddress.value = me.address;
 });
 
-fetch('/api/services').then((r) => r.json()).then((services) => {
+fetch('/api/services').then((r) => { if (!r.ok) throw new Error('services'); return r.json(); }).then((services) => {
   SERVICES = services;
+  const grid = document.getElementById('serviceChoices');
+  if (grid) grid.removeAttribute('aria-busy');
   renderServiceChoices();
   const preselect = qs('service');
   if (preselect && SERVICES[preselect]) chooseService(preselect);
+}).catch(() => {
+  const grid = document.getElementById('serviceChoices');
+  if (grid) {
+    grid.removeAttribute('aria-busy');
+    grid.innerHTML = '<div class="notice" style="grid-column:1/-1;"><strong>We couldn\'t load our services just now.</strong>Please refresh the page, or <a href="/contact.html">contact us</a> and we\'ll help you book.</div>';
+  }
 });

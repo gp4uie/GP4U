@@ -124,7 +124,12 @@ async function main() {
           assert(info.main, 'missing <main id="main">');
           assert(info.overflow <= 1, `horizontal overflow of ${info.overflow}px`);
           assert(!/George Street/i.test(info.text), 'street name is visible');
-          assert(!/book(ed)? in for (the )?walk-in|you.re booked in|walk-in appointment/i.test(info.text), 'old walk-in wording ("book in") is still on this page');
+          {
+            const scrubbed = info.text.replace(/Address coming soon|Directions coming soon|very shortly/g, '');
+            const bad = scrubbed.match(/coming soon|shortly|will be published|will be added|to be confirmed|TODO|lorem ipsum|Update this section|once confirmed|Patient reviews/i);
+            assert(!bad, 'placeholder or drafting wording on this page: "' + (bad && bad[0]) + '"');
+          }
+          assert(!/book(ed)? in for (our |the )?walk-in|you.re booked in|walk-in appointment/i.test(info.text), 'old walk-in wording ("book in") is still on this page');
           if (info.footerAddr !== undefined) assert(info.footerAddr === 'Address coming soon', `footer address shows "${info.footerAddr}"`);
           assert(info.brokenImgs.length === 0, 'broken images: ' + info.brokenImgs.join(', '));
           assert(info.styled, 'page is not styled correctly (stylesheet missing/stale — "Skip to main content" would show at top left)');
@@ -175,16 +180,78 @@ async function main() {
       assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
       assert(r.heading === 'How would you like to see a GP?', 'central section heading wrong');
       assert(r.cards.length === 2 && r.cards[0].startsWith('Visit our clinic | Visit the Walk-In Clinic') && r.cards[1].startsWith('See a GP online | Book Online'), 'the two choice cards are wrong: ' + r.cards.join(' || '));
-      assert(r.tiles >= 4, 'expected 4 pathway tiles');
+    });
+    await test('homepage flow: trust bar, Why GP4U, 12 services, 01-02-03 steps, online section, location, FAQ, closing CTA', async () => {
+      await tab.goto('/');
+      await tab.waitFor(`document.querySelectorAll('[data-open-status]').length > 0 && !!document.querySelector('.loc .hours-table')`, 6000, 'location component');
+      const r = await tab.ev(`({
+        trust: [...document.querySelectorAll('.trustbar li')].map((li) => li.textContent.trim()),
+        why: document.querySelector('#choose ~ section h2, .why-grid') ? [...document.querySelectorAll('.why-item h3')].map((h) => h.textContent.trim()) : [],
+        whyHead: [...document.querySelectorAll('h2')].map((h) => h.textContent.trim()),
+        services: [...document.querySelectorAll('#services .svc h3')].map((h) => h.textContent.trim()),
+        steps: [...document.querySelectorAll('.timeline .tnum')].map((n) => n.textContent.trim()),
+        online: (document.querySelector('.online-sec h2') || {}).textContent,
+        onlineCta: [...document.querySelectorAll('.online-sec a.btn-primary')].map((a) => a.textContent.trim()),
+        addr: (document.querySelector('.loc [data-clinic-address]') || {}).textContent,
+        hoursRows: document.querySelectorAll('.loc .hours-table tr').length,
+        faq: document.querySelectorAll('.faq details').length,
+        band: [...document.querySelectorAll('.cta-band a.btn')].map((a) => a.textContent.trim()),
+        explain: (document.querySelector('.explain') || {}).textContent,
+      })`);
+      assert(r.trust.length === 5 && /GP-led care/.test(r.trust[0]) && /Secure/.test(r.trust[4]), 'trust bar wrong: ' + r.trust.join(' | '));
+      assert(r.whyHead.includes('Healthcare designed around you.') && r.why.join(',') === 'GP-led,Local care,Online access,Simple', 'Why GP4U section wrong: ' + r.why.join(','));
+      assert(r.whyHead.includes('How can we help?') && r.services.length === 12, 'expected 12 service cards, got ' + r.services.length);
+      assert(r.steps.join(',') === '01,02,03', 'how-it-works steps wrong: ' + r.steps.join(','));
+      assert(r.online === 'See a GP from home.' && r.onlineCta.includes('See a GP Online'), 'online section wrong');
+      assert(/No appointment is required\./.test(r.explain) && /does not reserve a specific appointment time/.test(r.explain), 'walk-in explanation wording is missing');
+      assert(r.addr === 'Address coming soon', 'location should say the address is coming soon: ' + r.addr);
+      assert(r.hoursRows === 7, 'opening hours should list 7 days');
+      assert(r.faq === 10, 'expected 10 homepage FAQs, got ' + r.faq);
+      assert(r.band.join(' | ') === 'Walk-In Clinic | See a GP Online', 'closing call to action wrong: ' + r.band.join(' | '));
+      assert(await tab.ev(`!document.querySelector('a[href="/blog.html"]')`), 'Health Info should not be in the navigation or footer');
     });
     await test('current page is marked in the navigation', async () => {
       await tab.goto('/fees.html');
       assert(await tab.ev(`document.querySelector('nav.main-nav a[aria-current="page"]')?.textContent.trim()`) === 'Fees', 'Fees link not marked current');
     });
-    await test('Fees page shows live prices in euro', async () => {
+    await test('Fees page shows live prices in euro (skeleton replaced) and a clean walk-in fees section', async () => {
       await tab.goto('/fees.html');
-      await tab.waitFor(`document.querySelectorAll('.price-row').length >= 5`, 8000, 'price rows');
+      await tab.waitFor(`document.querySelectorAll('.price-list[data-services] .price-row').length >= 5 && document.querySelectorAll('.skeleton').length === 0`, 8000, 'price rows');
+      assert(await tab.ev(`document.querySelector('[data-if-no-fees]') !== null && /contact us|reception/i.test(document.querySelector('[data-if-no-fees]').textContent)`), 'walk-in fees section should ask people to contact the clinic');
       assert(await tab.ev(`/€\\d/.test(document.querySelector('.price-list').innerText)`), 'no € prices shown');
+    });
+    await test('About page: headline, no invented founder, Medical Council statement', async () => {
+      await tab.goto('/about.html');
+      const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), founderHidden: document.querySelector('[data-founder]').hidden, text: document.body.innerText })`);
+      assert(r.h1 === 'Built by a GP. Designed around patients.', 'about headline wrong: ' + r.h1);
+      assert(r.founderHidden, 'founder card must stay hidden until real details are configured');
+      assert(/registered with the Medical Council of Ireland/.test(r.text), 'medical leadership statement missing');
+    });
+    await test('Contact page: address status, hours, email, and "Need a GP?" choices', async () => {
+      await tab.goto('/contact.html');
+      const r = await tab.ev(`({ addr: document.querySelector('[data-clinic-address]').textContent, rows: document.querySelectorAll('.loc .hours-table tr').length, email: !!document.querySelector('.loc a[href^="mailto:"]'), ctas: [...document.querySelectorAll('.pcards a.btn')].map((a) => a.textContent.trim()), phoneHidden: document.querySelector('.loc .contact-item').hidden })`);
+      assert(r.addr === 'Address coming soon' && r.rows === 7 && r.email, 'contact details incomplete: ' + JSON.stringify(r));
+      assert(r.ctas.join(' | ') === 'Walk-In Clinic | See a GP Online', 'Need a GP? choices wrong');
+      assert(r.phoneHidden, 'phone must stay hidden until configured (no invented number)');
+    });
+    await test('Privacy notice: no drafting language or unconfirmed retention figures', async () => {
+      await tab.goto('/privacy.html');
+      const t = await tab.ev('document.body.innerText');
+      assert(!/Update this section|once confirmed|8 years|Article 9/i.test(t), 'privacy page still contains drafting language or unconfirmed specifics');
+      assert(/Cookies/.test(t) && /Who we share it with/.test(t), 'privacy sections missing');
+    });
+    await test('services page: 12 cards with anchors; walk-in explanation on walk-in page', async () => {
+      await tab.goto('/services.html');
+      assert(await tab.ev(`document.querySelectorAll('.svc').length === 12 && !!document.getElementById('certificates')`), 'expected 12 service cards with anchors');
+      await tab.goto('/walk-in.html');
+      const t = await tab.ev('document.getElementById("book-in").innerText');
+      assert(/Check in for your visit/.test(t) && /does not reserve a specific appointment time/.test(t), 'walk-in check-in wording wrong');
+    });
+    await test('reduced motion: no scroll-reveal is applied when the device asks for less motion', async () => {
+      await tab.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+      await tab.goto('/');
+      assert(await tab.ev(`document.querySelectorAll('.reveal').length === 0`), 'reveal animation should be disabled for reduced motion');
+      await tab.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
     });
     await test('FAQ page: 12 categories, accordions open, FAQ data present', async () => {
       await tab.goto('/faq.html');
@@ -232,17 +299,35 @@ async function main() {
       assert(/^WI-/.test(ctx.walkinRef), 'bad reference ' + ctx.walkinRef);
       assert(await tab.ev(`window.__xss === undefined`), 'script in the form text was executed');
     });
-    await test('registration form: validation, family members, submits and shows a reference', async () => {
+    await test('registration: 5 steps with progress, validation, family, review, submit → reference', async () => {
       await tab.goto('/new-patients.html');
-      await tab.ev(`document.getElementById('registerSubmit').click()`);
-      assert(/required fields/i.test(await tab.ev(`document.getElementById('registerError').textContent`)), 'no required-fields message');
-      await tab.ev(`document.getElementById('addFamilyBtn').click(); document.getElementById('addFamilyBtn').click()`);
+      const step = () => tab.ev(`document.getElementById('rpStep').textContent + ' | ' + document.getElementById('rpName').textContent`);
+      assert(await step() === 'Step 1 of 5 | About you', 'should start at step 1 of 5: ' + await step());
+      await tab.ev(`document.getElementById('regNext').click()`);
+      assert(/required fields/i.test(await tab.ev(`document.getElementById('registerError').textContent`)), 'no required-fields message on step 1');
+      assert(await step() === 'Step 1 of 5 | About you', 'must not advance with missing required fields');
       ctx.regName = `ZZ TEST Register ${STAMP}`;
       await tab.set('#fullName', ctx.regName); await tab.set('#dob', '1980-05-05'); await tab.set('#phone', '0000000000');
       await tab.set('#email', 'zz-test@example.invalid'); await tab.set('#address', 'TEST ADDRESS - please ignore');
+      await tab.ev(`document.getElementById('regNext').click()`);
+      assert(await step() === 'Step 2 of 5 | Health information', 'step 2 expected, got ' + await step());
+      await tab.set('#allergies', 'None'); await tab.ev(`document.getElementById('regNext').click()`);
+      assert(await step() === 'Step 3 of 5 | Next of kin', 'step 3 expected');
+      await tab.ev(`document.getElementById('regBack').click()`);
+      assert(await step() === 'Step 2 of 5 | Health information', 'Back should return to step 2');
+      await tab.ev(`document.getElementById('regNext').click(); document.getElementById('regNext').click()`);
+      assert(await step() === 'Step 4 of 5 | Family members', 'step 4 expected, got ' + await step());
+      await tab.ev(`document.getElementById('addFamilyBtn').click(); document.querySelector('#familyRows .fm-name').value = 'ZZ TEST Kid'`);
+      await tab.ev(`document.getElementById('regNext').click()`);
+      assert(/name and a date of birth/i.test(await tab.ev(`document.getElementById('registerError').textContent`)), 'half-filled family row should be rejected');
+      await tab.ev(`const r = document.getElementById('familyRows').children[0]; r.querySelector('.fm-name').value = 'ZZ TEST Kid'; r.querySelector('.fm-dob').value = '2018-01-01'; r.querySelector('.fm-rel').value = 'Son'; document.getElementById('regNext').click()`);
+      assert(await step() === 'Step 5 of 5 | Review & submit', 'step 5 expected, got ' + await step());
+      const review = await tab.ev(`document.getElementById('reviewList').innerText`);
+      assert(review.includes(ctx.regName) && review.includes('ZZ TEST Kid'), 'review should list the details entered');
+      assert(await tab.ev(`document.getElementById('rpBar').getAttribute('aria-valuenow')`) === '5', 'progress bar not updated');
       await tab.ev(`document.getElementById('registerSubmit').click()`);
       assert(/Privacy Notice/i.test(await tab.ev(`document.getElementById('registerError').textContent`)), 'consent not enforced');
-      await tab.ev(`document.getElementById('consent').checked = true; const r = document.getElementById('familyRows').children[0]; r.querySelector('.fm-name').value = 'ZZ TEST Kid'; r.querySelector('.fm-dob').value = '2018-01-01'; r.querySelector('.fm-rel').value = 'Son'; document.getElementById('registerSubmit').click()`);
+      await tab.ev(`document.getElementById('consent').checked = true; document.getElementById('registerSubmit').click()`);
       try { await tab.waitFor(`!document.getElementById('registerDone').hidden`, 12000, 'registration success panel'); }
       catch (e) { throw new Error(e.message + ' | form said: ' + await tab.ev(`document.getElementById('registerError').textContent`).catch(() => '?')); }
       ctx.regRef = await tab.ev(`document.getElementById('registerRef').textContent`);
@@ -256,9 +341,13 @@ async function main() {
     ctx.patientEmail = `zz-e2e-${STAMP}@example.invalid`; ctx.patientName = `ZZ E2E Patient ${STAMP}`; ctx.patientPass = 'E2e-Pass-12345';
     await test('choose a service, fill the questionnaire, pick a time, review', async () => {
       await tab.goto('/book.html');
-      await tab.waitFor(`document.querySelectorAll('#serviceChoices > *').length >= 6`, 8000, 'service cards');
+      await tab.waitFor(`document.querySelectorAll('#serviceChoices .service-card').length >= 6 && document.querySelectorAll('#serviceChoices .skeleton').length === 0`, 8000, 'service cards (skeleton replaced)');
+      assert(await tab.ev(`document.getElementById('bookingSummary').hidden && document.getElementById('progressNow').textContent.startsWith('Step 1 of 4')`), 'step 1 should show progress and no summary yet');
       await tab.ev(`[...document.querySelectorAll('#serviceChoices > *')].find((c) => /Phone Consultation/.test(c.textContent)).click()`);
       await tab.waitFor(`getComputedStyle(document.getElementById('step2')).display !== 'none'`, 6000, 'step 2');
+      const sum = await tab.ev(`({ shown: !document.getElementById('bookingSummary').hidden, name: document.getElementById('bsName').textContent, price: document.getElementById('bsPrice').textContent, now: document.getElementById('progressNow').textContent, labels: [...document.querySelectorAll('.progress-steps li')].map((l) => l.textContent.trim()) })`);
+      assert(sum.shown && sum.name === 'Online GP — Phone Consultation' && sum.price === '€35', 'booking summary wrong: ' + JSON.stringify(sum));
+      assert(sum.now === 'Step 2 of 4 — Your details' && sum.labels.join('|') === 'Service|Your details|Date & time|Review & pay', 'progress indicator wrong: ' + JSON.stringify(sum));
       await tab.set('[name=patientName]', ctx.patientName); await tab.set('[name=patientDob]', '1985-03-04'); await tab.set('[name=patientPhone]', '0851112222');
       await tab.set('[name=patientEmail]', ctx.patientEmail); await tab.set('[name=reason]', 'E2E test consultation - please ignore');
       await tab.ev(`document.getElementById('step2ContinueBtn').click()`);

@@ -35,6 +35,27 @@ const CLINIC = {
     6: ['12:00', '19:00'],
   },
   hoursNote: 'Hours may differ on public holidays.',
+
+  // Show an embedded map once the street address is set (it loads Google Maps, so it is off until you
+  // choose). "Get directions" links work without it.
+  showMap: true,
+
+  // Walk-in / family-practice fees. Leave empty until the prices are confirmed — the Fees page then just
+  // asks people to contact the clinic. Add one line per fee, e.g. { label: 'GP consultation', price: '€60' }
+  fees: {
+    walkIn: [],
+  },
+
+  // The lead GP, shown on the About page. Only fill in what is true and confirmed; anything left blank is
+  // simply not shown. photo: a file in /img/, e.g. '/img/team/founder.webp'.
+  founder: {
+    name: '',
+    role: '',              // e.g. "GP and founder"
+    bio: '',
+    qualifications: [],    // e.g. ['MB BCh BAO', 'MICGP']
+    medicalCouncilNumber: '',
+    photo: '',
+  },
 };
 
 (function () {
@@ -146,6 +167,58 @@ const CLINIC = {
       el.rel = 'noopener';
     });
     document.querySelectorAll('[data-if-no-street]').forEach((el) => { el.hidden = hasStreet; });
+    document.querySelectorAll('[data-if-street]').forEach((el) => { el.hidden = !hasStreet; });
+
+    // Map: only when there is a real street address (and only created once, not every minute).
+    document.querySelectorAll('[data-clinic-map]').forEach((el) => {
+      const show = hasStreet && CLINIC.showMap;
+      el.hidden = !show;
+      if (show && !el.querySelector('iframe')) {
+        const f = document.createElement('iframe');
+        f.title = `Map showing ${CLINIC.name}, ${addr.join(', ')}`;
+        f.loading = 'lazy';
+        f.referrerPolicy = 'no-referrer-when-downgrade';
+        f.src = 'https://www.google.com/maps?q=' + encodeURIComponent(`${CLINIC.name}, ${addr.join(', ')}`) + '&output=embed';
+        el.appendChild(f);
+      }
+    });
+
+    // Walk-in / family-practice fees (only what has been confirmed in CLINIC.fees)
+    const walkInFees = (CLINIC.fees && CLINIC.fees.walkIn) || [];
+    document.querySelectorAll('[data-walkin-fees]').forEach((el) => {
+      el.hidden = walkInFees.length === 0;
+      if (walkInFees.length && !el.dataset.done) {
+        el.dataset.done = '1';
+        el.replaceChildren(...walkInFees.map((f) => {
+          const row = document.createElement('div'); row.className = 'price-row';
+          const left = document.createElement('div'); const h = document.createElement('h3'); h.textContent = f.label; left.appendChild(h);
+          const meta = document.createElement('div'); meta.className = 'meta'; meta.textContent = 'At the clinic'; left.appendChild(meta);
+          const amt = document.createElement('div'); amt.className = 'amount'; amt.textContent = f.price;
+          row.append(left, amt);
+          return row;
+        }));
+      }
+    });
+    document.querySelectorAll('[data-if-no-fees]').forEach((el) => { el.hidden = walkInFees.length > 0; });
+
+    // Founder / lead GP (About page) — renders only what is filled in above
+    const fd = CLINIC.founder || {};
+    document.querySelectorAll('[data-founder]').forEach((el) => {
+      el.hidden = !fd.name;
+      if (fd.name && !el.dataset.done) {
+        el.dataset.done = '1';
+        const wrap = document.createElement('div');
+        if (fd.photo) { const img = document.createElement('img'); img.src = fd.photo; img.alt = `Portrait of ${fd.name}`; img.width = 220; img.height = 220; img.loading = 'lazy'; el.appendChild(img); }
+        const h = document.createElement('h3'); h.textContent = fd.name; wrap.appendChild(h);
+        if (fd.role) { const r = document.createElement('p'); r.className = 'role'; r.textContent = fd.role; wrap.appendChild(r); }
+        if (fd.bio) { const b = document.createElement('p'); b.textContent = fd.bio; wrap.appendChild(b); }
+        const facts = [].concat(fd.qualifications || []);
+        if (fd.medicalCouncilNumber) facts.push('Medical Council of Ireland registration number: ' + fd.medicalCouncilNumber);
+        if (facts.length) { const ul = document.createElement('ul'); facts.forEach((t) => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); }); wrap.appendChild(ul); }
+        el.appendChild(wrap);
+      }
+    });
+    document.querySelectorAll('[data-if-no-founder]').forEach((el) => { el.hidden = !!fd.name; });
     document.querySelectorAll('[data-clinic-phone]').forEach((el) => {
       if (CLINIC.phone) {
         el.innerHTML = `<a href="tel:${CLINIC.phone.replace(/[^+\d]/g, '')}">${CLINIC.phone}</a>`;

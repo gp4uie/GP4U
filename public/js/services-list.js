@@ -57,15 +57,16 @@
     const all = Object.entries(services);
     const consults = all.filter(([k]) => !isRx(k));
     const rx = all.filter(([k]) => isRx(k));
-    document.querySelectorAll('[data-services="cards"]').forEach((h) => renderCards(h, consults));
-    document.querySelectorAll('[data-services="prices"]').forEach((h) => renderPriceRows(h, consults, rx));
+    document.querySelectorAll('[data-services="cards"]').forEach((h) => { renderCards(h, consults); h.removeAttribute('aria-busy'); });
+    document.querySelectorAll('[data-services="prices"]').forEach((h) => { renderPriceRows(h, consults, rx); h.removeAttribute('aria-busy'); });
     if (consults.length) {
       const min = Math.min(...consults.map(([, s]) => s.priceCents));
       document.querySelectorAll('[data-min-price]').forEach((e) => { e.textContent = `from ${euro(min)}`; e.hidden = false; });
     }
   }).catch(() => {
     document.querySelectorAll('[data-services]').forEach((h) => {
-      h.replaceChildren(el('p', '', 'Prices are shown at each step of booking. If they don\'t load here, please refresh the page or contact us.'));
+      h.removeAttribute('aria-busy');
+      h.replaceChildren(el('p', '', 'We couldn\'t load our prices just now. Please refresh the page, or contact us — prices are also shown at every step of booking.'));
     });
   });
 })();

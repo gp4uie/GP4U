@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
+<link rel="stylesheet" href="/css/clinic.css?v=25c39b17">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -37,10 +37,26 @@
     },
     {
       "@type": "Question",
+      "name": "Can I see a GP online?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose Book Online, pick a service and a time that suits you."
+      }
+    },
+    {
+      "@type": "Question",
       "name": "How do I book an online GP consultation?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Choose Book an Online GP Consultation, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation."
+        "text": "Choose Book Online, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens during an online consultation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "At your appointment time you join a private video or phone call using the link on your confirmation page. Your GP will talk through what's going on, ask the questions they need to, and advise on next steps. Where clinically appropriate that may include a prescription, a certificate, a letter or a referral — or a recommendation to be seen in person."
       }
     },
     {
@@ -61,10 +77,18 @@
     },
     {
       "@type": "Question",
-      "name": "Do I need an appointment for the walk-in clinic?",
+      "name": "Do I need an appointment?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. You can come in at any time during opening hours. You can also check in online so we know you're on your way."
+        "text": "No appointment is required. You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time. You can check in online if you'd like to."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the walk-in clinic work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Walk in during opening hours, check in at reception, and see a GP. If you'd like, you can check in online first so we know you're on your way. Waiting times vary depending on how busy we are."
       }
     },
     {
@@ -85,7 +109,7 @@
     },
     {
       "@type": "Question",
-      "name": "What should I bring?",
+      "name": "What should I bring to the clinic?",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors."
@@ -101,10 +125,18 @@
     },
     {
       "@type": "Question",
-      "name": "Can I register my whole family at once?",
+      "name": "Can I register my family?",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I get a prescription?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, where your GP considers it clinically appropriate. You can request a repeat prescription online, or speak to your GP during a consultation. For online consultations, prescriptions are sent to the pharmacy you name."
       }
     },
     {
@@ -125,10 +157,10 @@
     },
     {
       "@type": "Question",
-      "name": "Can I get a sick certificate?",
+      "name": "Can I get a medical certificate?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, where your GP considers it appropriate. You can request one through our online booking (choose the sick certificate service) or ask at the walk-in clinic."
+        "text": "Yes, where your GP considers it appropriate. You can request a sick certificate through our online booking, or ask your GP during a walk-in visit. Your GP can also write medical letters where clinically appropriate."
       }
     },
     {
@@ -157,18 +189,18 @@
     },
     {
       "@type": "Question",
-      "name": "How do I pay for an online consultation?",
+      "name": "How much does a consultation cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details."
+        "text": "Online consultation prices are shown on our Fees page and again before you pay. For walk-in and family practice fees, please contact us or ask at reception."
       }
     },
     {
       "@type": "Question",
-      "name": "How much does it cost?",
+      "name": "How do I pay for an online consultation?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Online consultation prices are on our Fees page and are shown again before you pay. Clinic fees will be published there too."
+        "text": "By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details."
       }
     },
     {
@@ -197,10 +229,10 @@
     },
     {
       "@type": "Question",
-      "name": "Is GP4U an emergency service?",
+      "name": "What should I do in an emergency?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. In an emergency call 112 or 999, or go to your nearest Emergency Department. This includes chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding, or loss of consciousness."
+        "text": "GP4U is not an emergency service. In an emergency call 112 or 999, or go to your nearest Emergency Department — for example for chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding or loss of consciousness."
       }
     },
     {
@@ -261,7 +293,9 @@
       <h2>Online GP</h2>
       <div class="faq">
   <details><summary>What is an online GP consultation?</summary><p>A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer.</p></details>
-  <details><summary>How do I book an online GP consultation?</summary><p>Choose <a href="/book.html">Book an Online GP Consultation</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.</p></details>
+  <details><summary>Can I see a GP online?</summary><p>Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose <a href="/book.html">Book Online</a>, pick a service and a time that suits you.</p></details>
+  <details><summary>How do I book an online GP consultation?</summary><p>Choose <a href="/book.html">Book Online</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.</p></details>
+  <details><summary>What happens during an online consultation?</summary><p>At your appointment time you join a private video or phone call using the link on your confirmation page. Your GP will talk through what's going on, ask the questions they need to, and advise on next steps. Where clinically appropriate that may include a prescription, a certificate, a letter or a referral — or a recommendation to be seen in person.</p></details>
   <details><summary>What do I need for a video consultation?</summary><p>A phone, tablet or computer with a camera and microphone, a stable internet connection, and somewhere private. For a phone consultation you just need your phone.</p></details>
   <details><summary>Is an online consultation right for every problem?</summary><p>No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.</p></details>
 </div>
@@ -269,22 +303,24 @@
     <div class="faq-group" id="walk-in">
       <h2>Walk-in clinic</h2>
       <div class="faq">
-  <details><summary>Do I need an appointment for the walk-in clinic?</summary><p>No. You can come in at any time during opening hours. You can also <a href="/walk-in.html#book-in">check in online</a> so we know you're on your way.</p></details>
+  <details><summary>Do I need an appointment?</summary><p>No appointment is required. You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time. You can <a href="/walk-in.html#book-in">check in online</a> if you'd like to.</p></details>
+  <details><summary>How does the walk-in clinic work?</summary><p>Walk in during opening hours, check in at reception, and see a GP. If you'd like, you can <a href="/walk-in.html#book-in">check in online</a> first so we know you're on your way. Waiting times vary depending on how busy we are.</p></details>
   <details><summary>When is the walk-in clinic open?</summary><p>We're open <span data-clinic-hours-text>seven days a week</span>. Hours may differ on public holidays.</p></details>
   <details><summary>How long will I wait?</summary><p>Waiting times vary depending on how busy we are. Checking in online lets us know you're coming, but it doesn't reserve a set appointment time.</p></details>
-  <details><summary>What should I bring?</summary><p>A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors.</p></details>
+  <details><summary>What should I bring to the clinic?</summary><p>A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors.</p></details>
 </div>
     </div>
     <div class="faq-group" id="appointments">
       <h2>Appointments & registration</h2>
       <div class="faq">
   <details><summary>How do I register as a family practice patient?</summary><p>Complete our short <a href="/new-patients.html">registration form</a>. Our team will review your details and get in touch, and you'll receive a confirmation email with a reference number.</p></details>
-  <details><summary>Can I register my whole family at once?</summary><p>Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go.</p></details>
+  <details><summary>Can I register my family?</summary><p>Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go.</p></details>
 </div>
     </div>
     <div class="faq-group" id="prescriptions">
       <h2>Prescriptions</h2>
       <div class="faq">
+  <details><summary>Can I get a prescription?</summary><p>Yes, where your GP considers it clinically appropriate. You can request a repeat prescription online, or speak to your GP during a consultation. For online consultations, prescriptions are sent to the pharmacy you name.</p></details>
   <details><summary>How do repeat prescriptions work online?</summary><p>Choose your condition on the <a href="/repeat-prescription.html">repeat prescription page</a>, answer a few safety questions and pick a time. If your GP approves the request, they email the prescription directly to the pharmacy you name.</p></details>
   <details><summary>Will I always be given a prescription?</summary><p>No. A prescription is only issued where your GP considers it clinically appropriate and safe for you.</p></details>
 </div>
@@ -292,7 +328,7 @@
     <div class="faq-group" id="certificates">
       <h2>Medical certificates</h2>
       <div class="faq">
-  <details><summary>Can I get a sick certificate?</summary><p>Yes, where your GP considers it appropriate. You can request one through our online booking (choose the sick certificate service) or ask at the walk-in clinic.</p></details>
+  <details><summary>Can I get a medical certificate?</summary><p>Yes, where your GP considers it appropriate. You can request a sick certificate through our online booking, or ask your GP during a walk-in visit. Your GP can also write medical letters where clinically appropriate.</p></details>
   <details><summary>What do I need for a sick certificate?</summary><p>Your name, date of birth and address as they should appear on the certificate. Your GP will ask about your illness and the dates involved.</p></details>
 </div>
     </div>
@@ -311,8 +347,8 @@
     <div class="faq-group" id="payments">
       <h2>Payments</h2>
       <div class="faq">
+  <details><summary>How much does a consultation cost?</summary><p>Online consultation prices are shown on our <a href="/fees.html">Fees page</a> and again before you pay. For walk-in and family practice fees, please <a href="/contact.html">contact us</a> or ask at reception.</p></details>
   <details><summary>How do I pay for an online consultation?</summary><p>By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details.</p></details>
-  <details><summary>How much does it cost?</summary><p>Online consultation prices are on our <a href="/fees.html">Fees page</a> and are shown again before you pay. Clinic fees will be published there too.</p></details>
 </div>
     </div>
     <div class="faq-group" id="children">
@@ -336,7 +372,7 @@
     <div class="faq-group" id="emergencies">
       <h2>Emergencies</h2>
       <div class="faq">
-  <details><summary>Is GP4U an emergency service?</summary><p>No. In an emergency call <strong>112</strong> or <strong>999</strong>, or go to your nearest Emergency Department. This includes chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding, or loss of consciousness.</p></details>
+  <details><summary>What should I do in an emergency?</summary><p>GP4U is not an emergency service. In an emergency call <strong>112</strong> or <strong>999</strong>, or go to your nearest Emergency Department — for example for chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding or loss of consciousness.</p></details>
   <details><summary>What if my symptoms get worse after I book?</summary><p>If you feel worse or unsafe at any point, don't wait for your appointment — call 112 or 999, or go to your nearest Emergency Department.</p></details>
 </div>
     </div>
@@ -380,7 +416,6 @@
           <li><a href="/fees.html">Fees</a></li>
           <li><a href="/about.html">About GP4U</a></li>
           <li><a href="/faq.html">FAQs</a></li>
-          <li><a href="/blog.html">Health info</a></li>
         </ul>
       </div>
       <div>
@@ -408,7 +443,7 @@
 </div>
 <!-- @/sticky -->
 
-<script src="/js/clinic.js?v=7f65d4d5"></script>
-<script src="/js/nav-toggle.js?v=5e2bdc4f"></script>
+<script src="/js/clinic.js?v=12af1e11"></script>
+<script src="/js/nav-toggle.js?v=6617be3e"></script>
 </body>
 </html>

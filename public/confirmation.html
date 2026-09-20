@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
+<link rel="stylesheet" href="/css/clinic.css?v=25c39b17">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light" data-sticky="off">
@@ -53,7 +53,7 @@
       <strong>Demo mode</strong>
       No Stripe key is configured yet, so this booking was auto-confirmed without a real payment. See the README to connect real Stripe payments.
     </div>
-    <h1>✅ Booking confirmed</h1>
+    <h1 style="display:flex;align-items:center;gap:14px;"><span class="ico-chip" style="background:var(--teal-soft);color:var(--teal);"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Booking confirmed</h1>
     <div class="card" id="bookingDetails"></div>
 
     <div class="notice" id="emailNotice">
@@ -152,7 +152,6 @@
           <li><a href="/fees.html">Fees</a></li>
           <li><a href="/about.html">About GP4U</a></li>
           <li><a href="/faq.html">FAQs</a></li>
-          <li><a href="/blog.html">Health info</a></li>
         </ul>
       </div>
       <div>
@@ -334,7 +333,7 @@ async function sendMessage() {
 
 confirmAndLoad();
 </script>
-<script src="/js/nav-toggle.js?v=5e2bdc4f"></script>
-<script src="/js/clinic.js?v=7f65d4d5"></script>
+<script src="/js/nav-toggle.js?v=6617be3e"></script>
+<script src="/js/clinic.js?v=12af1e11"></script>
 </body>
 </html>
