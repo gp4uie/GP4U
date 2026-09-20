@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=b78cf122">
+<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -64,7 +64,7 @@
       "name": "Do I need an appointment for the walk-in clinic?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. You can come in at any time during opening hours. You can also book in online so we know you're on your way."
+        "text": "No. You can come in at any time during opening hours. You can also check in online so we know you're on your way."
       }
     },
     {
@@ -80,7 +80,7 @@
       "name": "How long will I wait?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Waiting times vary depending on how busy we are. Booking in online lets us know you're coming, but it doesn't reserve a set appointment time."
+        "text": "Waiting times vary depending on how busy we are. Checking in online lets us know you're coming, but it doesn't reserve a set appointment time."
       }
     },
     {
@@ -220,18 +220,14 @@
 <a class="skip-link" href="#main">Skip to main content</a>
 <div class="topbar"><div class="container">
   <span data-open-status></span>
-  <span class="topbar-right">
-    <a href="/patient-login.html" id="patientLoginLink">Patient login</a>
-    <a href="/patient-portal.html" id="patientPortalLink" hidden>My account</a>
-    <span class="topbar-sep" aria-hidden="true">·</span>
-    <span>Emergency? Call <strong>112</strong> or <strong>999</strong></span>
-  </span>
+  <span class="topbar-right"><span>Emergency? Call <strong>112</strong> or <strong>999</strong></span></span>
 </div></div>
 <!-- @/topbar -->
 <!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
+    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
+    <a class="btn btn-primary header-book" href="/book-now.html">Book a GP</a>
     <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
     <nav class="main-nav" id="siteNav" aria-label="Main">
       <a href="/walk-in.html">Walk-In Clinic</a>
@@ -241,7 +237,9 @@
       <a href="/about.html">About</a>
       <a href="/faq.html">FAQs</a>
       <a href="/contact.html">Contact</a>
-      <a href="/book-now.html" class="btn btn-primary">Book Now</a>
+      <a href="/patient-login.html" id="patientLoginLink" class="nav-login">Patient Login</a>
+      <a href="/patient-portal.html" id="patientPortalLink" class="nav-login" hidden>My account</a>
+      <a href="/book-now.html" class="btn btn-primary nav-book">Book a GP</a>
     </nav>
   </div>
 </header>
@@ -271,9 +269,9 @@
     <div class="faq-group" id="walk-in">
       <h2>Walk-in clinic</h2>
       <div class="faq">
-  <details><summary>Do I need an appointment for the walk-in clinic?</summary><p>No. You can come in at any time during opening hours. You can also <a href="/walk-in.html#book-in">book in online</a> so we know you're on your way.</p></details>
+  <details><summary>Do I need an appointment for the walk-in clinic?</summary><p>No. You can come in at any time during opening hours. You can also <a href="/walk-in.html#book-in">check in online</a> so we know you're on your way.</p></details>
   <details><summary>When is the walk-in clinic open?</summary><p>We're open <span data-clinic-hours-text>seven days a week</span>. Hours may differ on public holidays.</p></details>
-  <details><summary>How long will I wait?</summary><p>Waiting times vary depending on how busy we are. Booking in online lets us know you're coming, but it doesn't reserve a set appointment time.</p></details>
+  <details><summary>How long will I wait?</summary><p>Waiting times vary depending on how busy we are. Checking in online lets us know you're coming, but it doesn't reserve a set appointment time.</p></details>
   <details><summary>What should I bring?</summary><p>A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors.</p></details>
 </div>
     </div>
@@ -342,7 +340,7 @@
   <details><summary>What if my symptoms get worse after I book?</summary><p>If you feel worse or unsafe at any point, don't wait for your appointment — call 112 or 999, or go to your nearest Emergency Department.</p></details>
 </div>
     </div>
-    <div class="callout" style="margin-top:8px;"><p><strong>Still have a question?</strong> <a href="/contact.html">Contact us</a>, or <a href="/book-now.html">book now</a> to see a GP.</p></div>
+    <div class="callout" style="margin-top:8px;"><p><strong>Still have a question?</strong> <a href="/contact.html">Contact us</a>, or <a href="/book-now.html">book a GP</a> to see a GP.</p></div>
     <div style="margin-top:28px;"><div class="notice-strip"><strong>In an emergency, call 112 or 999</strong> or go to your nearest Emergency Department. GP4U is not an emergency service.</div></div>
   </div>
 </section>
@@ -368,7 +366,7 @@
       <div>
         <h4>Book &amp; visit</h4>
         <ul>
-          <li><a href="/book-now.html">Book now</a></li>
+          <li><a href="/book-now.html">Book a GP</a></li>
           <li><a href="/walk-in.html">Walk-in clinic</a></li>
           <li><a href="/online.html">Online GP</a></li>
           <li><a href="/new-patients.html">Register as a patient</a></li>
@@ -405,8 +403,8 @@
 <!-- @/footer -->
 <!-- @sticky -->
 <div class="sticky-cta" role="region" aria-label="Book a GP">
-  <a class="btn btn-primary" href="/book.html">Online GP</a>
-  <a class="btn btn-secondary" href="/walk-in.html#book-in">Walk-in</a>
+  <a class="btn btn-primary" href="/book.html">Book online</a>
+  <a class="btn btn-secondary" href="/walk-in.html">Walk-in clinic</a>
 </div>
 <!-- @/sticky -->
 

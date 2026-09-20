@@ -1,4 +1,4 @@
-// "Book in for walk-in" form (walk-in.html). Posts to /api/walk-in.
+// "Check in online" (optional walk-in heads-up) form (walk-in.html). Posts to /api/walk-in.
 // The form is only usable while the clinic is open (hours come from clinic.js) — when we're
 // closed it shows when we next open instead.
 (function () {
@@ -19,7 +19,7 @@
     closedBox.hidden = s.open;
     // s.text looks like "Closed · opens tomorrow at 10am"
     const opens = s.text.replace('Closed · ', '');
-    closedText.textContent = s.open ? '' : `${opens.charAt(0).toUpperCase()}${opens.slice(1)}. You can book in once we're open — or just come in during opening hours.`;
+    closedText.textContent = s.open ? '' : `${opens.charAt(0).toUpperCase()}${opens.slice(1)}. You can check in online once we're open — or just come in during opening hours.`;
   }
   applyOpenState();
   setInterval(applyOpenState, 30 * 1000);
@@ -52,7 +52,7 @@
     if (!body.consent) return showError('Please tick the box to agree to the Privacy Notice.');
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Booking in…';
+    submitBtn.textContent = 'Sending…';
     try {
       const res = await fetch('/api/walk-in', {
         method: 'POST',
@@ -71,7 +71,7 @@
     } catch (err) {
       showError(err.message);
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Book in';
+      submitBtn.textContent = 'Check in online';
     }
   });
 })();

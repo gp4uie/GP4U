@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=b78cf122">
+<link rel="stylesheet" href="/css/clinic.css?v=ffad2e32">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -39,18 +39,14 @@
 <a class="skip-link" href="#main">Skip to main content</a>
 <div class="topbar"><div class="container">
   <span data-open-status></span>
-  <span class="topbar-right">
-    <a href="/patient-login.html" id="patientLoginLink">Patient login</a>
-    <a href="/patient-portal.html" id="patientPortalLink" hidden>My account</a>
-    <span class="topbar-sep" aria-hidden="true">·</span>
-    <span>Emergency? Call <strong>112</strong> or <strong>999</strong></span>
-  </span>
+  <span class="topbar-right"><span>Emergency? Call <strong>112</strong> or <strong>999</strong></span></span>
 </div></div>
 <!-- @/topbar -->
 <!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span>GP4U Clinic</a>
+    <a class="brand" href="/index.html" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
+    <a class="btn btn-primary header-book" href="/book-now.html">Book a GP</a>
     <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
     <nav class="main-nav" id="siteNav" aria-label="Main">
       <a href="/walk-in.html">Walk-In Clinic</a>
@@ -60,7 +56,9 @@
       <a href="/about.html">About</a>
       <a href="/faq.html">FAQs</a>
       <a href="/contact.html">Contact</a>
-      <a href="/book-now.html" class="btn btn-primary">Book Now</a>
+      <a href="/patient-login.html" id="patientLoginLink" class="nav-login">Patient Login</a>
+      <a href="/patient-portal.html" id="patientPortalLink" class="nav-login" hidden>My account</a>
+      <a href="/book-now.html" class="btn btn-primary nav-book">Book a GP</a>
     </nav>
   </div>
 </header>
@@ -72,7 +70,7 @@
     <div class="hero-text">
       <h1>Migraine Treatment</h1>
       <p>For patients with an established migraine diagnosis, our GPs can review your history online and issue an appropriate treatment prescription.</p>
-      <a href="/book.html?service=migraine" id="pageBookCta" class="btn btn-primary">Book Now — <span id="pagePrice">€25.00</span></a>
+      <a href="/book.html?service=migraine" id="pageBookCta" class="btn btn-primary">Book online — <span id="pagePrice">€25.00</span></a>
     </div>
     <div class="hero-photo-wrap">
       <img class="hero-photo" src="/img/photos/migraine.webp" alt="Person taking medication with water, representing migraine treatment">
@@ -90,7 +88,7 @@
     <p style="color:var(--ink-500); font-size:0.9rem;">
       <strong>How your prescription reaches your pharmacy:</strong> if your GP approves your request, they email your prescription directly to the pharmacy you name during booking.
     </p>
-    <a href="/book.html?service=migraine" class="btn btn-secondary btn-block" style="margin-top:10px;">Book Now</a>
+    <a href="/book.html?service=migraine" class="btn btn-secondary btn-block" style="margin-top:10px;">Book online</a>
   </div>
 </section>
 
@@ -128,7 +126,7 @@
       <div>
         <h4>Book &amp; visit</h4>
         <ul>
-          <li><a href="/book-now.html">Book now</a></li>
+          <li><a href="/book-now.html">Book a GP</a></li>
           <li><a href="/walk-in.html">Walk-in clinic</a></li>
           <li><a href="/online.html">Online GP</a></li>
           <li><a href="/new-patients.html">Register as a patient</a></li>
@@ -165,8 +163,8 @@
 <!-- @/footer -->
 <!-- @sticky -->
 <div class="sticky-cta" role="region" aria-label="Book a GP">
-  <a class="btn btn-primary" href="/book.html">Online GP</a>
-  <a class="btn btn-secondary" href="/walk-in.html#book-in">Walk-in</a>
+  <a class="btn btn-primary" href="/book.html">Book online</a>
+  <a class="btn btn-secondary" href="/walk-in.html">Walk-in clinic</a>
 </div>
 <!-- @/sticky -->
 

@@ -258,7 +258,7 @@ main:focus { outline: none; }
 .clinic-page nav.main-nav a.btn { white-space: nowrap; padding: 11px 22px; }
 .clinic-page .brand { white-space: nowrap; }
 .clinic-page .nav-toggle { padding: 10px 12px; min-width: 44px; min-height: 44px; font-size: 1.5rem; color: var(--ink); }
-@media (max-width: 1080px) {
+@media (max-width: 1180px) {
   .clinic-page nav.main-nav { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; background: #fff; padding: 6px 24px 22px; box-shadow: 0 18px 30px rgba(10,46,46,.14); border-bottom: 1px solid var(--line-warm); }
   .clinic-page nav.main-nav.nav-open { display: flex; }
   .clinic-page nav.main-nav a:not(.btn) { padding: 15px 0; border-bottom: 1px solid var(--line-warm); font-size: 1.05rem; }
@@ -407,3 +407,59 @@ table.compare tr:last-child th, table.compare tr:last-child td { border-bottom: 
 /* sticky booking bar: fully solid so page content never shows through the buttons */
 .sticky-cta { background: #fff; }
 .sticky-cta .btn-secondary { background: #fff; }
+
+
+/* =====================================================================================
+   V2: header with Book a GP + Patient Login, "How would you like to see a GP?" cards,
+   hero details. (Header layout: desktop = links + login + Book a GP; phone = logo,
+   Book a GP, menu.)
+   ===================================================================================== */
+.header-book { display: none; }
+.clinic-page nav.main-nav a.nav-login { color: var(--muted); font-weight: 600; font-size: 0.93rem; }
+.clinic-page nav.main-nav a.nav-login:hover { color: var(--teal-deep); }
+.clinic-page nav.main-nav { gap: 22px; }
+@media (max-width: 1180px) {
+  .header-book { display: inline-flex; margin-left: auto; padding: 10px 18px; min-height: 44px; font-size: 0.95rem; white-space: nowrap; }
+  .clinic-page nav.main-nav a.nav-book { display: none; }
+  .clinic-page .nav-toggle { margin-left: 4px; }
+  .clinic-page nav.main-nav a.nav-login { color: var(--ink); font-size: 1.05rem; }
+}
+@media (max-width: 380px) { .header-book { padding: 10px 14px; font-size: 0.9rem; } .clinic-page .brand { font-size: 1.25rem; } }
+
+/* Hero details */
+.hero2-meta { margin: 0; color: var(--ink); font-weight: 700; font-size: 0.98rem; letter-spacing: 0.01em; }
+.hero2-meta .dot { color: var(--teal); margin: 0 6px; }
+.hero2 h1 em { font-style: normal; color: var(--teal); }
+
+/* "How would you like to see a GP?" — two photo cards */
+.choose-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.choose-card { background: #fff; border: 1px solid var(--line-warm); border-radius: 30px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 28px 50px -34px rgba(60, 40, 10, 0.4); transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.choose-card:hover { transform: translateY(-4px); box-shadow: 0 34px 56px -30px rgba(60, 40, 10, 0.45); }
+.choose-media { position: relative; }
+.choose-media img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; }
+.choose-media .badge-chip { position: absolute; left: 20px; top: 20px; margin: 0; background: rgba(255,255,255,.96); box-shadow: 0 6px 18px rgba(0,0,0,.14); }
+.choose-body { padding: clamp(24px, 3vw, 36px); display: flex; flex-direction: column; flex: 1; }
+.choose-body h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: clamp(1.5rem, 2.6vw, 1.95rem); line-height: 1.15; margin: 0 0 10px; }
+.choose-body p { margin: 0 0 20px; font-size: 1.05rem; }
+.choose-body p strong { color: var(--ink); }
+.choose-actions { margin-top: auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.choose-actions .soft { color: var(--muted); font-size: 0.93rem; font-weight: 600; }
+.choose-note { text-align: center; margin: 28px 0 0; }
+@media (max-width: 860px) { .choose-grid { grid-template-columns: 1fr; } .choose-actions .btn { flex: 1 1 100%; } }
+
+/* Account bar (patient portal / booking confirmation now use the shared site header) */
+.account-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line-warm); border-radius: 16px; padding: 12px 18px; margin-bottom: 22px; font-size: 0.95rem; }
+.account-bar #whoami { color: var(--muted); }
+.account-bar a { font-weight: 700; }
+
+/* Phones: keep logo + Book a GP + menu on one row down to 320px */
+@media (max-width: 440px) {
+  .brand-sub { display: none; }
+  .clinic-page .nav-wrap { gap: 10px; padding-left: 16px; padding-right: 16px; }
+  .clinic-page .brand { gap: 10px; }
+  .header-book { padding: 10px 15px; }
+}
+
+/* The phone-only Book a GP button must stay hidden on desktop (.clinic-page .btn sets display, so match its specificity) */
+.clinic-page a.header-book { display: none; }
+@media (max-width: 1180px) { .clinic-page a.header-book { display: inline-flex; } }

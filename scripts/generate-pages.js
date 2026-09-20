@@ -51,9 +51,9 @@ const FAQ = [
     ['Is an online consultation right for every problem?', 'No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.'],
   ] },
   { id: 'walk-in', title: 'Walk-in clinic', items: [
-    ['Do I need an appointment for the walk-in clinic?', 'No. You can come in at any time during opening hours. You can also <a href="/walk-in.html#book-in">book in online</a> so we know you\'re on your way.'],
+    ['Do I need an appointment for the walk-in clinic?', 'No. You can come in at any time during opening hours. You can also <a href="/walk-in.html#book-in">check in online</a> so we know you\'re on your way.'],
     ['When is the walk-in clinic open?', 'We\'re open <span data-clinic-hours-text>seven days a week</span>. Hours may differ on public holidays.'],
-    ['How long will I wait?', 'Waiting times vary depending on how busy we are. Booking in online lets us know you\'re coming, but it doesn\'t reserve a set appointment time.'],
+    ['How long will I wait?', 'Waiting times vary depending on how busy we are. Checking in online lets us know you\'re coming, but it doesn\'t reserve a set appointment time.'],
     ['What should I bring?', 'A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors.'],
   ] },
   { id: 'appointments', title: 'Appointments & registration', items: [
@@ -181,17 +181,13 @@ write('index.html', page({
   <div class="container hero2-grid">
     <div class="hero2-text">
       <p class="eyebrow">GP4U Clinic · Newbridge, Co. Kildare</p>
-      <h1>GP care when you need it.</h1>
-      <p class="lead">See a GP in person at our walk-in clinic in Newbridge, or online from home. Choose what suits you — no appointment needed at the clinic.</p>
+      <h1>GP care, when you need it.</h1>
+      <p class="lead">Walk in and see a GP in Newbridge, or speak to an Irish-registered GP online from home.</p>
       <div class="hero2-actions">
-        <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
-        <a href="/walk-in.html" class="btn btn-secondary btn-lg">Visit Our Walk-In Clinic</a>
+        <a href="/walk-in.html" class="btn btn-primary btn-lg">Walk-In Clinic</a>
+        <a href="/online.html" class="btn btn-secondary btn-lg">See a GP Online</a>
       </div>
-      <div class="trust-row">
-        <span>${ico('clock')} Open 7 days a week</span>
-        <span>${ico('badge')} Doctors registered with the Medical Council</span>
-        <span>${ico('lock')} Private &amp; secure</span>
-      </div>
+      <p class="hero2-meta">Open 7 days <span class="dot">·</span> No appointment needed <span class="dot">·</span> Irish-registered GPs</p>
     </div>
     <div class="hero2-media">
       <img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" width="1500" height="844" fetchpriority="high">
@@ -206,9 +202,53 @@ write('index.html', page({
   </div>
 </section>
 
-<section class="sec sec-tight" style="padding-top:0;margin-top:-28px;position:relative;z-index:2;">
+<section class="sec" id="choose" style="padding-top:8px;">
   <div class="container">
-    <h2 class="sr-only">What do you need today?</h2>
+    <div class="sec-head center">
+      <h2>How would you like to see a GP?</h2>
+      <p>Choose what suits you — the same GP-led care, either way.</p>
+    </div>
+    <div class="choose-grid">
+      <article class="choose-card">
+        <div class="choose-media">
+          <img src="/img/clinic/doctor-consult.webp" alt="A GP listening carefully to a patient during a consultation at the clinic" loading="lazy" width="1300" height="731">
+          <span class="badge-chip">${ico('pin')} In person · Newbridge, Co. Kildare</span>
+        </div>
+        <div class="choose-body">
+          <h3>Visit our clinic</h3>
+          <p><strong>Walk-in GP care in Newbridge, Co. Kildare.</strong><br>No appointment required.</p>
+          <div class="choose-actions">
+            <a href="/walk-in.html" class="btn btn-primary btn-lg">Visit the Walk-In Clinic</a>
+            <a href="#" data-clinic-directions class="btn btn-secondary btn-lg">Get directions</a>
+            <span class="soft" data-if-no-street>Directions coming soon</span>
+          </div>
+        </div>
+      </article>
+      <article class="choose-card">
+        <div class="choose-media">
+          <img src="/img/clinic/doctor-video.webp" alt="A GP on a video consultation with a patient at home" loading="lazy" width="1300" height="731">
+          <span class="badge-chip">${ico('video')} Online · from home</span>
+        </div>
+        <div class="choose-body">
+          <h3>See a GP online</h3>
+          <p><strong>Speak to an Irish-registered GP from the comfort of home.</strong><br>Video or phone consultation.</p>
+          <div class="choose-actions">
+            <a href="/book.html" class="btn btn-primary btn-lg">Book Online</a>
+            <span class="soft"><span data-min-price hidden></span></span>
+          </div>
+        </div>
+      </article>
+    </div>
+    <p class="choose-note">Not sure which to choose? If you need to be examined in person, visit the walk-in clinic.</p>
+  </div>
+</section>
+
+<section class="sec sec-alt">
+  <div class="container">
+    <div class="sec-head center">
+      <p class="eyebrow">Quick links</p>
+      <h2>What do you need today?</h2>
+    </div>
     <div class="tiles">
       <a class="tile" href="/walk-in.html">${chip('plus')}<h3>I need a GP today</h3><p>Walk-in clinic — no appointment needed.</p><span class="go">Walk-in clinic →</span></a>
       <a class="tile" href="/online.html">${chip('video')}<h3>I want to speak to a GP online</h3><p>Video or phone consultations from home.</p><span class="go">Online GP →</span></a>
@@ -218,48 +258,7 @@ write('index.html', page({
   </div>
 </section>
 
-<section class="sec">
-  <div class="container">
-    <div class="sec-head center">
-      <p class="eyebrow">Two ways to see a GP</p>
-      <h2>Choose what suits you</h2>
-      <p>Same GP-led care, whether you come to us or we come to you online.</p>
-    </div>
-    <div class="opt-grid">
-      <article class="opt is-online">
-        <span class="badge-chip">${ico('video')} Online · from home</span>
-        <h3 class="opt-title">Online GP consultation</h3>
-        <p>Speak to a GP by video or phone, wherever you are.</p>
-        <ul class="tick-list">
-          <li>Choose a time that suits you</li>
-          <li>Repeat prescriptions and sick certs, where appropriate</li>
-          <li>Secure card payment when you book</li>
-        </ul>
-        <div class="opt-foot">
-          <p class="price-line"><span data-min-price hidden></span> <small>· prices shown before you pay</small></p>
-          <a href="/book.html" class="btn btn-primary btn-lg">Book an Online GP Consultation</a>
-        </div>
-      </article>
-      <article class="opt is-inperson">
-        <span class="badge-chip">${ico('pin')} In person · Newbridge, Co. Kildare</span>
-        <h3 class="opt-title">Walk-in clinic</h3>
-        <p>See a doctor at the clinic — no appointment needed.</p>
-        <ul class="tick-list">
-          <li>Open seven days a week</li>
-          <li>Book in online so we know you're on your way</li>
-          <li>Everyday illness and minor injuries</li>
-        </ul>
-        <div class="opt-foot">
-          <p class="price-line">Fees: <a href="/fees.html">see our Fees page</a></p>
-          <a href="/walk-in.html" class="btn btn-secondary btn-lg">Visit Our Walk-In Clinic</a>
-        </div>
-      </article>
-    </div>
-    <p style="text-align:center;margin:28px 0 0;">Not sure which to choose? If you need to be examined in person, choose the walk-in clinic.</p>
-  </div>
-</section>
-
-<section class="sec sec-alt">
+<section class="sec sec-white">
   <div class="container">
     <div class="sec-head center">
       <p class="eyebrow">What to expect</p>
@@ -280,7 +279,7 @@ write('index.html', page({
         <h3>Walk-in clinic</h3>
         <p>No appointment needed.</p>
         <ol class="numlist">
-          <li><div><strong>Come in</strong><span>Any day during opening hours — or book in online first.</span></div></li>
+          <li><div><strong>Come in</strong><span>Any day during opening hours — or check in online first.</span></div></li>
           <li><div><strong>Check in at reception</strong><span>Give our team your details and tell us why you're here.</span></div></li>
           <li><div><strong>See a doctor</strong><span>Your GP will assess you and, where needed, arrange prescriptions, sick certs or referrals.</span></div></li>
         </ol>
@@ -359,13 +358,13 @@ write('index.html', page({
 
 // ================================================================== BOOK NOW (step 1: choose)
 write('book-now.html', page({
-  title: 'Book Now — Online GP or Walk-In Clinic | GP4U Clinic',
+  title: 'Book a GP — Online or Walk-In Clinic | GP4U Clinic',
   desc: 'Book a GP with GP4U Clinic. Choose an online GP consultation from home, or visit our walk-in clinic in Newbridge, Co. Kildare.',
   url: '/book-now.html', sticky: false,
   body: `
 <section class="phero phero-simple">
   <div class="container">
-    <p class="eyebrow">Book now</p>
+    <p class="eyebrow">Book a GP</p>
     <h1>How would you like to see a GP?</h1>
     <p class="lead">Choose online from home, or in person at our clinic in Newbridge.</p>
   </div>
@@ -391,15 +390,16 @@ write('book-now.html', page({
       <article class="opt is-inperson">
         <span class="badge-chip">${ico('pin')} In person · Newbridge, Co. Kildare</span>
         <h2>Walk-in clinic</h2>
-        <p>Come in and see a doctor — no appointment needed. You can book in online so we know you're on your way.</p>
+        <p>Come in and see a doctor — no appointment needed. You can check in online so we know you're on your way.</p>
         <ul class="tick-list">
           <li>Open seven days a week</li>
           <li>Everyday illness and minor injuries</li>
-          <li>No payment needed to book in</li>
+          <li>No payment needed to check in</li>
         </ul>
         <div class="opt-foot">
           <p class="price-line" data-open-status-inline>Opening hours: <a href="/contact.html">see when we're open</a></p>
-          <a href="/walk-in.html#book-in" class="btn btn-secondary btn-lg">Book In for Walk-In</a>
+          <a href="/walk-in.html" class="btn btn-secondary btn-lg">Visit the Walk-In Clinic</a>
+          <p style="margin:12px 0 0;text-align:center;"><a href="/walk-in.html#book-in">Check in online (optional)</a></p>
         </div>
       </article>
     </div>
@@ -460,7 +460,7 @@ write('fees.html', page({
         <thead><tr><th scope="col"></th><th scope="col">Online GP</th><th scope="col">Walk-in clinic</th></tr></thead>
         <tbody>
           <tr><th scope="row">Where</th><td>From home, by video or phone</td><td>At the clinic in Newbridge, Co. Kildare</td></tr>
-          <tr><th scope="row">Appointment</th><td>Book a time online</td><td>No appointment needed — book in online if you like</td></tr>
+          <tr><th scope="row">Appointment</th><td>Book a time online</td><td>No appointment needed — check in online if you like</td></tr>
           <tr><th scope="row">Payment</th><td>By card when you book</td><td>See clinic fees above</td></tr>
           <tr><th scope="row">Best for</th><td>Advice, repeat prescriptions, sick certs, follow-ups</td><td>Problems that need to be examined in person</td></tr>
         </tbody>
@@ -568,7 +568,7 @@ write('faq.html', page({
       <h2>${g.title}</h2>
       ${faqHtml(g.items)}
     </div>`).join('\n    ')}
-    <div class="callout" style="margin-top:8px;"><p><strong>Still have a question?</strong> <a href="/contact.html">Contact us</a>, or <a href="/book-now.html">book now</a> to see a GP.</p></div>
+    <div class="callout" style="margin-top:8px;"><p><strong>Still have a question?</strong> <a href="/contact.html">Contact us</a>, or <a href="/book-now.html">book a GP</a> to see a GP.</p></div>
     <div style="margin-top:28px;">${EMERGENCY}</div>
   </div>
 </section>`,

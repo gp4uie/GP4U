@@ -45,7 +45,7 @@ async function loadWalkIns() {
   const rows = await res.json();
   const box = document.getElementById('walkInList');
   if (!rows.length) {
-    box.innerHTML = '<p style="color:var(--ink-500);">No one has booked in for walk-in in the last 24 hours.</p>';
+    box.innerHTML = '<p style="color:var(--ink-500);">No one has checked in online for walk-in in the last 24 hours.</p>';
     return;
   }
   // Active (expected/arrived) people first, in the order they booked in; finished ones below.

@@ -124,6 +124,7 @@ async function main() {
           assert(info.main, 'missing <main id="main">');
           assert(info.overflow <= 1, `horizontal overflow of ${info.overflow}px`);
           assert(!/George Street/i.test(info.text), 'street name is visible');
+          assert(!/book(ed)? in for (the )?walk-in|you.re booked in|walk-in appointment/i.test(info.text), 'old walk-in wording ("book in") is still on this page');
           if (info.footerAddr !== undefined) assert(info.footerAddr === 'Address coming soon', `footer address shows "${info.footerAddr}"`);
           assert(info.brokenImgs.length === 0, 'broken images: ' + info.brokenImgs.join(', '));
           assert(info.styled, 'page is not styled correctly (stylesheet missing/stale — "Skip to main content" would show at top left)');
@@ -147,26 +148,33 @@ async function main() {
 
     // ---------------------------------------------------------------- 3. navigation journeys
     heading('Navigation & patient pathways');
-    await test('Book Now → choose online → online booking page', async () => {
+    await test('header: Book a GP button + Patient Login link, then choose online → online booking page', async () => {
       await tab.goto('/');
-      await tab.clickNav(`document.querySelector('header a.btn-primary')`);
-      assert(await tab.ev('location.pathname') === '/book-now.html', 'Book Now did not open /book-now.html');
-      const both = await tab.ev(`!!([...document.querySelectorAll('a')].find((a) => /Book an Online GP Consultation/.test(a.textContent))) && !!([...document.querySelectorAll('a')].find((a) => /Book In for Walk-In/i.test(a.textContent)))`);
+      assert(await tab.ev(`(() => { const nav = document.querySelector('nav.main-nav'); const b = [...nav.querySelectorAll('a.btn-primary')].find((a) => a.offsetParent !== null); const l = document.getElementById('patientLoginLink'); return !!b && b.textContent.trim() === 'Book a GP' && !!l && l.offsetParent !== null && l.textContent.trim() === 'Patient Login'; })()`), 'header should show a visible Book a GP button and a Patient Login link');
+      assert(await tab.ev(`getComputedStyle(document.querySelector('.header-book')).display === 'none'`), 'the phone-only Book a GP button is showing on desktop (duplicate)');
+      assert(await tab.ev(`document.querySelector('.brand').textContent.replace(/\\s+/g, ' ').trim() === 'GP4U Clinic'`), 'logo text should read "GP4U Clinic" with a single space');
+      await tab.clickNav(`[...document.querySelectorAll('nav.main-nav a.btn-primary')].find((a) => a.offsetParent !== null)`);
+      assert(await tab.ev('location.pathname') === '/book-now.html', 'Book a GP did not open /book-now.html');
+      const both = await tab.ev(`!!([...document.querySelectorAll('a')].find((a) => /Book an Online GP Consultation/.test(a.textContent))) && !!([...document.querySelectorAll('a')].find((a) => /Visit the Walk-In Clinic/i.test(a.textContent)))`);
       assert(both, 'both options (online + walk-in) should be offered');
       await tab.clickNav(`[...document.querySelectorAll('main a')].find((a) => /Book an Online GP Consultation/.test(a.textContent))`);
       assert(await tab.ev('location.pathname') === '/book.html', 'did not reach /book.html');
       assert(await tab.ev(`/not an appointment at the clinic/i.test(document.body.innerText)`), 'booking page should say it is an online booking');
     });
-    await test('Book Now → walk-in option → walk-in booking form', async () => {
+    await test('Book a GP → walk-in option → optional online check-in form', async () => {
       await tab.goto('/book-now.html');
-      await tab.clickNav(`[...document.querySelectorAll('main a')].find((a) => /Book In for Walk-In/i.test(a.textContent))`);
+      await tab.clickNav(`[...document.querySelectorAll('main a')].find((a) => /Check in online/i.test(a.textContent))`);
       assert((await tab.ev('location.pathname + location.hash')) === '/walk-in.html#book-in', 'wrong destination');
       assert(await tab.ev(`!!document.getElementById('bookInForm')`), 'walk-in form missing');
     });
-    await test('homepage hero: two equal main actions + four pathway tiles', async () => {
+    await test('homepage: hero, "How would you like to see a GP?" cards, pathway tiles', async () => {
       await tab.goto('/');
-      const r = await tab.ev(`({ ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), tiles: document.querySelectorAll('.tile').length })`);
-      assert(r.ctas.length === 2 && /Online GP/.test(r.ctas[0]) && /Walk-In/.test(r.ctas[1]), 'hero actions wrong: ' + r.ctas.join(' | '));
+      const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), meta: (document.querySelector('.hero2-meta') || {}).textContent, cards: [...document.querySelectorAll('.choose-card')].map((c) => c.querySelector('h3').textContent.trim() + ' | ' + [...c.querySelectorAll('a.btn')].map((a) => a.textContent.trim()).join(' / ')), heading: (document.querySelector('#choose h2') || {}).textContent, tiles: document.querySelectorAll('.tile').length })`);
+      assert(r.h1 === 'GP care, when you need it.', 'hero headline wrong: ' + r.h1);
+      assert(r.ctas.length === 2 && r.ctas[0] === 'Walk-In Clinic' && r.ctas[1] === 'See a GP Online', 'hero actions wrong: ' + r.ctas.join(' | '));
+      assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
+      assert(r.heading === 'How would you like to see a GP?', 'central section heading wrong');
+      assert(r.cards.length === 2 && r.cards[0].startsWith('Visit our clinic | Visit the Walk-In Clinic') && r.cards[1].startsWith('See a GP online | Book Online'), 'the two choice cards are wrong: ' + r.cards.join(' || '));
       assert(r.tiles >= 4, 'expected 4 pathway tiles');
     });
     await test('current page is marked in the navigation', async () => {
@@ -194,6 +202,7 @@ async function main() {
       await tab.ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
       assert(await tab.ev(`document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'false'`), 'Escape did not close menu');
       assert(await tab.ev(`getComputedStyle(document.querySelector('.sticky-cta')).display === 'flex'`), 'sticky booking bar missing');
+      assert(await tab.ev(`(() => { const b = document.querySelector('.header-book'); const t = document.querySelector('.nav-toggle'); return getComputedStyle(b).display !== 'none' && b.textContent.trim() === 'Book a GP' && getComputedStyle(t).display !== 'none'; })()`), 'phone header should show the logo, a Book a GP button and the menu button');
       await tab.mobile(false);
     });
 
