@@ -1000,3 +1000,27 @@ body.staff-page { background: var(--cream); }
   .trust-chips { gap: 6px 18px; }
   .trust-chips li { font-size: .84rem; }
 }
+
+/* ================= Inner pages: photo header blended into the page, like the home page hero ================= */
+.phero { position: relative; overflow: hidden; background: #f3ecdf; padding: clamp(40px, 5vw, 64px) 0; }
+.phero-grid { grid-template-columns: 1fr; position: relative; z-index: 1; }
+.phero-grid > div:first-child { max-width: 560px; }
+.phero-media { position: absolute; top: 0; right: 0; bottom: 0; width: 48%; }
+.phero-media img { display: block; width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; box-shadow: none; object-fit: cover; object-position: 60% 45%; }
+.phero-media img[src*="gp-family-exam"] { object-position: 50% 26%; }
+.phero-media img[src*="family-sofa"] { object-position: 50% 35%; }
+.phero-media img[src*="walk-in-consult"] { object-position: 62% 40%; }
+.phero-media img[src*="clinic-room"] { object-position: 62% 55%; }
+.phero-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #f3ecdf 0%, rgba(243, 236, 223, .92) 12%, rgba(243, 236, 223, 0) 50%); }
+.phero-simple { text-align: left; position: relative; }
+.phero-simple .container { position: relative; z-index: 1; }
+.phero-simple .container > * { max-width: 560px; }
+.phero-simple .lead { margin: 0; }
+@media (max-width: 860px) {
+  .phero { padding: 0 0 28px; }
+  .phero-media { position: relative; width: 100%; height: 200px; order: -1; }
+  .phero-media::after { background: linear-gradient(180deg, rgba(243, 236, 223, 0) 50%, #f3ecdf 100%); }
+  .phero .container { padding-top: 18px; }
+}
+.phero-grid { position: static; }
+.phero-grid > div:first-child { position: relative; z-index: 1; }

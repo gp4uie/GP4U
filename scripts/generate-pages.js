@@ -403,6 +403,7 @@ write('book-now.html', page({
   url: '/book-now.html', sticky: false,
   body: `
 <section class="phero phero-simple">
+  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941"></div>
   <div class="container">
     <p class="eyebrow">Book a GP</p>
     <h1>How would you like to see a GP?</h1>
@@ -469,6 +470,7 @@ write('fees.html', page({
   url: '/fees.html',
   body: `
 <section class="phero phero-simple">
+  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941"></div>
   <div class="container">
     <p class="eyebrow">Fees</p>
     <h1>Clear prices, shown before you book</h1>
@@ -536,7 +538,7 @@ write('about.html', page({
         <a href="/online.html" class="btn btn-secondary btn-lg">See a GP Online</a>
       </div>
     </div>
-    <div class="phero-media"><img src="/img/clinic/doctor-desk.webp" alt="A GP seated at her desk in a bright consulting room" width="1100" height="619" fetchpriority="high"></div>
+    <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high"></div>
   </div>
 </section>
 
@@ -610,6 +612,7 @@ write('faq.html', page({
   }),
   body: `
 <section class="phero phero-simple">
+  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941"></div>
   <div class="container">
     <p class="eyebrow">FAQs</p>
     <h1>Frequently asked questions</h1>
@@ -800,6 +803,7 @@ write('contact.html', page({
   url: '/contact.html',
   body: `
 <section class="phero phero-simple">
+  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941"></div>
   <div class="container">
     <p class="eyebrow">Contact</p>
     <h1>Contact GP4U Clinic</h1>

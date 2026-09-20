@@ -331,6 +331,16 @@ async function main() {
         if (process.env.E2E_SHOTS) { const p = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'home-first-screen.png'), Buffer.from(p.data, 'base64')); }
       } finally { await tab.mobile(false); }
     });
+    await test('inner pages: the photo header is blended into the page (photo on the right, text clear of it) on every page', async () => {
+      await tab.mobile(false);
+      for (const p of ['/walk-in.html', '/online.html', '/services.html', '/about.html', '/new-patients.html', '/fees.html', '/faq.html', '/contact.html', '/book-now.html']) {
+        await tab.goto(p);
+        const r = await tab.ev(`(() => { const m = document.querySelector('.phero .phero-media'); const img = m && m.querySelector('img'); const h1 = document.querySelector('.phero h1'); if (!m || !h1) return null; const mr = m.getBoundingClientRect(); return { pos: getComputedStyle(m).position, loaded: img.complete && img.naturalWidth > 0, h1Right: h1.getBoundingClientRect().right, mediaLeft: mr.left, mediaW: mr.width, vw: window.innerWidth }; })()`);
+        assert(r && r.pos === 'absolute' && r.loaded, p + ': should have a blended photo header: ' + JSON.stringify(r));
+        assert(r.h1Right <= r.mediaLeft + 40, p + ': the heading runs into the photo: ' + JSON.stringify(r));
+        if (process.env.E2E_SHOTS && ['/walk-in.html', '/contact.html', '/services.html'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.slice(1, -5) + '.png'), Buffer.from(c.data, 'base64')); }
+      }
+    });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
       await tab.goto('/');
       await tab.waitFor(`document.querySelectorAll('.hs-card [data-open-status]').length > 0 && !!document.querySelector('.hs-card .hs-row')`, 6000, 'hours strip');
