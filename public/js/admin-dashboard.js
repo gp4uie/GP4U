@@ -30,13 +30,14 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['analytics', 'doctors', 'reception', 'patients', 'rx', 'accesslog', 'messages'].forEach((t) => {
+  ['analytics', 'doctors', 'reception', 'account', 'patients', 'rx', 'accesslog', 'messages'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'analytics') loadAnalytics();
   if (tab === 'doctors') loadDoctors();
   if (tab === 'reception') loadReception();
+  if (tab === 'account') loadMyAccount();
   if (tab === 'patients') loadPatients();
   if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
   if (tab === 'accesslog') loadAccessLog();
@@ -132,7 +133,8 @@ async function loadDoctors() {
       <td>${d.totp_enabled ? '<span class="badge badge-green">On</span>' : '—'}
         ${d.totp_enabled ? `<button class="btn btn-secondary" style="padding:4px 10px;font-size:0.78rem;margin-left:6px;" onclick="disableDoctorTotp(${d.id})">Reset</button>` : ''}
       </td>
-      <td><button class="btn btn-secondary" onclick="openScheduleEditor(${d.id}, '${d.name.replace(/'/g, "\\'")}')">Edit Schedule</button></td>
+      <td><button class="btn btn-secondary" onclick="openScheduleEditor(${d.id}, '${d.name.replace(/'/g, "\\'")}')">Edit Schedule</button>
+        <button class="btn btn-secondary" style="margin-top:6px;" onclick="editPerson('doctor', ${d.id})">Edit details</button></td>
       <td>
         ${d.active
           ? `<button class="btn btn-secondary" onclick="deactivateDoctor(${d.id})">Deactivate</button>`
@@ -390,7 +392,9 @@ async function loadReception() {
       </td>
       <td>${r.active
         ? `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, false)">Deactivate</button>`
-        : `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, true)">Reactivate</button>`}</td>
+        : `<button class="btn btn-secondary" onclick="setReceptionActive(${r.id}, true)">Reactivate</button>`}
+        <button class="btn btn-secondary" onclick="editPerson('reception', ${r.id})">Edit details</button>
+        <button class="btn btn-secondary" onclick="removeReceptionist(${r.id})">Delete</button></td>
     </tr>`).join('') || '<tr><td colspan="7">No reception accounts yet.</td></tr>';
   loadReceptionLog();
 }
@@ -433,3 +437,78 @@ async function setReceptionPassword(id) {
   msg.textContent = res.ok ? 'Password updated.' : (data.error || 'Could not update the password.');
   if (res.ok) input.value = '';
 }
+
+// ---------------------------------------------------------------- Edit a doctor's or receptionist's details
+const pEsc = (v) => String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+async function editPerson(kind, id) {
+  const isDoctor = kind === 'doctor';
+  const list = await (await fetch(isDoctor ? '/api/admin/doctors' : '/api/admin/receptionists')).json();
+  const p = list.find((x) => x.id === id);
+  if (!p) return;
+  const box = document.getElementById('personEditor');
+  box.hidden = false;
+  box.innerHTML = `
+    <h3 style="margin-top:0;">Edit ${isDoctor ? 'doctor' : 'receptionist'}: ${pEsc(p.name)}</h3>
+    <form id="personForm" novalidate>
+      <div class="form-grid">
+        <div class="form-row"><label for="pName">Name</label><input id="pName" maxlength="255" value="${pEsc(p.name)}"></div>
+        ${isDoctor ? `<div class="form-row"><label for="pReg">IMC registration number</label><input id="pReg" maxlength="64" value="${pEsc(p.reg_number)}"></div>` : ''}
+        <div class="form-row"><label for="pEmail">Login email</label><input id="pEmail" type="email" maxlength="255" value="${pEsc(p.email)}"></div>
+        <div class="form-row"><label for="pPw">New password <span style="font-weight:400;color:var(--muted);">(optional, at least 8 characters)</span></label><input id="pPw" type="password" autocomplete="new-password"></div>
+      </div>
+      <button class="btn btn-primary" type="submit">Save changes</button>
+      <button class="btn btn-secondary" type="button" onclick="document.getElementById('personEditor').hidden = true">Cancel</button>
+      <p id="personMsg" role="alert" class="staff-error"></p>
+    </form>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('personForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('personMsg'); msg.style.color = ''; msg.textContent = '';
+    const call = async (url, method, body) => {
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not save');
+    };
+    try {
+      const base = isDoctor ? '/api/admin/doctors/' : '/api/admin/receptionists/';
+      await call(base + id, 'PUT', isDoctor
+        ? { name: document.getElementById('pName').value, regNumber: document.getElementById('pReg').value, email: document.getElementById('pEmail').value }
+        : { name: document.getElementById('pName').value, email: document.getElementById('pEmail').value });
+      const pw = document.getElementById('pPw').value;
+      if (pw) await call(base + id + '/password', 'POST', { password: pw });
+      box.hidden = true;
+      if (isDoctor) loadDoctors(); else loadReception();
+    } catch (err) { msg.textContent = err.message; }
+  });
+}
+
+async function removeReceptionist(id) {
+  if (!window.confirm('Delete this reception account? They will no longer be able to sign in. (Deactivate instead if you might want them back.)')) return;
+  await fetch('/api/admin/receptionists/' + id, { method: 'DELETE' });
+  loadReception();
+}
+
+// ---------------------------------------------------------------- My account
+async function loadMyAccount() {
+  const me = await (await fetch('/api/admin/me')).json();
+  document.getElementById('myName').value = me.adminName || '';
+  document.getElementById('myEmail').value = me.adminEmail || '';
+}
+document.getElementById('myAccountForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('myAccountMsg'); msg.className = 'staff-ok'; msg.textContent = '';
+  const res = await fetch('/api/admin/me', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: document.getElementById('myName').value, email: document.getElementById('myEmail').value }) });
+  const data = await res.json().catch(() => ({}));
+  msg.className = res.ok ? 'staff-ok' : 'staff-error';
+  msg.textContent = res.ok ? 'Saved.' : (data.error || 'Could not save');
+});
+document.getElementById('myPasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('myPasswordMsg'); msg.className = 'staff-ok'; msg.textContent = '';
+  const res = await fetch('/api/admin/me/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: document.getElementById('myCurrentPw').value, newPassword: document.getElementById('myNewPw').value }) });
+  const data = await res.json().catch(() => ({}));
+  msg.className = res.ok ? 'staff-ok' : 'staff-error';
+  msg.textContent = res.ok ? 'Password changed.' : (data.error || 'Could not change the password');
+  if (res.ok) { document.getElementById('myCurrentPw').value = ''; document.getElementById('myNewPw').value = ''; }
+});

@@ -511,3 +511,24 @@ content-based version stamp (`/css/clinic.css?v=1a2b3c4d`). **After changing any
   receptionists yet (doctors have one).
 - **Doctor dashboard:** left menu, one section at a time (each opens at the top): **Today**; **Online clinic** (day list / calendar / recent — online bookings only); **Walk-in clinic** (live queue with Open chart / Mark seen, recent walk-in visits — walk-ins only); **Find a patient** (results grouped per person, walk-in and online visits together); **Registrations** (All / Website / At desk); Tasks; Team messages; Security. The chart is a full page with a patient banner (allergies, visit type, previous-visit counts) and a **History** tab that shows every earlier walk-in and online visit for the same patient (matched by email, or name + date of birth for people without an email). Walk-in patients with no portal account show their clinic-registration details as the medical profile. Marking a walk-in seen completes its booking; completing the chart marks the queue entry seen. Patient-typed text is escaped everywhere on this page.
 - The doctor dashboard, admin dashboard, admin login and content editor share the same design system as the public site (`staff-page`).
+
+### Admin: Website settings (edit the site without touching code)
+
+Admin dashboard → **Website settings** (`/admin-site.html`). Everything below applies to the live site immediately and every change is logged
+(who / what / when) in **Change history**, from where an earlier version can be restored.
+
+- **Clinic details** – name, tagline, phone, email, street address / town / county / Eircode (leave the street empty to keep the address hidden),
+  map on/off, company details for the footer.
+- **Opening hours & closures** – walk-in clinic hours per day, separate **Online GP** times (or a plain note), and closed days ("Closed today · Christmas").
+- **Fees & lead GP** – walk-in fees (Fees page) and the lead GP block (About page).
+- **Page wording** – ~90 headings, sentences, button labels and bullets on the home page and page headers. The list lives in `server/siteRegistry.js`.
+  `npm run pages` marks each editable element (`data-cms="key"`) and **fails if a page's text no longer matches the registry**, so the two cannot drift.
+  Deliberately not editable: the emergency notice, the "No appointment is required" explanation and legal/privacy text.
+- **Photos** – replace 12 pictures (stored in the database, served from `/api/site-image/<slot>`); "Use the original" removes the upload.
+- **FAQs** – full editor for the FAQ page (sections, questions, answers with links/bold; unsafe markup is stripped on the server). Built-ins are in `server/faqDefaults.js`.
+- **Announcement bar** – a message across the top of every page (info or important), optional link.
+- **People** – Admin dashboard → Doctors / Reception: *Edit details*, reset password, delete a receptionist; *My account* changes the admin's own details and password.
+
+How it works: every public page loads `/api/site-settings.js` (added automatically by `npm run pages`) before `js/clinic.js`, which merges the admin's values over the
+built-in defaults in `clinic.js`. Tables: `site_config`, `site_config_history`, `site_images`, `site_change_log`. All admin input is validated in `server/siteSettings.js`
+(formats, lengths, angle brackets removed, FAQ HTML whitelisted). Adding a new editable line = add it to `server/siteRegistry.js` with its exact current text.

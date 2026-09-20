@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -280,16 +280,16 @@
 <main id="main">
 
 <section class="phero phero-simple">
-  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941"></div>
+  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941" data-cms-img="page.simple"></div>
   <div class="container">
-    <p class="eyebrow">FAQs</p>
-    <h1>Frequently asked questions</h1>
+    <p class="eyebrow" data-cms="faq.eyebrow">FAQs</p>
+    <h1 data-cms="faq.title">Frequently asked questions</h1>
     <p class="lead">Quick answers about booking, the walk-in clinic, online consultations and more. Can't find what you need? <a href="/contact.html">Get in touch</a>.</p>
   </div>
 </section>
 
 <section class="sec sec-tight" style="padding-top:8px;">
-  <div class="container" style="max-width:820px;">
+  <div class="container" style="max-width:820px;" data-faq-root>
     <nav class="faq-cats" aria-label="FAQ topics"><a href="#online">Online GP</a><a href="#walk-in">Walk-in clinic</a><a href="#appointments">Appointments & registration</a><a href="#prescriptions">Prescriptions</a><a href="#certificates">Medical certificates</a><a href="#referrals">Referrals</a><a href="#results">Test results</a><a href="#payments">Payments</a><a href="#children">Children</a><a href="#privacy">Privacy</a><a href="#cancellations">Cancellations</a><a href="#emergencies">Emergencies</a></nav>
     <div class="faq-group" id="online">
       <h2>Online GP</h2>
@@ -446,7 +446,8 @@
 </div>
 <!-- @/sticky -->
 
-<script src="/js/clinic.js?v=50ee1f5d"></script>
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

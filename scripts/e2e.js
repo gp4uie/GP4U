@@ -843,6 +843,246 @@ async function main() {
         assert(await tab.ev(`document.getElementById('receptionLogBody').innerText.includes('Registered a new patient at the desk')`), 'desk registration should be in the log');
         await tab.shot('admin-reception');
       });
+      // ------------------------------------------------ admin: website settings (clinic details, hours, wording, photos, FAQs, banner) + people
+      const REG = require('../server/siteRegistry');
+      const sendJson = (method, url, body) => tab.ev(`fetch(${JSON.stringify(url)}, { method: ${JSON.stringify(method)}, headers: { 'Content-Type': 'application/json' }, body: ${body === undefined ? 'undefined' : `JSON.stringify(${JSON.stringify(body)})`} }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => ({})) }))`);
+      const asAdmin = async () => { await tab.send('Network.clearBrowserCookies'); await tab.goto('/admin-login.html'); assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) === 200, 'admin login failed'); };
+      await test('website settings: locked to admins only; the public settings script carries no secrets', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        for (const [m, u] of [['GET', '/api/admin/site'], ['PUT', '/api/admin/site/clinic'], ['PUT', '/api/admin/site/text'], ['PUT', '/api/admin/site/faq'], ['PUT', '/api/admin/site/banner'], ['POST', '/api/admin/site/reset/clinic'], ['DELETE', '/api/admin/site/images/home.hero'], ['GET', '/api/admin/site/history']]) {
+          const r = await sendJson(m, u, m === 'GET' || m === 'DELETE' ? undefined : {});
+          assert(r.status === 401, `${m} ${u} should need an admin login (got ${r.status})`);
+        }
+        const js = await tab.ev(`fetch('/api/site-settings.js').then((r) => r.text())`);
+        assert(/^window\.GP4U_SETTINGS = \{/.test(js) && !/password|token|hash|secret/i.test(js), 'the public settings script should hold only site values');
+        // a doctor session and a front-desk session are not admins either
+        assert(await postJson('/api/doctor/login', { email: DOCTOR_EMAIL, password: DOCTOR_PASSWORD }) === 200, 'doctor login failed');
+        assert((await sendJson('PUT', '/api/admin/site/clinic', { phone: '111 111' })).status === 401, 'a doctor must not edit the website settings');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: process.env.E2E_RECEPTION_EMAIL, password: process.env.E2E_RECEPTION_PASSWORD }) === 200, 'reception login failed');
+        assert((await sendJson('PUT', '/api/admin/site/text', { values: {} })).status === 401, 'the front desk must not edit the website settings');
+      });
+      await test('editable wording: every marked line on every page still equals its original text (registry in sync)', async () => {
+        await tab.send('Network.clearBrowserCookies');
+        const pages = [...new Set(REG.TEXT.map((t) => t.page))];
+        for (const p of pages) {
+          await tab.goto('/' + (p === 'index.html' ? '' : p));
+          const got = await tab.ev(`[...document.querySelectorAll('[data-cms]')].map((e) => [e.dataset.cms, [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.data).join('').replace(/\\s+/g, ' ').trim()])`);
+          const want = REG.TEXT.filter((t) => t.page === p);
+          assert(got.length === want.length, `${p}: expected ${want.length} editable lines, found ${got.length}`);
+          for (const [k, txt] of got) assert(txt === REG.TEXT_BY_KEY.get(k).text, `${p}: "${k}" shows "${txt}" but the original is "${REG.TEXT_BY_KEY.get(k).text}"`);
+        }
+      });
+      await test('admin editor page opens with every section, and saves clinic details through the form', async () => {
+        await asAdmin();
+        await tab.goto('/admin-site.html');
+        await tab.waitFor(`getComputedStyle(document.getElementById('siteBox')).display !== 'none' && !!document.getElementById('detailsForm')`, 8000, 'website settings editor');
+        const panes = await tab.ev(`[...document.querySelectorAll('#siteNav [data-pane]')].map((b) => b.dataset.pane).join(',')`);
+        assert(panes === 'details,hours,fees,text,photos,faq,banner,history', 'editor sections wrong: ' + panes);
+        await tab.set('#cPhone', '045 999 111');
+        await tab.ev(`document.querySelector('#detailsForm button[type=submit]').click()`);
+        await tab.waitFor(`/Saved/.test(document.getElementById('paneMsg').textContent)`, 6000, 'saved message');
+        await tab.set('#cPhone', 'not a phone!');
+        await tab.ev(`document.querySelector('#detailsForm button[type=submit]').click()`);
+        await tab.waitFor(`/Phone number/.test(document.getElementById('paneErr').textContent)`, 6000, 'phone validation message');
+        // each pane renders
+        for (const p of ['hours', 'fees', 'text', 'photos', 'faq', 'banner', 'history']) {
+          await tab.ev(`document.querySelector('#siteNav [data-pane=${p}]').click()`); await sleep(400);
+          assert(await tab.ev(`getComputedStyle(document.getElementById('pane_${p}')).display !== 'none' && document.getElementById('pane_${p}').innerText.length > 20`), p + ' pane is empty');
+        }
+        await tab.ev(`document.querySelector('#siteNav [data-pane=text]').click()`); await sleep(300);
+        await tab.shot('admin-site-text');
+        await tab.ev(`document.querySelector('#siteNav [data-pane=photos]').click()`); await sleep(500);
+        await tab.shot('admin-site-photos');
+      });
+      await test('clinic details: address, phone, email and map appear across the public pages; bad input is refused', async () => {
+        await asAdmin();
+        assert((await sendJson('PUT', '/api/admin/site/clinic', { phone: 'abc' })).status === 400, 'a bad phone number should be refused');
+        assert((await sendJson('PUT', '/api/admin/site/clinic', { email: 'nope' })).status === 400, 'a bad email should be refused');
+        assert((await sendJson('PUT', '/api/admin/site/clinic', { hours: { 1: ['18:00', '09:00'] } })).status === 400, 'closing before opening should be refused');
+        assert((await sendJson('PUT', '/api/admin/site/clinic', { closures: [{ from: '2026-13-45' }] })).status === 400, 'a fake date should be refused');
+        const tagged = await sendJson('PUT', '/api/admin/site/clinic', { tagline: 'ZZ <img src=x onerror=window.__xss=9> tag', town: 'Newbridge' });
+        assert(tagged.status === 200 && !/[<>]/.test(JSON.stringify((await sendJson('GET', '/api/admin/site')).json.clinic)), 'angle brackets must be stripped from clinic details');
+        const r = await sendJson('PUT', '/api/admin/site/clinic', { streetAddress: 'ZZ Test Street', eircode: 'r56 ab12', phone: '045 123 456', email: 'zz-clinic@example.invalid', showMap: true, fees: { walkIn: [{ label: 'ZZ GP consultation', price: '€60' }] }, founder: { name: 'Dr ZZ Test', role: 'GP and founder', bio: 'ZZ bio', qualifications: ['MB BCh BAO'], medicalCouncilNumber: '123456' } });
+        assert(r.status === 200, 'saving clinic details failed: ' + JSON.stringify(r));
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/contact.html');
+        await tab.waitFor(`document.querySelector('[data-clinic-address]').innerText.includes('ZZ Test Street')`, 6000, 'address on contact page');
+        const c = await tab.ev(`({ addr: document.querySelector('.loc [data-clinic-address]').innerText, phone: !!document.querySelector('.loc a[href="tel:045123456"]'), mail: !!document.querySelector('a[href="mailto:zz-clinic@example.invalid"]'), directions: !document.querySelector('.loc [data-clinic-directions]').hidden, map: !!document.querySelector('.loc [data-clinic-map] iframe'), comingSoon: /coming soon/i.test(document.querySelector('main').innerText), footerAddr: document.querySelector('footer [data-clinic-address]').innerText })`);
+        assert(/ZZ Test Street/.test(c.addr) && /R56 AB12/.test(c.addr) && c.phone && c.mail && c.directions && c.map && !c.comingSoon && /ZZ Test Street/.test(c.footerAddr), 'clinic details missing from the public page: ' + JSON.stringify(c));
+        await tab.goto('/fees.html');
+        assert(await tab.ev(`document.body.innerText.includes('ZZ GP consultation') && document.body.innerText.includes('€60')`), 'walk-in fee should appear on the Fees page');
+        await tab.goto('/about.html');
+        assert(await tab.ev(`document.body.innerText.includes('Dr ZZ Test') && document.body.innerText.includes('123456')`), 'lead GP should appear on the About page');
+      });
+      await test('opening hours, online GP hours and closed days update the whole site', async () => {
+        await asAdmin();
+        const now = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Dublin' });
+        const r = await sendJson('PUT', '/api/admin/site/clinic', { hours: { 0: ['12:00', '19:00'], 1: ['09:30', '20:00'], 2: ['09:30', '20:00'], 3: ['09:30', '20:00'], 4: ['09:30', '20:00'], 5: ['09:30', '20:00'], 6: null }, onlineHours: { 0: null, 1: ['08:00', '22:00'], 2: ['08:00', '22:00'], 3: ['08:00', '22:00'], 4: ['08:00', '22:00'], 5: ['08:00', '22:00'], 6: null }, closures: [{ from: now, to: now, label: 'ZZ Test closure' }] });
+        assert(r.status === 200, 'saving hours failed: ' + JSON.stringify(r));
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        await tab.waitFor(`!!document.querySelector('.hs-card .hs-row')`, 6000, 'hours strip');
+        const h = await tab.ev(`({ strip: [...document.querySelectorAll('.hs-card')].map((c) => c.innerText.replace(/\\s+/g, ' ')), top: document.querySelector('.topbar [data-open-status]').innerText, closed: [...document.querySelectorAll('[data-clinic-closures]')].filter((e) => !e.hidden).map((e) => e.innerText).join(' | '), footer: document.querySelector('.footer-online').innerText })`);
+        assert(/9:30am – 8pm/.test(h.strip[0]) && /Sat\s*Closed/.test(h.strip[0]), 'walk-in hours not updated: ' + h.strip[0]);
+        assert(/8am – 10pm/.test(h.strip[1]) && !/9:30am/.test(h.strip[1]), 'online GP hours should be shown separately: ' + h.strip[1]);
+        assert(/Closed today · ZZ Test closure/.test(h.top), 'the top bar should say the clinic is closed today: ' + h.top);
+        assert(/ZZ Test closure/.test(h.closed), 'closed days should be listed: ' + h.closed);
+        assert(/8am – 10pm/.test(h.footer), 'footer online hours not updated: ' + h.footer);
+      });
+      await test('page wording: edit headings, sentences and icon lines; unknown keys refused; original restorable', async () => {
+        await asAdmin();
+        assert((await sendJson('PUT', '/api/admin/site/text', { values: { 'not.a.real.key': 'x' } })).status === 400, 'unknown wording key should be refused');
+        const r = await sendJson('PUT', '/api/admin/site/text', { values: { 'home.hero.title': 'ZZ New headline <b>bold</b>', 'home.chip.2': 'Open all week', 'walkin.title': 'ZZ Walk in headline', 'online.how.1.title': 'ZZ Step one' } });
+        assert(r.status === 200, 'saving wording failed: ' + JSON.stringify(r));
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        const t = await tab.ev(`({ h1: document.querySelector('h1').innerText, chip: document.querySelector('[data-cms="home.chip.2"]').innerText, svg: !!document.querySelector('[data-cms="home.chip.2"] svg'), bold: !!document.querySelector('h1 b') })`);
+        assert(t.h1 === 'ZZ New headline <b>bold</b>' && !t.bold, 'wording must be shown as plain text: ' + JSON.stringify(t));
+        assert(t.chip.trim() === 'Open all week' && t.svg, 'icon lines should keep their icon: ' + JSON.stringify(t));
+        await tab.goto('/walk-in.html');
+        assert(await tab.ev(`document.querySelector('h1').innerText === 'ZZ Walk in headline'`), 'walk-in page headline not updated');
+        await tab.goto('/online.html');
+        assert(await tab.ev(`document.querySelector('[data-cms="online.how.1.title"]').innerText === 'ZZ Step one'`), 'online step title not updated');
+        // restore the original wording through the editor's own screen
+        await asAdmin();
+        await tab.goto('/admin-site.html');
+        await tab.waitFor(`!!document.getElementById('detailsForm')`, 8000, 'editor');
+        await tab.ev(`document.querySelector('#siteNav [data-pane=text]').click()`);
+        await tab.waitFor(`!!document.querySelector('[data-key="home.hero.title"]')`, 6000, 'wording list');
+        assert(await tab.ev(`document.querySelector('[data-key="home.hero.title"]').value.startsWith('ZZ New headline') && !document.querySelector('[data-tag="home.hero.title"]').hidden`), 'the editor should show the edited line as edited');
+        await tab.ev(`document.querySelector('[data-orig="home.hero.title"]').click(); document.getElementById('saveText').click()`);
+        await tab.waitFor(`/Saved/.test(document.getElementById('paneMsg').textContent)`, 6000, 'saved');
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        assert(await tab.ev(`document.querySelector('h1').innerText === 'GP care, when you need it.'`), 'the original headline should be back');
+      });
+      await test('photos: upload replaces the picture, non-images and oversize files are refused, "use original" puts it back', async () => {
+        await asAdmin();
+        const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+        const up = (slot, name, type, b64) => tab.ev(`(async () => { const bin = atob(${JSON.stringify(b64)}); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); const fd = new FormData(); fd.append('file', new Blob([a], { type: ${JSON.stringify(type)} }), ${JSON.stringify(name)}); const r = await fetch('/api/admin/site/images/' + ${JSON.stringify(slot)}, { method: 'POST', body: fd }); return r.status; })()`);
+        assert(await up('home.card.walkin', 'x.png', 'image/png', png) === 200, 'uploading a PNG should work');
+        assert(await up('home.card.walkin', 'x.png', 'image/png', btoa('this is not a picture at all, just text')) === 400, 'a non-image must be refused');
+        assert(await up('not.a.slot', 'x.png', 'image/png', png) === 404, 'an unknown picture slot must be refused');
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        const img = await tab.ev(`document.querySelector('[data-cms-img="home.card.walkin"]').getAttribute('src')`);
+        assert(/^\/api\/site-image\/home\.card\.walkin\?v=\d+$/.test(img), 'home page should now use the uploaded picture: ' + img);
+        const served = await tab.ev(`fetch(${JSON.stringify(img)}).then((r) => [r.status, r.headers.get('content-type')])`);
+        assert(served[0] === 200 && served[1] === 'image/png', 'the uploaded picture should be served as a PNG: ' + served.join(' '));
+        await asAdmin();
+        assert((await sendJson('DELETE', '/api/admin/site/images/home.card.walkin')).status === 200, 'putting the original back failed');
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        assert(/walk-in-consult\.jpg/.test(await tab.ev(`document.querySelector('[data-cms-img="home.card.walkin"]').getAttribute('src')`)), 'the original picture should be back');
+        assert((await tab.ev(`fetch('/api/site-image/home.card.walkin').then((r) => r.status)`)) === 404, 'the removed upload should no longer be served');
+      });
+      await test('FAQs: edit the FAQ page; scripts and unsafe links in answers are stripped; built-in FAQs can be restored', async () => {
+        await asAdmin();
+        const before = await sendJson('GET', '/api/admin/site');
+        assert(before.json.registry.faqDefaults.length >= 5, 'the built-in FAQs should be available to edit');
+        const nasty = 'Try <strong>this</strong> <script>window.__xss=1</script><a href="javascript:window.__xss=2">bad</a> <a href="/contact.html">good</a> <img src=x onerror="window.__xss=3"> {{hours}}';
+        const r = await sendJson('PUT', '/api/admin/site/faq', { groups: [{ title: 'ZZ Test section', items: [{ q: 'ZZ Test question?', a: nasty }, { q: '', a: 'dropped' }] }] });
+        assert(r.status === 200, 'saving FAQs failed: ' + JSON.stringify(r));
+        const saved = (await sendJson('GET', '/api/admin/site')).json.faq;
+        assert(saved.length === 1 && saved[0].items.length === 1 && !/<script|javascript:|onerror|<img/i.test(saved[0].items[0].a), 'unsafe markup should be stripped: ' + JSON.stringify(saved));
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/faq.html');
+        await tab.waitFor(`!!document.querySelector('.faq-group h2') && document.querySelector('.faq-group h2').innerText === 'ZZ Test section'`, 6000, 'custom FAQ');
+        const f = await tab.ev(`({ groups: document.querySelectorAll('.faq-group').length, xss: window.__xss === undefined, bold: !!document.querySelector('.faq-group strong'), link: !!document.querySelector('.faq-group a[href="/contact.html"]'), hours: /Mon|10am|9pm/.test(document.querySelector('.faq-group [data-clinic-hours-text]').innerText), cats: document.querySelector('.faq-cats').innerText })`);
+        assert(f.groups === 1 && f.xss && f.bold && f.link && /ZZ Test section/.test(f.cats), 'FAQ page should show only the edited version, safely: ' + JSON.stringify(f));
+        await asAdmin();
+        assert((await sendJson('PUT', '/api/admin/site/faq', { groups: null })).status === 200, 'restoring the built-in FAQs failed');
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/faq.html');
+        assert(await tab.ev(`document.querySelectorAll('.faq-group').length`) === before.json.registry.faqDefaults.length, 'the built-in FAQs should be back');
+      });
+      await test('announcement bar: shows on every page in the chosen style, unsafe links refused, can be turned off', async () => {
+        await asAdmin();
+        assert((await sendJson('PUT', '/api/admin/site/banner', { enabled: true, text: 'x', linkText: 'go', linkUrl: 'javascript:alert(1)' })).status === 400, 'a javascript: link should be refused');
+        assert((await sendJson('PUT', '/api/admin/site/banner', { enabled: true, text: 'ZZ Closed on Monday <b>x</b>', tone: 'warning', linkText: 'See hours', linkUrl: '/contact.html' })).status === 200, 'saving the banner failed');
+        await tab.send('Network.clearBrowserCookies');
+        for (const p of ['/', '/walk-in.html', '/fees.html']) {
+          await tab.goto(p);
+          const b = await tab.ev(`(() => { const e = document.querySelector('.site-banner'); return e ? { text: e.innerText, warn: e.classList.contains('is-warning'), link: !!e.querySelector('a[href="/contact.html"]'), bold: !!e.querySelector('b') } : null; })()`);
+          assert(b && /ZZ Closed on Monday <b>x<\/b>/.test(b.text) && b.warn && b.link && !b.bold, p + ': the banner is missing or unsafe: ' + JSON.stringify(b));
+        }
+        await asAdmin();
+        assert((await sendJson('PUT', '/api/admin/site/banner', { enabled: false, text: 'ZZ Closed on Monday' })).status === 200, 'turning the banner off failed');
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/');
+        assert(await tab.ev(`!document.querySelector('.site-banner')`), 'the banner should be gone');
+      });
+      await test('change history: every edit is logged with who made it, and an earlier version can be restored', async () => {
+        await asAdmin();
+        await sendJson('PUT', '/api/admin/site/text', { values: { 'home.pill': 'ZZ pill one' } });
+        await sendJson('PUT', '/api/admin/site/text', { values: { 'home.pill': 'ZZ pill two' } });
+        const log = (await sendJson('GET', '/api/admin/site/history')).json;
+        assert(log.length >= 5 && log.every((x) => x.action && x.created_at) && log.some((x) => /Edited text/.test(x.action) && x.admin_name), 'edits should be logged with the admin\'s name');
+        const latest = log.find((x) => /Edited text/.test(x.action) && x.history_id);
+        assert(latest, 'a text edit should offer an undo');
+        assert((await sendJson('POST', '/api/admin/site/history/' + latest.history_id + '/restore')).status === 200, 'restoring failed');
+        const now = (await sendJson('GET', '/api/admin/site')).json.text;
+        assert(now['home.pill'] === 'ZZ pill one', 'the earlier version should be back: ' + JSON.stringify(now));
+        assert((await sendJson('POST', '/api/admin/site/history/999999999/restore')).status === 404, 'an unknown history entry should be refused');
+      });
+      await test('people: edit a doctor and a receptionist, reset passwords, remove a receptionist; admin changes their own password', async () => {
+        await asAdmin();
+        const stampMail = (s) => `zz-e2e-${s}-${STAMP}@example.invalid`;
+        assert((await sendJson('POST', '/api/admin/doctors', { name: 'ZZ Edit Doc', regNumber: 'ZZ-1', email: stampMail('doc'), password: 'Doc-Pass-12345' })).status === 200, 'creating a doctor failed');
+        const doc = (await sendJson('GET', '/api/admin/doctors')).json.find((d) => d.email === stampMail('doc'));
+        assert((await sendJson('PUT', '/api/admin/doctors/' + doc.id, { name: 'ZZ Renamed Doc', regNumber: 'ZZ-2', email: stampMail('doc2') })).status === 200, 'editing a doctor failed');
+        assert((await sendJson('PUT', '/api/admin/doctors/' + doc.id, { name: 'x', regNumber: 'y', email: DOCTOR_EMAIL })).status === 409, 'a doctor email that is already taken should be refused');
+        assert((await sendJson('PUT', '/api/admin/doctors/' + doc.id, { name: 'x', regNumber: 'y', email: 'not-an-email' })).status === 400, 'an invalid doctor email should be refused');
+        assert((await sendJson('POST', '/api/admin/doctors/' + doc.id + '/password', { password: 'short' })).status === 400, 'a weak password should be refused');
+        assert((await sendJson('POST', '/api/admin/doctors/' + doc.id + '/password', { password: 'Doc-New-Pass-777' })).status === 200, 'resetting a doctor password failed');
+        const edited = (await sendJson('GET', '/api/admin/doctors')).json.find((d) => d.id === doc.id);
+        assert(edited.name === 'ZZ Renamed Doc' && edited.reg_number === 'ZZ-2' && edited.email === stampMail('doc2'), 'the doctor edits should be saved');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/doctor/login', { email: stampMail('doc2'), password: 'Doc-New-Pass-777' }) === 200, 'the doctor should sign in with the new email and password');
+        assert(await postJson('/api/doctor/login', { email: stampMail('doc2'), password: 'Doc-Pass-12345' }) === 401, 'the old doctor password must stop working');
+        await asAdmin();
+        assert((await sendJson('DELETE', '/api/admin/doctors/' + doc.id)).status === 200, 'removing the test doctor failed');
+        // receptionist
+        assert((await sendJson('POST', '/api/admin/receptionists', { name: 'ZZ Edit Desk', email: stampMail('rec'), password: 'Desk-Pass-12345' })).status === 200, 'creating a receptionist failed');
+        const rec = (await sendJson('GET', '/api/admin/receptionists')).json.find((r) => r.email === stampMail('rec'));
+        assert((await sendJson('PUT', '/api/admin/receptionists/' + rec.id, { name: 'ZZ Renamed Desk', email: stampMail('rec2') })).status === 200, 'editing a receptionist failed');
+        assert((await sendJson('PUT', '/api/admin/receptionists/' + rec.id, { name: 'x', email: process.env.E2E_RECEPTION_EMAIL })).status === 409, 'a taken reception email should be refused');
+        assert((await sendJson('DELETE', '/api/admin/receptionists/' + rec.id)).status === 200, 'deleting a receptionist failed');
+        assert(!(await sendJson('GET', '/api/admin/receptionists')).json.some((r) => r.id === rec.id), 'the deleted receptionist should be gone');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: stampMail('rec2'), password: 'Desk-Pass-12345' }) === 401, 'a deleted receptionist must not sign in');
+        // the admin's own account
+        await asAdmin();
+        assert((await sendJson('POST', '/api/admin/me/password', { currentPassword: 'wrong-password', newPassword: 'Another-Pass-1234' })).status === 403, 'a wrong current password should be refused');
+        assert((await sendJson('POST', '/api/admin/me/password', { currentPassword: ADMIN_PASSWORD, newPassword: 'short' })).status === 400, 'a weak new password should be refused');
+        assert((await sendJson('POST', '/api/admin/me/password', { currentPassword: ADMIN_PASSWORD, newPassword: 'Another-Pass-1234' })).status === 200, 'changing the admin password failed');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) === 401, 'the old admin password must stop working');
+        assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: 'Another-Pass-1234' }) === 200, 'the new admin password should work');
+        assert((await sendJson('POST', '/api/admin/me/password', { currentPassword: 'Another-Pass-1234', newPassword: ADMIN_PASSWORD })).status === 200, 'putting the admin password back failed');
+      });
+      await test('admin dashboard: Website settings link, My account tab, Edit details buttons', async () => {
+        await asAdmin();
+        await tab.goto('/admin-dashboard.html');
+        await tab.waitFor(`!!document.getElementById('tabBtn_account')`, 6000, 'admin tabs');
+        assert(await tab.ev(`!!document.querySelector('a[href="/admin-site.html"]') && !!document.getElementById('tabBtn_website')`), 'a link to Website settings should be on the admin dashboard');
+        await tab.ev(`showAdminTab('doctors')`);
+        await tab.waitFor(`/Edit details/.test(document.getElementById('doctorsBody').innerText)`, 6000, 'edit buttons');
+        await tab.ev(`showAdminTab('account')`);
+        await tab.waitFor(`document.getElementById('myEmail').value.length > 0`, 6000, 'my account');
+      });
+      await test('website settings: everything is put back to the original afterwards', async () => {
+        await asAdmin();
+        for (const n of ['clinic', 'text', 'faq', 'banner']) assert((await sendJson('POST', '/api/admin/site/reset/' + n)).status === 200, 'reset ' + n + ' failed');
+        const cur = (await sendJson('GET', '/api/admin/site')).json;
+        assert(Object.keys(cur.clinic).length === 0 && Object.keys(cur.text).length === 0 && cur.faq === null && cur.banner === null && Object.keys(cur.images).length === 0, 'settings should be back to the originals: ' + JSON.stringify(cur).slice(0, 200));
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/contact.html');
+        await sleep(400);
+        assert(await tab.ev(`document.querySelector('.loc [data-clinic-address]').innerText.trim() === 'Address coming soon'`), 'the address should be hidden again');
+      });
     }
 
     // ---------------------------------------------------------------- 7. abuse protection (last — it blocks this network for a while)

@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 <script type="application/ld+json">
 {
@@ -102,22 +102,22 @@
 <main id="main">
 
 <section class="hero3">
-  <div class="hero3-photo"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high"></div>
+  <div class="hero3-photo"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high" data-cms-img="home.hero"></div>
   <div class="container hero3-inner">
     <div class="hero3-text">
-      <p class="pill"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> GP4U Clinic · Newbridge, Co. Kildare</p>
-      <h1>GP care, when you need it.</h1>
-      <p class="lead">A walk-in clinic and comprehensive family practice in Newbridge — plus online GP consultations from home.</p>
+      <p class="pill" data-cms="home.pill"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> GP4U Clinic · Newbridge, Co. Kildare</p>
+      <h1 data-cms="home.hero.title">GP care, when you need it.</h1>
+      <p class="lead" data-cms="home.hero.lead">A walk-in clinic and comprehensive family practice in Newbridge — plus online GP consultations from home.</p>
       <div class="hero2-actions">
-        <a href="/online.html" class="btn btn-primary btn-lg">Online GP</a>
-        <a href="/walk-in.html" class="btn btn-primary btn-lg">Walk-In Clinic</a>
-        <a href="/new-patients.html" class="btn btn-primary btn-lg">Register with GP</a>
+        <a href="/online.html" class="btn btn-primary btn-lg" data-cms="home.btn.online">Online GP</a>
+        <a href="/walk-in.html" class="btn btn-primary btn-lg" data-cms="home.btn.walkin">Walk-In Clinic</a>
+        <a href="/new-patients.html" class="btn btn-primary btn-lg" data-cms="home.btn.register">Register with GP</a>
       </div>
       <ul class="hero2-meta trust-chips">
-        <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg> Irish-registered GPs</li>
-        <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Open 7 days</li>
-        <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> No appointment needed at the clinic</li>
-        <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private &amp; secure</li>
+        <li data-cms="home.chip.1"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg> Irish-registered GPs</li>
+        <li data-cms="home.chip.2"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Open 7 days</li>
+        <li data-cms="home.chip.3"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> No appointment needed at the clinic</li>
+        <li data-cms="home.chip.4"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private &amp; secure</li>
       </ul>
     </div>
   </div>
@@ -126,12 +126,13 @@
 <section class="hours-strip" aria-label="Opening times">
   <div class="container hours-strip-grid">
     <div class="hs-card">
-      <div class="hs-head"><h2 class="hs-title">Walk-in clinic hours</h2><div data-open-status></div></div>
+      <div class="hs-head"><h2 class="hs-title" data-cms="home.hours.walkin.title">Walk-in clinic hours</h2><div data-open-status></div></div>
       <div class="hs-times" data-clinic-hours-summary></div>
-      <p class="hs-note">No appointment needed. Hours may differ on public holidays.</p>
+      <p class="hs-note" data-cms="home.hours.walkin.note">No appointment needed. Hours may differ on public holidays.</p>
+      <p class="hs-note hs-closures" data-clinic-closures hidden></p>
     </div>
     <div class="hs-card">
-      <div class="hs-head"><h2 class="hs-title">Online GP</h2></div>
+      <div class="hs-head"><h2 class="hs-title" data-cms="home.hours.online.title">Online GP</h2></div>
       <div class="hs-times" data-online-hours></div>
       <p class="hs-note">Separate from the walk-in clinic — <a href="/book.html">book an online GP</a>.</p>
     </div>
@@ -140,34 +141,34 @@
 
 <section class="sec need" id="choose" style="padding-top:12px;">
   <div class="container">
-    <h2 class="need-title">How can we help you today?</h2>
+    <h2 class="need-title" data-cms="home.help.title">How can we help you today?</h2>
     <div class="need-grid">
       <a class="need-card" href="/online.html">
         <div class="need-body">
           <span class="need-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>
-          <h3>I want to speak to a GP online</h3>
-          <p class="sub">Video or phone · anywhere in Ireland</p>
-          <span class="need-go">Online GP <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span><span class="need-price" data-min-price hidden></span>
+          <h3 data-cms="home.card.online.title">I want to speak to a GP online</h3>
+          <p class="sub" data-cms="home.card.online.sub">Video or phone · anywhere in Ireland</p>
+          <span class="need-go" data-cms="home.card.online.go">Online GP <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span><span class="need-price" data-min-price hidden></span>
         </div>
-        <img src="/img/clinic/online-gp-home.jpg" alt="A woman smiling as she talks to a GP by video from her kitchen at home" loading="lazy" width="1600" height="922">
+        <img src="/img/clinic/online-gp-home.jpg" alt="A woman smiling as she talks to a GP by video from her kitchen at home" loading="lazy" width="1600" height="922" data-cms-img="home.card.online">
       </a>
       <a class="need-card" href="/walk-in.html">
         <div class="need-body">
           <span class="need-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-          <h3>I need to see a GP today</h3>
-          <p class="sub">Walk-in clinic · Newbridge · No appointment needed</p>
-          <span class="need-go">Visit the walk-in clinic <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+          <h3 data-cms="home.card.walkin.title">I need to see a GP today</h3>
+          <p class="sub" data-cms="home.card.walkin.sub">Walk-in clinic · Newbridge · No appointment needed</p>
+          <span class="need-go" data-cms="home.card.walkin.go">Visit the walk-in clinic <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
         </div>
-        <img src="/img/clinic/walk-in-consult.jpg" alt="A GP listening carefully to an older patient during a consultation at the clinic" loading="lazy" width="1600" height="1066">
+        <img src="/img/clinic/walk-in-consult.jpg" alt="A GP listening carefully to an older patient during a consultation at the clinic" loading="lazy" width="1600" height="1066" data-cms-img="home.card.walkin">
       </a>
       <a class="need-card" id="register" href="/new-patients.html">
         <div class="need-body">
           <span class="need-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-          <h3>I want to register with GP4U</h3>
-          <p class="sub">Comprehensive family practice · register your family</p>
-          <span class="need-go">Register with GP <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+          <h3 data-cms="home.card.register.title">I want to register with GP4U</h3>
+          <p class="sub" data-cms="home.card.register.sub">Comprehensive family practice · register your family</p>
+          <span class="need-go" data-cms="home.card.register.go">Register with GP <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
         </div>
-        <img class="pos-top" src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" loading="lazy" width="930" height="930">
+        <img class="pos-top" src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" loading="lazy" width="930" height="930" data-cms-img="home.card.register">
       </a>
     </div>
   </div>
@@ -176,11 +177,11 @@
 <section class="trustbar" aria-label="Why patients choose GP4U">
   <div class="container">
     <ul>
-      <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg> GP-led care</li>
-      <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Irish-registered doctors</li>
-      <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> In-person &amp; online</li>
-      <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Clear pricing</li>
-      <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure &amp; private</li>
+      <li data-cms="home.trust.1"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89L17 22l-5-3-5 3 1.52-9.11"/></svg> GP-led care</li>
+      <li data-cms="home.trust.2"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Irish-registered doctors</li>
+      <li data-cms="home.trust.3"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> In-person &amp; online</li>
+      <li data-cms="home.trust.4"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Clear pricing</li>
+      <li data-cms="home.trust.5"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure &amp; private</li>
     </ul>
   </div>
 </section>
@@ -188,22 +189,22 @@
 <section class="sec">
   <div class="container how-grid">
     <div class="how-main">
-      <p class="eyebrow">Walk-in clinic</p>
-      <h2>How it works</h2>
+      <p class="eyebrow" data-cms="home.how.eyebrow">Walk-in clinic</p>
+      <h2 data-cms="home.how.title">How it works</h2>
       <ol class="timeline">
-        <li><span class="tnum" aria-hidden="true">01</span><h3>Walk in or check in online</h3><p>Come in during opening hours, or let us know you're on your way.</p></li>
-        <li><span class="tnum" aria-hidden="true">02</span><h3>Check in at reception</h3><p>Give our team your details and tell us why you're here.</p></li>
-        <li><span class="tnum" aria-hidden="true">03</span><h3>See a GP</h3><p>Your GP will assess you and, where needed, arrange prescriptions, certificates or referrals.</p></li>
+        <li><span class="tnum" aria-hidden="true">01</span><h3 data-cms="home.how.1.title">Walk in or check in online</h3><p data-cms="home.how.1.text">Come in during opening hours, or let us know you're on your way.</p></li>
+        <li><span class="tnum" aria-hidden="true">02</span><h3 data-cms="home.how.2.title">Check in at reception</h3><p data-cms="home.how.2.text">Give our team your details and tell us why you're here.</p></li>
+        <li><span class="tnum" aria-hidden="true">03</span><h3 data-cms="home.how.3.title">See a GP</h3><p data-cms="home.how.3.text">Your GP will assess you and, where needed, arrange prescriptions, certificates or referrals.</p></li>
       </ol>
       <p class="explain"><strong>No appointment is required.</strong> You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time.</p>
       <p style="margin:22px 0 0;"><a href="/walk-in.html#book-in" class="btn btn-secondary btn-lg">Check in for your visit</a></p>
     </div>
     <a class="banner-card" href="/about.html">
-      <img src="/img/clinic/mother-baby.webp" alt="A mother holding her newborn baby in soft window light" loading="lazy" width="1300" height="867">
+      <img src="/img/clinic/mother-baby.webp" alt="A mother holding her newborn baby in soft window light" loading="lazy" width="1300" height="867" data-cms-img="home.banner">
       <div class="bc-text">
-        <h3>Real people. Real care.</h3>
-        <p>GP care for you and your family, close to home in Newbridge.</p>
-        <span class="btn btn-primary">About GP4U <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        <h3 data-cms="home.banner.title">Real people. Real care.</h3>
+        <p data-cms="home.banner.text">GP care for you and your family, close to home in Newbridge.</p>
+        <span class="btn btn-primary" data-cms="home.banner.btn">About GP4U <svg class="ico arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
       </div>
     </a>
   </div>
@@ -213,18 +214,18 @@
   <div class="container">
     <article class="panel">
       <div class="panel-text">
-        <p class="eyebrow">Comprehensive family practice</p>
-        <h2>Family care, for every stage.</h2>
-        <p>Join our family practice in Newbridge for ongoing, joined-up GP care — not just one-off visits.</p>
+        <p class="eyebrow" data-cms="home.panel.eyebrow">Comprehensive family practice</p>
+        <h2 data-cms="home.panel.title">Family care, for every stage.</h2>
+        <p data-cms="home.panel.text">Join our family practice in Newbridge for ongoing, joined-up GP care — not just one-off visits.</p>
         <ul class="check-list">
-          <li>Register your whole family in one go — up to eight people</li>
-          <li>Ongoing care and reviews for long-term conditions</li>
-          <li>One record across your walk-in and online visits</li>
-          <li>Takes just a few minutes</li>
+          <li data-cms="home.panel.b1">Register your whole family in one go — up to eight people</li>
+          <li data-cms="home.panel.b2">Ongoing care and reviews for long-term conditions</li>
+          <li data-cms="home.panel.b3">One record across your walk-in and online visits</li>
+          <li data-cms="home.panel.b4">Takes just a few minutes</li>
         </ul>
-        <a href="/new-patients.html" class="btn btn-primary btn-lg">Register with GP</a>
+        <a href="/new-patients.html" class="btn btn-primary btn-lg" data-cms="home.panel.btn">Register with GP</a>
       </div>
-      <div class="panel-img"><img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" loading="lazy" width="1500" height="844"></div>
+      <div class="panel-img"><img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" loading="lazy" width="1500" height="844" data-cms-img="home.panel"></div>
     </article>
   </div>
 </section>
@@ -232,8 +233,8 @@
 <section class="sec" id="find-us">
   <div class="container">
     <div class="sec-head center">
-      <p class="eyebrow">Find us</p>
-      <h2>Visit our clinic in Newbridge</h2>
+      <p class="eyebrow" data-cms="home.find.eyebrow">Find us</p>
+      <h2 data-cms="home.find.title">Visit our clinic in Newbridge</h2>
     </div>
     <div class="loc">
       <div class="loc-card">
@@ -252,6 +253,7 @@
         <h3>Walk-in clinic hours</h3>
         <div data-clinic-hours></div>
         <p class="hours-note" data-clinic-hours-note></p>
+        <p class="hours-note hs-closures" data-clinic-closures hidden></p>
         <h3 style="margin-top:22px;">Online GP</h3>
         <div data-online-hours></div>
       </div>
@@ -263,11 +265,11 @@
 
 <section class="cta-strip">
   <div class="container">
-    <h2>GP care when you need it.</h2>
-    <p>Walk in, see a GP online, or register your family.</p>
+    <h2 data-cms="home.cta.title">GP care when you need it.</h2>
+    <p data-cms="home.cta.text">Walk in, see a GP online, or register your family.</p>
     <div class="cta-strip-actions">
-      <a href="/book-now.html" class="btn btn-primary btn-lg">Book a GP</a>
-      <a href="/new-patients.html" class="btn btn-outline-light btn-lg">Register with GP</a>
+      <a href="/book-now.html" class="btn btn-primary btn-lg" data-cms="home.cta.btn.book">Book a GP</a>
+      <a href="/new-patients.html" class="btn btn-outline-light btn-lg" data-cms="home.cta.btn.register">Register with GP</a>
     </div>
   </div>
 </section>
@@ -337,7 +339,8 @@
 
 <script src="/js/questionnaires.js?v=1201355e"></script>
 <script src="/js/services-list.js?v=da2a9e12"></script>
-<script src="/js/clinic.js?v=50ee1f5d"></script>
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

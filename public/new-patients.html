@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 <!-- @/head -->
 <!-- @/head -->
@@ -59,15 +59,15 @@
 <section class="phero">
   <div class="container phero-grid">
     <div>
-      <p class="eyebrow">Comprehensive family practice</p>
-      <h1>Join our comprehensive family practice</h1>
-      <p class="lead">Register with GP4U Clinic for continuing care for you and your whole family — from babies and children to older adults.</p>
+      <p class="eyebrow" data-cms="register.eyebrow">Comprehensive family practice</p>
+      <h1 data-cms="register.title">Join our comprehensive family practice</h1>
+      <p class="lead" data-cms="register.lead">Register with GP4U Clinic for continuing care for you and your whole family — from babies and children to older adults.</p>
       <div class="hero2-actions">
-        <a href="#register" class="btn btn-primary btn-lg">Start registration</a>
-        <a href="/walk-in.html#book-in" class="btn btn-secondary btn-lg">Need to be seen today?</a>
+        <a href="#register" class="btn btn-primary btn-lg" data-cms="register.btn1">Start registration</a>
+        <a href="/walk-in.html#book-in" class="btn btn-secondary btn-lg" data-cms="register.btn2">Need to be seen today?</a>
       </div>
     </div>
-    <div class="phero-media"><img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" width="1500" height="844" fetchpriority="high"></div>
+    <div class="phero-media"><img src="/img/clinic/family-sofa.webp" alt="A smiling family of three sitting together on a sofa" width="1500" height="844" fetchpriority="high" data-cms-img="page.register"></div>
   </div>
 </section>
 
@@ -256,7 +256,8 @@
 <!-- @/sticky -->
 
 <script src="/js/register.js?v=32a7c445"></script>
-<script src="/js/clinic.js?v=50ee1f5d"></script>
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

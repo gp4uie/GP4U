@@ -9,6 +9,7 @@ const { router: doctorRoutes } = require('./routes/doctor');
 const { router: patientRoutes } = require('./routes/patient');
 const { router: adminRoutes } = require('./routes/admin');
 const contentRoutes = require('./routes/content');
+const siteRoutes = require('./routes/site');
 const clinicRoutes = require('./routes/clinic');
 const { router: receptionRoutes } = require('./routes/reception');
 
@@ -80,6 +81,7 @@ app.use('/api/doctor', doctorRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', contentRoutes);
+app.use('/api', siteRoutes);
 
 db.initSchema()
   .then(() => {

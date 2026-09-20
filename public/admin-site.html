@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website settings — GP4U Clinic</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
+<!-- @head -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="/css/style.css?v=8533d8cb">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
+<!-- @/head -->
+</head>
+<body class="clinic-page staff-page">
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header staff-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/admin-dashboard.html" aria-label="GP4U Clinic — Admin"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
+    <span class="staff-role">Admin</span>
+    <nav class="main-nav" aria-label="Account">
+      <a href="/admin-dashboard.html">← Back to admin dashboard</a>
+      <a href="/" target="_blank" rel="noopener">View website ↗</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+<div id="loginNotice" class="page-shell" style="display:none;">
+  <div class="notice"><strong>Please log in</strong> Go to the <a href="/admin-login.html">admin login</a> and log in first, then come back to this page.</div>
+</div>
+
+<div id="siteBox" class="wide-shell" style="display:none;">
+  <div class="dash-app">
+    <nav class="dash-nav" id="siteNav" aria-label="Website settings">
+      <p class="dash-group">Clinic</p>
+      <button class="dash-link active" data-pane="details">Clinic details</button>
+      <button class="dash-link" data-pane="hours">Opening hours &amp; closures</button>
+      <button class="dash-link" data-pane="fees">Fees &amp; lead GP</button>
+      <p class="dash-group">Website content</p>
+      <button class="dash-link" data-pane="text">Page wording</button>
+      <button class="dash-link" data-pane="photos">Photos</button>
+      <button class="dash-link" data-pane="faq">FAQs</button>
+      <button class="dash-link" data-pane="banner">Announcement bar</button>
+      <p class="dash-group">More</p>
+      <a class="dash-link" href="/content-editor.html">Services, prices &amp; health posts →</a>
+      <button class="dash-link" data-pane="history">Change history</button>
+    </nav>
+
+    <div class="dash-main">
+      <div class="page-head"><h1 id="paneTitle">Clinic details</h1><p id="paneSub"></p></div>
+      <p id="paneMsg" role="status" class="staff-ok"></p>
+      <p id="paneErr" role="alert" class="staff-error"></p>
+
+      <section id="pane_details" class="site-pane"></section>
+      <section id="pane_hours" class="site-pane" hidden></section>
+      <section id="pane_fees" class="site-pane" hidden></section>
+      <section id="pane_text" class="site-pane" hidden></section>
+      <section id="pane_photos" class="site-pane" hidden></section>
+      <section id="pane_faq" class="site-pane" hidden></section>
+      <section id="pane_banner" class="site-pane" hidden></section>
+      <section id="pane_history" class="site-pane" hidden></section>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
+<script src="/js/admin-site.js?v=f21882d6"></script>
+<script src="/js/nav-toggle.js?v=f65c51ad"></script>
+</body>
+</html>

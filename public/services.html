@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light">
@@ -58,15 +58,15 @@
 <section class="phero">
   <div class="container phero-grid">
     <div>
-      <p class="eyebrow">Our services</p>
-      <h1>How can we help?</h1>
-      <p class="lead">Everyday illness and the ongoing care your family needs — at our walk-in clinic in Newbridge, or online from home.</p>
+      <p class="eyebrow" data-cms="services.eyebrow">Our services</p>
+      <h1 data-cms="services.title">How can we help?</h1>
+      <p class="lead" data-cms="services.lead">Everyday illness and the ongoing care your family needs — at our walk-in clinic in Newbridge, or online from home.</p>
       <div class="hero2-actions">
-        <a href="/walk-in.html" class="btn btn-primary btn-lg">Walk-In Clinic</a>
-        <a href="/online.html" class="btn btn-secondary btn-lg">See a GP Online</a>
+        <a href="/walk-in.html" class="btn btn-primary btn-lg" data-cms="services.btn1">Walk-In Clinic</a>
+        <a href="/online.html" class="btn btn-secondary btn-lg" data-cms="services.btn2">See a GP Online</a>
       </div>
     </div>
-    <div class="phero-media"><img src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" width="930" height="930" fetchpriority="high"></div>
+    <div class="phero-media"><img src="/img/clinic/gp-family-exam.jpg" alt="A GP examining a young child with a stethoscope while her mother looks on" width="930" height="930" fetchpriority="high" data-cms-img="page.services"></div>
   </div>
 </section>
 
@@ -186,7 +186,8 @@
 </div>
 <!-- @/sticky -->
 
-<script src="/js/clinic.js?v=50ee1f5d"></script>
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

@@ -19,6 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { tagPage } = require('./lib/tag-cms');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const PARTIALS = path.join(__dirname, 'partials');
@@ -51,7 +52,8 @@ for (const file of fs.readdirSync(PUBLIC).filter((f) => f.endsWith('.html'))) {
     if (!parts[name]) { console.warn(`  ! ${file}: no partial named "${name}"`); unknown += 1; return match; }
     return `<!-- @${name} -->\n${parts[name]}\n<!-- @/${name} -->`;
   });
-  const after = stamped.replace(ASSET, (match, attr, url) => {
+  const tagged = tagPage(file, stamped);
+  const after = tagged.replace(ASSET, (match, attr, url) => {
     const v = versionOf(url);
     return v ? `${attr}="${url}?v=${v}"` : match;
   });

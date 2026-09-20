@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light">
@@ -56,11 +56,11 @@
 <main id="main">
 
 <section class="phero phero-simple">
-  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941"></div>
+  <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="" width="1672" height="941" data-cms-img="page.simple"></div>
   <div class="container">
-    <p class="eyebrow">Contact</p>
-    <h1>Contact GP4U Clinic</h1>
-    <p class="lead">Everything you need to reach us or plan your visit.</p>
+    <p class="eyebrow" data-cms="contact.eyebrow">Contact</p>
+    <h1 data-cms="contact.title">Contact GP4U Clinic</h1>
+    <p class="lead" data-cms="contact.lead">Everything you need to reach us or plan your visit.</p>
   </div>
 </section>
 
@@ -83,6 +83,7 @@
         <h3>Walk-in clinic hours</h3>
         <div data-clinic-hours></div>
         <p class="hours-note" data-clinic-hours-note></p>
+        <p class="hours-note hs-closures" data-clinic-closures hidden></p>
         <h3 style="margin-top:22px;">Online GP</h3>
         <div data-online-hours></div>
       </div>
@@ -164,7 +165,8 @@
 </div>
 <!-- @/sticky -->
 
-<script src="/js/clinic.js?v=50ee1f5d"></script>
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

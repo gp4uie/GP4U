@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -23,7 +23,7 @@
     <span class="staff-role">Admin</span>
     <nav class="main-nav" aria-label="Account">
       <span id="whoami" class="staff-who"></span>
-      <a href="/content-editor.html">Edit website content</a>
+      <a href="/admin-site.html">Website settings</a>
       <a href="#" id="logoutLink">Log out</a>
     </nav>
   </div>
@@ -40,7 +40,11 @@
     <button class="tab-btn" id="tabBtn_rx" onclick="showAdminTab('rx')">Prescriptions &amp; Summaries</button>
     <button class="tab-btn" id="tabBtn_accesslog" onclick="showAdminTab('accesslog')">Access Log</button>
     <button class="tab-btn" id="tabBtn_messages" onclick="showAdminTab('messages')">Team Messages</button>
+    <a class="tab-btn" id="tabBtn_website" href="/admin-site.html">Website settings →</a>
+    <button class="tab-btn" id="tabBtn_account" onclick="showAdminTab('account')">My account</button>
   </div>
+
+  <div id="personEditor" class="card" hidden style="margin-bottom:20px;"></div>
 
   <div id="tab_analytics">
     <h1>Practice Analytics</h1>
@@ -146,6 +150,24 @@
     </div>
   </div>
 
+  <div id="tab_account" style="display:none;">
+    <h1>My account</h1>
+    <form class="card" id="myAccountForm" style="max-width:560px;" novalidate>
+      <h3 style="margin-top:0;">Your details</h3>
+      <div class="form-row"><label for="myName">Name</label><input id="myName" maxlength="255"></div>
+      <div class="form-row"><label for="myEmail">Login email</label><input id="myEmail" type="email" maxlength="255"></div>
+      <button class="btn btn-primary" type="submit">Save details</button>
+      <p id="myAccountMsg" role="status" class="staff-ok"></p>
+    </form>
+    <form class="card" id="myPasswordForm" style="max-width:560px;margin-top:18px;" novalidate>
+      <h3 style="margin-top:0;">Change your password</h3>
+      <div class="form-row"><label for="myCurrentPw">Current password</label><input id="myCurrentPw" type="password" autocomplete="current-password"></div>
+      <div class="form-row"><label for="myNewPw">New password (at least 8 characters)</label><input id="myNewPw" type="password" autocomplete="new-password"></div>
+      <button class="btn btn-primary" type="submit">Change password</button>
+      <p id="myPasswordMsg" role="status" class="staff-ok"></p>
+    </form>
+  </div>
+
   <div id="tab_patients" style="display:none;">
     <h1>Patients</h1>
     <p style="color:var(--ink-500);">Every patient who has booked. Open a patient to see their full consultation history and send a summary to their own GP.</p>
@@ -222,7 +244,7 @@
 </main>
 
 <script src="/js/availability-editor.js?v=9f9178f4"></script>
-<script src="/js/admin-dashboard.js?v=90d44a91"></script>
+<script src="/js/admin-dashboard.js?v=7a4e690c"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

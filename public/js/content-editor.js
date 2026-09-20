@@ -6,40 +6,13 @@ async function init() {
     return;
   }
   document.getElementById('editorBox').style.display = 'block';
-  renderHowItWorksFields();
   loadContent();
   loadServices();
-}
-
-function renderHowItWorksFields() {
-  const container = document.getElementById('howItWorksFields');
-  container.innerHTML = [1, 2, 3, 4].map((n) => `
-    <div class="form-grid">
-      <div class="form-row"><label>Step ${n} title</label><input id="howItWorks${n}Title"></div>
-      <div class="form-row"><label>Step ${n} text</label><input id="howItWorks${n}Text"></div>
-    </div>
-  `).join('');
 }
 
 async function loadContent() {
   const res = await fetch('/api/content');
   const content = await res.json();
-  document.getElementById('heroTitle').value = content.hero_title || '';
-  document.getElementById('heroSubtitle').value = content.hero_subtitle || '';
-  document.getElementById('aboutText').value = content.about_text || '';
-  document.getElementById('heroBadge1').value = content.hero_badge_1 || '';
-  document.getElementById('heroBadge2').value = content.hero_badge_2 || '';
-  document.getElementById('heroBadge3').value = content.hero_badge_3 || '';
-  document.getElementById('heroCardTitle').value = content.hero_card_title || '';
-  document.getElementById('heroCardText').value = content.hero_card_text || '';
-  document.getElementById('servicesSectionTitle').value = content.services_section_title || '';
-  document.getElementById('servicesSectionSubtitle').value = content.services_section_subtitle || '';
-  document.getElementById('footerContactEmail').value = content.footer_contact_email || '';
-  document.getElementById('footerLegalText').value = content.footer_legal_text || '';
-  [1, 2, 3, 4].forEach((n) => {
-    document.getElementById(`howItWorks${n}Title`).value = content[`how_it_works_${n}_title`] || '';
-    document.getElementById(`howItWorks${n}Text`).value = content[`how_it_works_${n}_text`] || '';
-  });
   renderPosts(content.posts);
 }
 
@@ -56,37 +29,6 @@ function renderPosts(posts) {
   `).join('');
 }
 
-async function saveHomepage() {
-  await fetch('/api/admin/content', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      heroTitle: document.getElementById('heroTitle').value,
-      heroSubtitle: document.getElementById('heroSubtitle').value,
-      aboutText: document.getElementById('aboutText').value,
-      heroBadge1: document.getElementById('heroBadge1').value,
-      heroBadge2: document.getElementById('heroBadge2').value,
-      heroBadge3: document.getElementById('heroBadge3').value,
-      heroCardTitle: document.getElementById('heroCardTitle').value,
-      heroCardText: document.getElementById('heroCardText').value,
-      servicesSectionTitle: document.getElementById('servicesSectionTitle').value,
-      servicesSectionSubtitle: document.getElementById('servicesSectionSubtitle').value,
-      footerContactEmail: document.getElementById('footerContactEmail').value,
-      footerLegalText: document.getElementById('footerLegalText').value,
-      howItWorks1Title: document.getElementById('howItWorks1Title').value,
-      howItWorks1Text: document.getElementById('howItWorks1Text').value,
-      howItWorks2Title: document.getElementById('howItWorks2Title').value,
-      howItWorks2Text: document.getElementById('howItWorks2Text').value,
-      howItWorks3Title: document.getElementById('howItWorks3Title').value,
-      howItWorks3Text: document.getElementById('howItWorks3Text').value,
-      howItWorks4Title: document.getElementById('howItWorks4Title').value,
-      howItWorks4Text: document.getElementById('howItWorks4Text').value,
-    }),
-  });
-  const msg = document.getElementById('homepageMsg');
-  msg.textContent = 'Saved.';
-  setTimeout(() => { msg.textContent = ''; }, 2000);
-}
 
 async function addPost() {
   const title = document.getElementById('newPostTitle').value;

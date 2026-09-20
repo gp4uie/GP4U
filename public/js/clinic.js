@@ -62,7 +62,19 @@ const CLINIC = {
     medicalCouncilNumber: '',
     photo: '',
   },
+
+  // Days the walk-in clinic is closed (bank holidays, holidays): [{ from: '2026-12-25', to: '2026-12-26', label: 'Christmas' }].
+  closures: [],
 };
+
+// Anything an admin has edited in the admin "Website" screen (served by /api/site-settings.js, loaded before this
+// file) replaces the built-in value above. The pages keep working with the values above if that script is missing.
+window.CLINIC_DEFAULTS = JSON.parse(JSON.stringify(CLINIC)); // the built-in values, before any admin edits (used by the admin editor)
+const SETTINGS = window.GP4U_SETTINGS || {};
+['name', 'tagline', 'streetAddress', 'town', 'county', 'eircode', 'phone', 'email', 'companyName', 'companyNumber', 'registeredOffice',
+  'hoursNote', 'onlineNote', 'showMap', 'hours', 'onlineHours', 'fees', 'founder', 'closures'].forEach((k) => {
+  if (SETTINGS.clinic && k in SETTINGS.clinic) CLINIC[k] = SETTINGS.clinic[k];
+});
 
 (function () {
   const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -86,8 +98,23 @@ const CLINIC = {
     return { day, mins: Number(get('hour')) % 24 * 60 + Number(get('minute')) };
   }
 
+  // Today's date in Ireland as YYYY-MM-DD, and a date N days later.
+  function dublinDate() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Dublin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  }
+  function addDays(ymd, n) {
+    const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  function closureOn(ymd) {
+    return (CLINIC.closures || []).find((c) => c.from <= ymd && ymd <= (c.to || c.from)) || null;
+  }
+
   function status() {
     const { day, mins } = dublinNow();
+    const todayDate = dublinDate();
+    const shut = closureOn(todayDate);
+    if (shut) return { open: false, text: shut.label ? `Closed today · ${shut.label}` : 'Closed today' };
     const today = CLINIC.hours[day];
     if (today && mins >= toMins(today[0]) && mins < toMins(today[1])) {
       const closing = toMins(today[1]) - mins;
@@ -96,7 +123,7 @@ const CLINIC = {
     if (today && mins < toMins(today[0])) return { open: false, text: `Closed · opens today at ${fmt(today[0])}` };
     for (let i = 1; i <= 7; i++) {
       const next = (day + i) % 7;
-      if (CLINIC.hours[next]) {
+      if (CLINIC.hours[next] && !closureOn(addDays(todayDate, i))) {
         return { open: false, text: `Closed · opens ${i === 1 ? 'tomorrow' : DAY_NAMES[next]} at ${fmt(CLINIC.hours[next][0])}` };
       }
     }
@@ -252,7 +279,68 @@ const CLINIC = {
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fill); else fill();
+  // ---------------------------------------------------------------- upcoming closures ("Closed: Thu 25 Dec (Christmas)")
+  function fillClosures() {
+    const today = dublinDate();
+    const upcoming = (CLINIC.closures || []).filter((c) => (c.to || c.from) >= today).sort((a, b) => (a.from < b.from ? -1 : 1)).slice(0, 6);
+    const day = (ymd) => new Intl.DateTimeFormat('en-IE', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(ymd + 'T12:00:00Z'));
+    const text = upcoming.length
+      ? 'Closed: ' + upcoming.map((c) => `${day(c.from)}${c.to && c.to !== c.from ? ' – ' + day(c.to) : ''}${c.label ? ' (' + c.label + ')' : ''}`).join(' · ')
+      : '';
+    document.querySelectorAll('[data-clinic-closures]').forEach((el) => { el.hidden = !upcoming.length; el.textContent = text; });
+  }
+
+  // ---------------------------------------------------------------- admin-edited text, pictures, banner and FAQs
+  function setOwnText(el, value) {
+    const nodes = [...el.childNodes].filter((n) => n.nodeType === 3 && n.data.trim());
+    if (!nodes.length) { el.insertBefore(document.createTextNode(value), el.firstChild); return; }
+    nodes[0].data = nodes[0].data.replace(/^(\s*)[\s\S]*?(\s*)$/, (m, a, b) => a + value + b);
+    nodes.slice(1).forEach((n) => { n.data = ''; });
+  }
+  function applyBanner() {
+    const b = SETTINGS.banner;
+    if (!b || !b.enabled || !b.text || document.body.classList.contains('staff-page')) return;
+    const bar = document.createElement('div');
+    bar.className = 'site-banner is-' + (b.tone === 'warning' ? 'warning' : 'info');
+    bar.setAttribute('role', 'status');
+    const span = document.createElement('span'); span.textContent = b.text; bar.appendChild(span);
+    if (b.linkText && b.linkUrl) { const a = document.createElement('a'); a.href = b.linkUrl; a.textContent = b.linkText; bar.appendChild(a); }
+    const top = document.querySelector('.topbar');
+    if (top && top.parentNode) top.parentNode.insertBefore(bar, top.nextSibling); else document.body.insertBefore(bar, document.body.firstChild);
+  }
+  function applyFaq() {
+    const groups = SETTINGS.faq;
+    const root = document.querySelector('[data-faq-root]');
+    if (!Array.isArray(groups) || !root) return;
+    root.querySelectorAll('.faq-group').forEach((n) => n.remove());
+    const cats = root.querySelector('.faq-cats');
+    if (cats) { cats.textContent = ''; groups.forEach((g) => { const a = document.createElement('a'); a.href = '#' + g.id; a.textContent = g.title; cats.appendChild(a); }); }
+    const anchor = root.querySelector('.callout');
+    groups.forEach((g) => {
+      const wrap = document.createElement('div'); wrap.className = 'faq-group'; wrap.id = g.id;
+      const h = document.createElement('h2'); h.textContent = g.title;
+      const list = document.createElement('div'); list.className = 'faq';
+      g.items.forEach((it) => {
+        const d = document.createElement('details');
+        const s = document.createElement('summary'); s.textContent = it.q;
+        const p = document.createElement('p'); p.innerHTML = it.a.split('{{hours}}').join('<span data-clinic-hours-text>seven days a week</span>'); // answers are cleaned on the server
+        d.append(s, p); list.appendChild(d);
+      });
+      wrap.append(h, list);
+      root.insertBefore(wrap, anchor);
+    });
+  }
+  function applySettings() {
+    const text = SETTINGS.text || {};
+    document.querySelectorAll('[data-cms]').forEach((el) => { const v = text[el.dataset.cms]; if (v) setOwnText(el, v); });
+    const imgs = SETTINGS.images || {};
+    document.querySelectorAll('[data-cms-img]').forEach((el) => { const v = imgs[el.dataset.cmsImg]; if (v) el.src = `/api/site-image/${el.dataset.cmsImg}?v=${v}`; });
+    applyBanner();
+    applyFaq();
+  }
+
+  function boot() { applySettings(); fill(); fillClosures(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   // Keep the "Open now" pill honest if the page is left open across opening/closing time.
-  setInterval(fill, 60 * 1000);
+  setInterval(() => { fill(); fillClosures(); }, 60 * 1000);
 })();

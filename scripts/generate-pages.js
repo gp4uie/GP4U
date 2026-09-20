@@ -47,64 +47,12 @@ const ico = (n) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${P[
 const chip = (n) => `<span class="ico-chip">${ico(n)}</span>`;
 
 // ------------------------------------------------------------------ FAQ content (single source)
-const NO_APPT = `No appointment is required. You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time.`;
-const FAQ = [
-  { id: 'online', title: 'Online GP', items: [
-    [`What is an online GP consultation?`, `A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer.`],
-    [`Can I see a GP online?`, `Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose <a href="/book.html">Book Online</a>, pick a service and a time that suits you.`],
-    [`How do I book an online GP consultation?`, `Choose <a href="/book.html">Book Online</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.`],
-    [`What happens during an online consultation?`, `At your appointment time you join a private video or phone call using the link on your confirmation page. Your GP will talk through what's going on, ask the questions they need to, and advise on next steps. Where clinically appropriate that may include a prescription, a certificate, a letter or a referral — or a recommendation to be seen in person.`],
-    [`What do I need for a video consultation?`, `A phone, tablet or computer with a camera and microphone, a stable internet connection, and somewhere private. For a phone consultation you just need your phone.`],
-    [`Is an online consultation right for every problem?`, `No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.`],
-  ] },
-  { id: 'walk-in', title: 'Walk-in clinic', items: [
-    [`Do I need an appointment?`, `${NO_APPT} You can <a href="/walk-in.html#book-in">check in online</a> if you'd like to.`],
-    [`How does the walk-in clinic work?`, `Walk in during opening hours, check in at reception, and see a GP. If you'd like, you can <a href="/walk-in.html#book-in">check in online</a> first so we know you're on your way. Waiting times vary depending on how busy we are.`],
-    [`When is the walk-in clinic open?`, `We're open <span data-clinic-hours-text>seven days a week</span>. Hours may differ on public holidays.`],
-    [`How long will I wait?`, `Waiting times vary depending on how busy we are. Checking in online lets us know you're coming, but it doesn't reserve a set appointment time.`],
-    [`What should I bring to the clinic?`, `A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors.`],
-  ] },
-  { id: 'appointments', title: 'Appointments & registration', items: [
-    [`How do I register as a family practice patient?`, `Complete our short <a href="/new-patients.html">registration form</a>. Our team will review your details and get in touch, and you'll receive a confirmation email with a reference number.`],
-    [`Can I register my family?`, `Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go.`],
-  ] },
-  { id: 'prescriptions', title: 'Prescriptions', items: [
-    [`Can I get a prescription?`, `Yes, where your GP considers it clinically appropriate. You can request a repeat prescription online, or speak to your GP during a consultation. For online consultations, prescriptions are sent to the pharmacy you name.`],
-    [`How do repeat prescriptions work online?`, `Choose your condition on the <a href="/repeat-prescription.html">repeat prescription page</a>, answer a few safety questions and pick a time. If your GP approves the request, they email the prescription directly to the pharmacy you name.`],
-    [`Will I always be given a prescription?`, `No. A prescription is only issued where your GP considers it clinically appropriate and safe for you.`],
-  ] },
-  { id: 'certificates', title: 'Medical certificates', items: [
-    [`Can I get a medical certificate?`, `Yes, where your GP considers it appropriate. You can request a sick certificate through our online booking, or ask your GP during a walk-in visit. Your GP can also write medical letters where clinically appropriate.`],
-    [`What do I need for a sick certificate?`, `Your name, date of birth and address as they should appear on the certificate. Your GP will ask about your illness and the dates involved.`],
-  ] },
-  { id: 'referrals', title: 'Referrals', items: [
-    [`Can you refer me to a specialist?`, `Where your GP considers a referral appropriate, they can write a referral letter after assessing you.`],
-  ] },
-  { id: 'results', title: 'Test results', items: [
-    [`How will I get my test results?`, `If your GP arranges tests, they will explain at your consultation how you'll receive the results. If you're unsure, please <a href="/contact.html">contact us</a>.`],
-  ] },
-  { id: 'payments', title: 'Payments', items: [
-    [`How much does a consultation cost?`, `Online consultation prices are shown on our <a href="/fees.html">Fees page</a> and again before you pay. For walk-in and family practice fees, please <a href="/contact.html">contact us</a> or ask at reception.`],
-    [`How do I pay for an online consultation?`, `By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details.`],
-  ] },
-  { id: 'children', title: 'Children', items: [
-    [`Do you see children?`, `Our family practice cares for children as well as adults, and children can be brought to the walk-in clinic. For an online consultation for a child, please <a href="/contact.html">contact us</a> first.`],
-  ] },
-  { id: 'privacy', title: 'Privacy', items: [
-    [`Is my health information private?`, `Yes. Your health information is encrypted and handled in line with GDPR, and access is restricted to authorised staff. Read our <a href="/privacy.html">Privacy &amp; GDPR Notice</a> for full details.`],
-  ] },
-  { id: 'cancellations', title: 'Cancellations', items: [
-    [`What if I need to cancel or change my booking?`, `Please <a href="/contact.html">contact us</a> as soon as you can and we'll help you.`],
-  ] },
-  { id: 'emergencies', title: 'Emergencies', items: [
-    [`What should I do in an emergency?`, `GP4U is not an emergency service. In an emergency call <strong>112</strong> or <strong>999</strong>, or go to your nearest Emergency Department — for example for chest pain, severe difficulty breathing, signs of a stroke, heavy bleeding or loss of consciousness.`],
-    [`What if my symptoms get worse after I book?`, `If you feel worse or unsafe at any point, don't wait for your appointment — call 112 or 999, or go to your nearest Emergency Department.`],
-  ] },
-];
+const { FAQ } = require('../server/faqDefaults');
 
-const stripTags = (h) => h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const stripTags = (h) => h.split('{{hours}}').join('seven days a week').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const HOURS_SPAN = '<span data-clinic-hours-text>seven days a week</span>';
 const faqHtml = (items) => `<div class="faq">${items.map(([q, a]) => `
-  <details><summary>${q}</summary><p>${a}</p></details>`).join('')}
+  <details><summary>${q}</summary><p>${a.split('{{hours}}').join(HOURS_SPAN)}</p></details>`).join('')}
 </div>`;
 const pick = (ids) => ids.map((q) => { for (const g of FAQ) for (const it of g.items) if (it[0].startsWith(q)) return it; throw new Error('faq missing ' + q); });
 
@@ -216,6 +164,7 @@ const locationBlock = () => `<div class="loc">
         <h3>Walk-in clinic hours</h3>
         <div data-clinic-hours></div>
         <p class="hours-note" data-clinic-hours-note></p>
+        <p class="hours-note hs-closures" data-clinic-closures hidden></p>
         <h3 style="margin-top:22px;">Online GP</h3>
         <div data-online-hours></div>
       </div>
@@ -271,6 +220,7 @@ write('index.html', page({
       <div class="hs-head"><h2 class="hs-title">Walk-in clinic hours</h2><div data-open-status></div></div>
       <div class="hs-times" data-clinic-hours-summary></div>
       <p class="hs-note">No appointment needed. Hours may differ on public holidays.</p>
+      <p class="hs-note hs-closures" data-clinic-closures hidden></p>
     </div>
     <div class="hs-card">
       <div class="hs-head"><h2 class="hs-title">Online GP</h2></div>
@@ -621,7 +571,7 @@ write('faq.html', page({
 </section>
 
 <section class="sec sec-tight" style="padding-top:8px;">
-  <div class="container" style="max-width:820px;">
+  <div class="container" style="max-width:820px;" data-faq-root>
     <nav class="faq-cats" aria-label="FAQ topics">${FAQ.map((g) => `<a href="#${g.id}">${g.title}</a>`).join('')}</nav>
     ${FAQ.map((g) => `<div class="faq-group" id="${g.id}">
       <h2>${g.title}</h2>
@@ -731,15 +681,6 @@ write('online.html', page({
 </section>`,
   scripts: `<script src="/js/questionnaires.js"></script>
 <script src="/js/services-list.js"></script>
-<script>
-// Headline, intro and the four "how it works" steps are editable from the admin content editor.
-fetch('/api/content').then((r) => r.json()).then((c) => {
-  const set = (id, v) => { const e = document.getElementById(id); if (e && v) e.textContent = v; };
-  set('heroTitle', c.hero_title);
-  set('heroSubtitle', c.hero_subtitle);
-  [1, 2, 3, 4].forEach((n) => { set('howItWorks' + n + 'Title', c['how_it_works_' + n + '_title']); set('howItWorks' + n + 'Text', c['how_it_works_' + n + '_text']); });
-}).catch(() => { /* the built-in text above stays */ });
-</script>
 `,
 }));
 

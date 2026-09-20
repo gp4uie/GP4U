@@ -529,6 +529,47 @@ async function initSchema() {
     )
   `);
 
+  // Website settings an admin can edit (clinic details, hours, page text, FAQs, banner) — one JSON document per name,
+  // with the previous version of each kept so a change can be undone. Pictures live in site_images.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_config (
+      name VARCHAR(32) PRIMARY KEY,
+      data LONGTEXT NOT NULL,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_by VARCHAR(255) NULL
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_config_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(32) NOT NULL,
+      data LONGTEXT NOT NULL,
+      saved_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      saved_by VARCHAR(255) NULL,
+      INDEX idx_site_hist (name, saved_at)
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_images (
+      slot VARCHAR(64) PRIMARY KEY,
+      mime VARCHAR(32) NOT NULL,
+      data LONGBLOB NOT NULL,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_by VARCHAR(255) NULL
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_change_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      admin_name VARCHAR(255) NULL,
+      action VARCHAR(80) NOT NULL,
+      detail VARCHAR(500) NULL,
+      history_id INT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_site_log_time (created_at)
+    )
+  `);
+
   // Seed default homepage text and starter blog posts once, so the site looks the same
   // as before the content editor existed until someone actually edits it.
   const contentDefaults = {

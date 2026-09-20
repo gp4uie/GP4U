@@ -48,7 +48,7 @@ router.get('/me', async (req, res) => {
     req.session = null;
     return res.json({ loggedIn: false });
   }
-  res.json({ loggedIn: true, adminId: admin.id, adminName: admin.name, practiceName: process.env.PRACTICE_NAME });
+  res.json({ loggedIn: true, adminId: admin.id, adminName: admin.name, adminEmail: admin.email, practiceName: process.env.PRACTICE_NAME });
 });
 
 // --- Forgot / reset password ---
@@ -508,6 +508,66 @@ router.post('/receptionists/:id/password', requireAdmin, async (req, res) => {
   if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   const result = await db.run('UPDATE receptionists SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(password, 10), req.params.id]);
   if (!result.changes) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+// --- Edit people: an admin can correct a doctor's or receptionist's details, reset a password, or remove a receptionist ---
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const cleanStr = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+
+router.put('/doctors/:id', requireAdmin, async (req, res) => {
+  const name = cleanStr(req.body.name, 255); const regNumber = cleanStr(req.body.regNumber, 64); const email = cleanStr(req.body.email, 255).toLowerCase();
+  if (!name || !regNumber || !email) return res.status(400).json({ error: 'Name, registration number and email are all required' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  const clash = await db.get('SELECT id FROM doctors WHERE email = ? AND id <> ?', [email, req.params.id]);
+  if (clash) return res.status(409).json({ error: 'Another doctor already uses that email' });
+  const result = await db.run('UPDATE doctors SET name = ?, reg_number = ?, email = ? WHERE id = ?', [name, regNumber, email, req.params.id]);
+  if (!result.changes) return res.status(404).json({ error: 'Doctor not found' });
+  res.json({ ok: true });
+});
+
+router.post('/doctors/:id/password', requireAdmin, async (req, res) => {
+  const { password } = req.body || {};
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const result = await db.run('UPDATE doctors SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(password, 10), req.params.id]);
+  if (!result.changes) return res.status(404).json({ error: 'Doctor not found' });
+  res.json({ ok: true });
+});
+
+router.put('/receptionists/:id', requireAdmin, async (req, res) => {
+  const name = cleanStr(req.body.name, 255); const email = cleanStr(req.body.email, 255).toLowerCase();
+  if (!name || !email) return res.status(400).json({ error: 'Name and email are both required' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  const clash = await db.get('SELECT id FROM receptionists WHERE email = ? AND id <> ?', [email, req.params.id]);
+  if (clash) return res.status(409).json({ error: 'Another reception account already uses that email' });
+  const result = await db.run('UPDATE receptionists SET name = ?, email = ? WHERE id = ?', [name, email, req.params.id]);
+  if (!result.changes) return res.status(404).json({ error: 'Account not found' });
+  res.json({ ok: true });
+});
+
+router.delete('/receptionists/:id', requireAdmin, async (req, res) => {
+  const result = await db.run('DELETE FROM receptionists WHERE id = ?', [req.params.id]);
+  if (!result.changes) return res.status(404).json({ error: 'Account not found' });
+  res.json({ ok: true });
+});
+
+// The signed-in admin's own account
+router.put('/me', requireAdmin, async (req, res) => {
+  const name = cleanStr(req.body.name, 255); const email = cleanStr(req.body.email, 255).toLowerCase();
+  if (!name || !email) return res.status(400).json({ error: 'Name and email are both required' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  const clash = await db.get('SELECT id FROM admins WHERE email = ? AND id <> ?', [email, req.session.adminId]);
+  if (clash) return res.status(409).json({ error: 'Another admin already uses that email' });
+  await db.run('UPDATE admins SET name = ?, email = ? WHERE id = ?', [name, email, req.session.adminId]);
+  res.json({ ok: true });
+});
+
+router.post('/me/password', requireAdmin, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'The new password must be at least 8 characters' });
+  const me = await db.get('SELECT password_hash FROM admins WHERE id = ?', [req.session.adminId]);
+  if (!me || !bcrypt.compareSync(currentPassword || '', me.password_hash)) return res.status(403).json({ error: 'Your current password is not correct' });
+  await db.run('UPDATE admins SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(newPassword, 10), req.session.adminId]);
   res.json({ ok: true });
 });
 

@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=c0d3d47d">
+<link rel="stylesheet" href="/css/clinic.css?v=5d92ed3c">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light">
@@ -58,15 +58,15 @@
 <section class="phero">
   <div class="container phero-grid">
     <div>
-      <p class="eyebrow">About GP4U</p>
-      <h1>Built by a GP. Designed around patients.</h1>
-      <p class="lead">GP4U was set up by a practising Irish GP to make everyday GP care more convenient — without losing the careful, personal approach of a good family doctor.</p>
+      <p class="eyebrow" data-cms="about.eyebrow">About GP4U</p>
+      <h1 data-cms="about.title">Built by a GP. Designed around patients.</h1>
+      <p class="lead" data-cms="about.lead">GP4U was set up by a practising Irish GP to make everyday GP care more convenient — without losing the careful, personal approach of a good family doctor.</p>
       <div class="hero2-actions">
-        <a href="/walk-in.html" class="btn btn-primary btn-lg">Walk-In Clinic</a>
-        <a href="/online.html" class="btn btn-secondary btn-lg">See a GP Online</a>
+        <a href="/walk-in.html" class="btn btn-primary btn-lg" data-cms="about.btn1">Walk-In Clinic</a>
+        <a href="/online.html" class="btn btn-secondary btn-lg" data-cms="about.btn2">See a GP Online</a>
       </div>
     </div>
-    <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high"></div>
+    <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high" data-cms-img="page.about"></div>
   </div>
 </section>
 
@@ -202,7 +202,8 @@
 </div>
 <!-- @/sticky -->
 
-<script src="/js/clinic.js?v=50ee1f5d"></script>
+<script src="/api/site-settings.js"></script>
+<script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>
