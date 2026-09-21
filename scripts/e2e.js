@@ -18,7 +18,8 @@ const os = require('os');
 const path = require('path');
 
 const args = process.argv.slice(2);
-const LIVE = args.includes('--live');
+const LIVE_STAFF = args.includes('--live-staff'); // signed-in checks on the live site with throwaway accounts (see scripts/live-staff.js)
+const LIVE = args.includes('--live') || LIVE_STAFF;
 const BASE = (args.find((a) => a.startsWith('http')) || 'http://localhost:4000').replace(/\/$/, '');
 const DOCTOR_EMAIL = process.env.E2E_DOCTOR_EMAIL;
 const DOCTOR_PASSWORD = process.env.E2E_DOCTOR_PASSWORD;
@@ -111,6 +112,12 @@ async function main() {
   const hrefs = new Set();
 
   try {
+    if (LIVE_STAFF) {
+      const notes = [];
+      await require('./live-staff')({ tab, test, heading, assert, sleep, STAMP, notes });
+      if (notes.length) console.log(String.fromCharCode(10) + 'Notes from the live site:' + String.fromCharCode(10) + ' - ' + notes.join(String.fromCharCode(10) + ' - '));
+      return;
+    }
     // ---------------------------------------------------------------- 1. every public page, desktop + phone
     for (const [label, mobile] of (process.env.E2E_SKIP_PAGES ? [] : [['desktop 1366px', false], ['phone 390px', true]])) {
       heading(`Public pages — ${label} (${pages.length} pages)`);
@@ -1127,6 +1134,45 @@ async function main() {
         assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) === 401, 'the old admin password must stop working');
         assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: 'Another-Pass-1234' }) === 200, 'the new admin password should work');
         assert((await sendJson('POST', '/api/admin/me/password', { currentPassword: 'Another-Pass-1234', newPassword: ADMIN_PASSWORD })).status === 200, 'putting the admin password back failed');
+      });
+      await test('admin accounts: add and remove admins safely; test records with the ZZ LIVE TEST prefix (and only those) can be removed', async () => {
+        await asAdmin();
+        const mailA = `zz-e2e-admin2-${STAMP}@example.invalid`;
+        assert((await sendJson('POST', '/api/admin/admins', { name: 'ZZ Second Admin', email: mailA, password: 'short' })).status === 400, 'a short admin password should be refused');
+        assert((await sendJson('POST', '/api/admin/admins', { name: 'ZZ Second Admin', email: mailA, password: 'Admin2-Pass-12345' })).status === 200, 'adding an admin failed');
+        assert((await sendJson('POST', '/api/admin/admins', { name: 'ZZ Second Admin', email: mailA, password: 'Admin2-Pass-12345' })).status === 409, 'a duplicate admin email should be refused');
+        const list = (await sendJson('GET', '/api/admin/admins')).json;
+        const second = list.find((a) => a.email === mailA);
+        assert(second && !('password_hash' in second) && list.some((a) => a.isMe), 'the admin list should include the new admin, mark me, and never show password hashes');
+        assert((await sendJson('DELETE', '/api/admin/admins/' + list.find((a) => a.isMe).id)).status === 400, 'you must not be able to remove yourself');
+        // the new admin can sign in and is also an admin
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/admin/login', { email: mailA, password: 'Admin2-Pass-12345' }) === 200, 'the new admin should be able to sign in');
+        assert((await sendJson('GET', '/api/admin/site')).status === 200, 'the new admin should reach the admin screens');
+        // test records: create some via the front desk, plus one that must NOT be touched
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: process.env.E2E_RECEPTION_EMAIL, password: process.env.E2E_RECEPTION_PASSWORD }) === 200, 'reception login failed');
+        const mk = (name) => sendJson('POST', '/api/reception/walk-ins', { fullName: name, dob: '1990-01-01', phone: '0000000000', reason: 'E2E purge test' });
+        const gone = await mk('ZZ LIVE TEST Purge ' + STAMP);
+        const kept = await mk('ZZ TEST Keep ' + STAMP);
+        assert(gone.status === 200 && kept.status === 200, 'creating the walk-ins failed');
+        const reg = await sendJson('POST', '/api/reception/registrations', { fullName: 'ZZ LIVE TEST Purge Reg ' + STAMP, dob: '1990-01-01', phone: '0000000000', address: 'x', consentConfirmed: true });
+        assert(reg.status === 200, 'creating the registration failed');
+        // removal needs an admin and an explicit confirmation
+        assert((await sendJson('POST', '/api/admin/remove-test-records', { confirm: true })).status === 401, 'the front desk must not be able to remove records');
+        await asAdmin();
+        assert((await sendJson('POST', '/api/admin/remove-test-records', {})).status === 400, 'removal needs a confirmation');
+        const done = await sendJson('POST', '/api/admin/remove-test-records', { confirm: true });
+        assert(done.status === 200 && done.json.counts.bookings >= 1 && done.json.counts.walkIns >= 1 && done.json.counts.registrations >= 1, 'the test records should be removed: ' + JSON.stringify(done));
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/reception/login', { email: process.env.E2E_RECEPTION_EMAIL, password: process.env.E2E_RECEPTION_PASSWORD }) === 200, 'reception login failed');
+        const after = JSON.stringify((await sendJson('GET', '/api/reception/walk-ins')).json);
+        assert(!after.includes('ZZ LIVE TEST Purge') && after.includes('ZZ TEST Keep ' + STAMP), 'only the ZZ LIVE TEST records should be gone; other records stay');
+        // remove the second admin again
+        await asAdmin();
+        assert((await sendJson('DELETE', '/api/admin/admins/' + second.id)).status === 200, 'removing the second admin failed');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/admin/login', { email: mailA, password: 'Admin2-Pass-12345' }) === 401, 'a removed admin must not sign in');
       });
       await test('new online booking: every scheduled doctor gets a personal claim link; the first to claim wins and the others go inactive', async () => {
         await asAdmin();

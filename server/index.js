@@ -73,6 +73,7 @@ app.get('/api/config', (req, res) => {
   res.json({
     practiceName: process.env.PRACTICE_NAME || 'GP4U',
     stripeConfigured: !!process.env.STRIPE_SECRET_KEY,
+    emailConfigured: require('./mailer').isConfigured(),
   });
 });
 

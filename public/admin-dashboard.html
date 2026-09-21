@@ -167,6 +167,28 @@
       <button class="btn btn-primary" type="submit">Change password</button>
       <p id="myPasswordMsg" role="status" class="staff-ok"></p>
     </form>
+
+    <div class="card" style="max-width:720px;margin-top:18px;">
+      <h3 style="margin-top:0;">Admin accounts</h3>
+      <div class="table-scroll"><table class="bookings-table"><thead><tr><th>Name</th><th>Email</th><th></th></tr></thead><tbody id="adminsBody"></tbody></table></div>
+      <h4 style="margin:18px 0 8px;">Add an admin</h4>
+      <form id="addAdminForm" novalidate>
+        <div class="form-grid">
+          <div class="form-row"><label for="newAdminName">Name</label><input id="newAdminName" maxlength="255" autocomplete="off"></div>
+          <div class="form-row"><label for="newAdminEmail">Login email</label><input id="newAdminEmail" type="email" maxlength="255" autocomplete="off"></div>
+        </div>
+        <div class="form-row" style="max-width:360px;"><label for="newAdminPw">Password (at least 10 characters)</label><input id="newAdminPw" type="password" autocomplete="new-password"></div>
+        <button class="btn btn-primary" type="submit">Add admin</button>
+        <p id="addAdminMsg" role="status" class="staff-ok"></p>
+      </form>
+    </div>
+
+    <div class="card" style="max-width:720px;margin-top:18px;">
+      <h3 style="margin-top:0;">Remove test records</h3>
+      <p class="ed-hint">Deletes fake records whose patient name starts with <strong>ZZ LIVE TEST</strong> (walk-ins, bookings with their notes and prescriptions, registrations). Real patients are never touched. Use it after trying the site out.</p>
+      <button class="btn btn-secondary" type="button" id="removeTestBtn">Remove test records</button>
+      <p id="removeTestMsg" role="status" class="staff-ok"></p>
+    </div>
   </div>
 
   <div id="tab_patients" style="display:none;">
@@ -245,7 +267,7 @@
 </main>
 
 <script src="/js/availability-editor.js?v=9f9178f4"></script>
-<script src="/js/admin-dashboard.js?v=df84d27e"></script>
+<script src="/js/admin-dashboard.js?v=610c25e9"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>
 </body>
 </html>

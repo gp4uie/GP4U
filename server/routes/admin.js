@@ -565,6 +565,54 @@ router.get('/setup-status', requireAdmin, async (req, res) => {
   res.json({ done: items.filter((i) => i.ok).length, total: items.length, items });
 });
 
+// --- Admin accounts: an admin can add another admin (e.g. a colleague, or a throwaway one for testing) and remove others ---
+router.get('/admins', requireAdmin, async (req, res) => {
+  const rows = await db.all('SELECT id, name, email, last_active_at, created_at FROM admins ORDER BY created_at ASC');
+  res.json(rows.map((r) => ({ ...r, isMe: r.id === req.session.adminId })));
+});
+
+router.post('/admins', requireAdmin, async (req, res) => {
+  const name = cleanStr(req.body.name, 255); const email = cleanStr(req.body.email, 255).toLowerCase(); const password = req.body.password || '';
+  if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password are all required' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  if (password.length < 10) return res.status(400).json({ error: 'Admin passwords must be at least 10 characters' });
+  if (await db.get('SELECT id FROM admins WHERE email = ?', [email])) return res.status(409).json({ error: 'An admin with that email already exists' });
+  const info = await db.run('INSERT INTO admins (name, email, password_hash) VALUES (?, ?, ?)', [name, email, bcrypt.hashSync(password, 10)]);
+  res.json({ ok: true, id: info.lastInsertRowid });
+});
+
+router.delete('/admins/:id', requireAdmin, async (req, res) => {
+  if (Number(req.params.id) === req.session.adminId) return res.status(400).json({ error: 'You cannot remove your own admin account. Ask another admin to do it.' });
+  const count = await db.get('SELECT COUNT(*) AS n FROM admins');
+  if (count.n <= 1) return res.status(400).json({ error: 'There must always be at least one admin' });
+  const r = await db.run('DELETE FROM admins WHERE id = ?', [req.params.id]);
+  if (!r.changes) return res.status(404).json({ error: 'Admin not found' });
+  res.json({ ok: true });
+});
+
+// --- Remove obviously fake test records. Only records whose patient name starts with "ZZ LIVE TEST" are touched, so this can
+// never remove a real patient's record; the removal itself is logged. ---
+const TEST_PREFIX = 'ZZ LIVE TEST';
+router.post('/remove-test-records', requireAdmin, async (req, res) => {
+  if (!req.body || req.body.confirm !== true) return res.status(400).json({ error: 'Please confirm' });
+  const like = TEST_PREFIX + '%';
+  const counts = {};
+  const bookings = await db.all('SELECT id FROM bookings WHERE patient_name LIKE ?', [like]);
+  for (const b of bookings) {
+    for (const t of ['messages', 'prescriptions', 'clinical_notes', 'documents', 'attachments', 'notifications', 'chart_access_log', 'consultation_summary_log', 'tasks', 'booking_claim_links']) {
+      try { await db.run(`DELETE FROM ${t} WHERE booking_id = ?`, [b.id]); } catch (err) { /* table without that link */ }
+    }
+    await db.run('UPDATE walkin_checkins SET booking_id = NULL WHERE booking_id = ?', [b.id]);
+  }
+  counts.bookings = (await db.run('DELETE FROM bookings WHERE patient_name LIKE ?', [like])).changes;
+  counts.walkIns = (await db.run('DELETE FROM walkin_checkins WHERE full_name LIKE ?', [like])).changes;
+  counts.registrations = (await db.run('DELETE FROM patient_registrations WHERE full_name LIKE ?', [like])).changes;
+  counts.patients = (await db.run('DELETE FROM patients WHERE name LIKE ? OR email LIKE ?', [like, 'zz-live-test%'])).changes;
+  const me = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
+  try { await db.run('INSERT INTO site_change_log (admin_name, action, detail) VALUES (?, ?, ?)', [me.name, 'Removed test records', JSON.stringify(counts)]); } catch (err) { /* logging is best-effort */ }
+  res.json({ ok: true, counts });
+});
+
 // Sends a real email to the signed-in admin's own address, so email setup can be checked without waiting for a booking.
 router.post('/test-email', requireAdmin, async (req, res) => {
   const me = await db.get('SELECT name, email FROM admins WHERE id = ?', [req.session.adminId]);

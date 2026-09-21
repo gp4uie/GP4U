@@ -518,6 +518,7 @@ async function removeReceptionist(id) {
 
 // ---------------------------------------------------------------- My account
 async function loadMyAccount() {
+  loadAdmins();
   const me = await (await fetch('/api/admin/me')).json();
   document.getElementById('myName').value = me.adminName || '';
   document.getElementById('myEmail').value = me.adminEmail || '';
@@ -538,4 +539,36 @@ document.getElementById('myPasswordForm').addEventListener('submit', async (e) =
   msg.className = res.ok ? 'staff-ok' : 'staff-error';
   msg.textContent = res.ok ? 'Password changed.' : (data.error || 'Could not change the password');
   if (res.ok) { document.getElementById('myCurrentPw').value = ''; document.getElementById('myNewPw').value = ''; }
+});
+
+// ---------------------------------------------------------------- Admin accounts + test-record removal
+async function loadAdmins() {
+  const rows = await (await fetch('/api/admin/admins')).json();
+  document.getElementById('adminsBody').innerHTML = rows.map((r) => `
+    <tr><td>${pEsc(r.name)}${r.isMe ? ' <span class="badge badge-green">You</span>' : ''}</td><td>${pEsc(r.email)}</td>
+    <td>${r.isMe ? '' : `<button class="btn btn-secondary" onclick="removeAdmin(${r.id})">Remove</button>`}</td></tr>`).join('');
+}
+async function removeAdmin(id) {
+  if (!window.confirm('Remove this admin account? They will no longer be able to sign in.')) return;
+  const res = await fetch('/api/admin/admins/' + id, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  const msg = document.getElementById('addAdminMsg'); msg.className = res.ok ? 'staff-ok' : 'staff-error'; msg.textContent = res.ok ? 'Removed.' : (data.error || 'Could not remove');
+  loadAdmins();
+}
+document.getElementById('addAdminForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('addAdminMsg'); msg.className = 'staff-ok'; msg.textContent = '';
+  const res = await fetch('/api/admin/admins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: document.getElementById('newAdminName').value, email: document.getElementById('newAdminEmail').value, password: document.getElementById('newAdminPw').value }) });
+  const data = await res.json().catch(() => ({}));
+  msg.className = res.ok ? 'staff-ok' : 'staff-error';
+  msg.textContent = res.ok ? 'Admin added.' : (data.error || 'Could not add');
+  if (res.ok) { ['newAdminName', 'newAdminEmail', 'newAdminPw'].forEach((id) => { document.getElementById(id).value = ''; }); loadAdmins(); }
+});
+document.getElementById('removeTestBtn').addEventListener('click', async () => {
+  if (!window.confirm('Remove all test records (patient names starting "ZZ LIVE TEST")?')) return;
+  const msg = document.getElementById('removeTestMsg'); msg.className = 'staff-ok'; msg.textContent = 'Removing…';
+  const res = await fetch('/api/admin/remove-test-records', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }) });
+  const data = await res.json().catch(() => ({}));
+  msg.className = res.ok ? 'staff-ok' : 'staff-error';
+  msg.textContent = res.ok ? `Removed ${data.counts.bookings} booking(s), ${data.counts.walkIns} walk-in(s), ${data.counts.registrations} registration(s), ${data.counts.patients} patient account(s).` : (data.error || 'Could not remove');
 });
