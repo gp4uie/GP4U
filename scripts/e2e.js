@@ -1303,10 +1303,13 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error('\nRunner crashed:', e.message); results.push({ section: 'runner', name: 'crash', ok: false, err: e.message }); }).finally(() => {
-  const failed = results.filter((r) => !r.ok);
-  console.log(`\n${'='.repeat(70)}\n${results.length - failed.length} passed, ${failed.length} failed of ${results.length} checks`);
-  if (failed.length) { console.log('\nFAILURES:'); failed.forEach((f) => console.log(` ✗ [${f.section}] ${f.name}\n     ${f.err}`)); }
-  if (ctx.walkinRef || ctx.regRef) console.log(`\nTest records created: walk-in ${ctx.walkinRef || '-'}, registration ${ctx.regRef || '-'}${ctx.bookingId ? ', booking ' + ctx.bookingId : ''}`);
-  process.exit(failed.length ? 1 : 0);
-});
+module.exports = { launchChrome, Tab };
+if (require.main === module) {
+  main().catch((e) => { console.error('\nRunner crashed:', e.message); results.push({ section: 'runner', name: 'crash', ok: false, err: e.message }); }).finally(() => {
+    const failed = results.filter((r) => !r.ok);
+    console.log(`\n${'='.repeat(70)}\n${results.length - failed.length} passed, ${failed.length} failed of ${results.length} checks`);
+    if (failed.length) { console.log('\nFAILURES:'); failed.forEach((f) => console.log(` ✗ [${f.section}] ${f.name}\n     ${f.err}`)); }
+    if (ctx.walkinRef || ctx.regRef) console.log(`\nTest records created: walk-in ${ctx.walkinRef || '-'}, registration ${ctx.regRef || '-'}${ctx.bookingId ? ', booking ' + ctx.bookingId : ''}`);
+    process.exit(failed.length ? 1 : 0);
+  });
+}

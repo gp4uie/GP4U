@@ -36,7 +36,25 @@ function updateBookingSummary(n) {
   box.hidden = false;
 }
 
+// Every step opens at the very top of the page. Some phones (notably iPhone Safari) ignore a scroll that is asked for while the
+// page is still coasting from the patient's own flick down to the Continue button, or while the layout is changing, so the
+// request is repeated a few times over the next half second — unless the patient has already touched the screen again.
+let stepChangedAt = 0;
+let touchedSinceStep = false;
+['touchstart', 'wheel', 'keydown', 'mousedown'].forEach((ev) => window.addEventListener(ev, () => { if (Date.now() - stepChangedAt > 120) touchedSinceStep = true; }, { passive: true }));
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+function scrollToPageTop() {
+  const top = () => { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; };
+  top();
+  requestAnimationFrame(top);
+  [60, 200, 500].forEach((ms) => setTimeout(() => { if (!touchedSinceStep) top(); }, ms));
+}
+
 function goToStep(n) {
+  stepChangedAt = Date.now();
+  touchedSinceStep = false;
+  // The button that was pressed is about to be hidden; let go of it first so the browser has no reason to scroll to it.
+  if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') document.activeElement.blur();
   for (let i = 1; i <= 4; i++) {
     document.getElementById('step' + i).style.display = i === n ? 'block' : 'none';
     const tab = document.getElementById('tab' + i);
@@ -47,8 +65,7 @@ function goToStep(n) {
   const now = document.getElementById('progressNow');
   if (now) now.textContent = 'Step ' + n + ' of 4 — ' + STEP_NAMES[n - 1];
   updateBookingSummary(n);
-  // Each step opens at the top of the page, so the patient never lands halfway down after pressing Continue.
-  window.scrollTo(0, 0);
+  scrollToPageTop();
   if (n === 3) loadSlots();
   if (n === 4) renderReview();
 }
@@ -454,6 +471,8 @@ async function loadSlots() {
   container.innerHTML = '<p>Loading available times…</p>';
   const res = await fetch('/api/slots?service=' + selectedService);
   const slots = await res.json();
+  // The list of times is long; once it has been drawn, make sure the patient is still looking at the top of it.
+  if (!touchedSinceStep && Date.now() - stepChangedAt < 6000) setTimeout(scrollToPageTop, 0);
   if (!slots.length) {
     container.innerHTML = '<p>No slots available right now — please check back soon.</p>';
     return;
