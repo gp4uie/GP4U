@@ -565,6 +565,24 @@ router.get('/setup-status', requireAdmin, async (req, res) => {
   res.json({ done: items.filter((i) => i.ok).length, total: items.length, items });
 });
 
+// Sends a real email to the signed-in admin's own address, so email setup can be checked without waiting for a booking.
+router.post('/test-email', requireAdmin, async (req, res) => {
+  const me = await db.get('SELECT name, email FROM admins WHERE id = ?', [req.session.adminId]);
+  const practice = await getPractice();
+  try {
+    await mailer.sendMail({
+      to: me.email,
+      subject: `Test email from ${practice.name}`,
+      html: `${emailHeader(practice)}<p>Hi ${esc(me.name)},</p><p>This is a test. If you can read it, email sending is working: booking notifications to doctors, confirmations to patients and password resets will be delivered.</p>`,
+    });
+    res.json({ ok: true, sentTo: me.email });
+  } catch (err) {
+    if (err.code === 'MAILER_NOT_CONFIGURED') return res.status(400).json({ error: 'Email is not set up yet: SMTP_HOST, SMTP_USER and SMTP_PASS are missing in the hosting settings.' });
+    console.error('test email failed:', err.message);
+    res.status(502).json({ error: 'The email server refused it: ' + String(err.message || err).slice(0, 200) + ' — check the SMTP settings (server name, port, username and password).' });
+  }
+});
+
 // --- Edit people: an admin can correct a doctor's or receptionist's details, reset a password, or remove a receptionist ---
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const cleanStr = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');

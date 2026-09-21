@@ -1224,6 +1224,10 @@ async function main() {
         const setup = (await sendJson('GET', '/api/admin/setup-status')).json;
         assert(setup.total >= 10 && setup.items.every((i) => i.key && i.label && typeof i.ok === 'boolean') && !JSON.stringify(setup).match(/sk_(live|test)_|whsec_/i), 'the setup checklist should list what is missing, without revealing any secret');
         assert(setup.items.find((i) => i.key === 'payments').ok === false || !!process.env.STRIPE_SECRET_KEY, 'payments should be flagged as not set up when there is no Stripe key');
+        assert(await tab.ev(`!!document.getElementById('testEmailBtn')`), 'the checklist should offer a test email');
+        const te = await sendJson('POST', '/api/admin/test-email');
+        assert(te.status === 400 || te.status === 200 || te.status === 502, 'the test email should answer clearly: ' + JSON.stringify(te));
+        if (te.status === 400) assert(/not set up/i.test(te.json.error), 'when email is not set up the answer should say so');
         await tab.ev(`showAdminTab('doctors')`);
         await tab.waitFor(`/Edit details/.test(document.getElementById('doctorsBody').innerText)`, 6000, 'edit buttons');
         await tab.ev(`showAdminTab('account')`);

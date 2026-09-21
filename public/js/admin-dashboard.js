@@ -106,7 +106,15 @@ async function loadSetup() {
       ${groups.map((g) => `<h4>${pEsc(g)}</h4><ul class="setup-list">${s.items.filter((i) => i.group === g).map((i) => `
         <li class="${i.ok ? 'ok' : 'todo'}"><span class="setup-tick" aria-hidden="true">${i.ok ? '✓' : '!'}</span>
           <div><strong>${pEsc(i.label)}</strong>${i.ok ? '' : `<p>${pEsc(i.why)}</p><p class="setup-fix">${pEsc(i.todo)}</p>`}</div></li>`).join('')}</ul>`).join('')}
+      <div class="setup-test"><button class="btn btn-secondary" type="button" id="testEmailBtn">Send a test email to my address</button> <span id="testEmailMsg" role="status"></span></div>
     </details>`;
+  document.getElementById('testEmailBtn').addEventListener('click', async () => {
+    const msg = document.getElementById('testEmailMsg'); msg.style.color = ''; msg.textContent = 'Sending…';
+    const r = await fetch('/api/admin/test-email', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    msg.style.color = r.ok ? '#185f3a' : '#a3271d';
+    msg.textContent = r.ok ? `Sent to ${d.sentTo}. Check that inbox (and spam).` : (d.error || 'Could not send.');
+  });
 }
 
 async function loadAnalytics() {

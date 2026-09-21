@@ -1143,3 +1143,4 @@ body.staff-page { background: var(--cream); }
 .claim-list h2 { font-size: 1.2rem; margin: 0 0 8px; display: flex; gap: 10px; align-items: center; }
 .claim-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line-warm); }
 .claim-actions { display: flex; gap: 8px; }
+.setup-test { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-warm); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
