@@ -65,6 +65,9 @@ function goToStep(n) {
   const now = document.getElementById('progressNow');
   if (now) now.textContent = 'Step ' + n + ' of 4 — ' + STEP_NAMES[n - 1];
   updateBookingSummary(n);
+  // From the time step on, drop the intro text so the times are on the first screen without scrolling.
+  const shell = document.getElementById('bookShell');
+  if (shell) shell.classList.toggle('book-compact', n >= 3);
   scrollToPageTop();
   if (n === 3) loadSlots();
   if (n === 4) renderReview();

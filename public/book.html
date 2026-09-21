@@ -17,8 +17,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
-<link rel="stylesheet" href="/css/style.css?v=8533d8cb">
-<link rel="stylesheet" href="/css/clinic.css?v=ab199005">
+<link rel="stylesheet" href="/css/style.css?v=62977f52">
+<link rel="stylesheet" href="/css/clinic.css?v=d67c8a5a">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light" data-sticky="off">
@@ -54,10 +54,10 @@
 <!-- @/header -->
 <main id="main">
 
-<div class="page-shell">
+<div class="page-shell" id="bookShell">
   <h1>Book an online GP consultation</h1>
-  <p class="lead-in" style="font-size:1.05rem;">See a GP by video or phone, from wherever you are. It takes about five minutes: choose a service, tell us what's going on, pick a time and pay securely.</p>
-  <div class="notice" style="margin-bottom:24px;"><strong>This is an online booking — not an appointment at the clinic.</strong>Would you rather be seen in person? <a href="/walk-in.html">Visit our walk-in clinic in Newbridge</a> — no appointment required.</div>
+  <p class="lead-in book-intro" style="font-size:1.05rem;">See a GP by video or phone, from wherever you are. It takes about five minutes: choose a service, tell us what's going on, pick a time and pay securely.</p>
+  <div class="notice book-intro" style="margin-bottom:24px;"><strong>This is an online booking — not an appointment at the clinic.</strong>Would you rather be seen in person? <a href="/walk-in.html">Visit our walk-in clinic in Newbridge</a> — no appointment required.</div>
   <ol class="progress-steps" aria-label="Booking progress">
     <li id="tab1" class="active" aria-current="step">Service</li>
     <li id="tab2">Your details</li>
@@ -160,7 +160,7 @@
 
   <!-- STEP 3 -->
   <div id="step3" style="display:none;">
-    <p>Choose an available appointment time (Irish time, Mon–Fri, next 10 days):</p>
+    <p class="slot-intro">Choose an available appointment time (Irish time, Mon–Fri, next 10 days):</p>
     <div id="slotContainer" class="slot-grid"><p>Loading available times…</p></div>
     <button class="btn btn-secondary" onclick="goToStep(2)" style="margin-top:16px;">Back</button>
   </div>
@@ -239,7 +239,7 @@
 <!-- @/sticky -->
 
 <script src="/js/questionnaires.js?v=1201355e"></script>
-<script src="/js/book.js?v=da43bd34"></script>
+<script src="/js/book.js?v=b5ec7ef4"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=f65c51ad"></script>

@@ -563,7 +563,19 @@ table.bookings-table tr:hover { background: #f2fbfa; cursor: pointer; }
 .video-room { background: #0e1b1e; min-height: calc(100vh - 0px); display: flex; flex-direction: column; color: white; }
 .video-stage { flex: 1; display: flex; gap: 12px; padding: 16px; flex-wrap: wrap; align-items: center; justify-content: center; }
 .video-stage video { width: 100%; max-width: 640px; border-radius: 16px; background: #000; }
-#localVideo { max-width: 220px; position: fixed; bottom: 90px; right: 24px; border: 2px solid white; border-radius: 12px; z-index: 10; }
+/* Your own picture: a small floating window that can be dragged (see consult.js) */
+.self-view { position: fixed; right: 14px; bottom: 96px; width: 120px; z-index: 10; border: 2px solid rgba(255,255,255,.9); border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 6px 20px rgba(0,0,0,.45); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.self-view.dragging { cursor: grabbing; opacity: .92; }
+.self-view[hidden], .self-chip[hidden] { display: none; }
+.video-stage .self-view video { display: block; width: 100%; max-width: none; border-radius: 0; background: #000; aspect-ratio: 3 / 4; object-fit: cover; pointer-events: none; }
+.self-view.mirror video { transform: scaleX(-1); }
+.self-bar { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 4px; padding: 4px; background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,0)); }
+.self-spacer { flex: 1; }
+.self-btn { width: 26px; height: 26px; border: none; border-radius: 50%; background: rgba(20,30,33,.72); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.self-btn:hover { background: rgba(20,30,33,.95); }
+.self-btn[hidden] { display: none; }
+.self-chip { position: fixed; right: 14px; bottom: 96px; z-index: 10; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,.9); background: #26383c; color: #fff; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+@media (min-width: 700px) { .self-view { width: 168px; right: 24px; } .self-chip { right: 24px; } }
 /* padding-bottom includes iOS safe-area so buttons never sit under the home-indicator/notch gesture area */
 .video-controls { display: flex; justify-content: center; gap: 14px; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); background: #0a1416; }
 .round-btn {

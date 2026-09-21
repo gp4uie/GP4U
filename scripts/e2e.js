@@ -76,7 +76,7 @@ async function launchChrome() {
   const exe = candidates.find((p) => fs.existsSync(p));
   if (!exe) throw new Error('Chrome/Edge not found');
   const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gp4u-e2e-'));
-  const proc = spawn(exe, ['--headless=new', '--disable-gpu', '--no-first-run', '--remote-allow-origins=*', `--remote-debugging-port=${PORT}`, `--user-data-dir=${userDir}`, '--window-size=1366,900', 'about:blank'], { stdio: 'ignore' });
+  const proc = spawn(exe, ['--headless=new', '--disable-gpu', '--no-first-run', '--remote-allow-origins=*', `--remote-debugging-port=${PORT}`, `--user-data-dir=${userDir}`, '--window-size=1366,900', '--use-fake-device-for-media-stream=device-count=2', '--use-fake-ui-for-media-stream', 'about:blank'], { stdio: 'ignore' });
   let target;
   for (let i = 0; i < 40 && !target; i++) {
     await sleep(500);

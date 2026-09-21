@@ -36,6 +36,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       await sleep(1500);
       const after = await tab.ev(`({ y: Math.round(window.scrollY), docH: document.documentElement.scrollHeight, step3: getComputedStyle(document.getElementById('step3')).display, first: (document.querySelector('.slot-btn') || {}).innerText, log: window.__log.slice(0, 40).join(',') })`);
       console.log(`[${label}] after Continue: scrollY now ${after.y}px (0.4s after the click: ${Math.round(at400)}px), page height ${after.docH}px, step 3 shown: ${after.step3 !== 'none'}`);
+      if (process.env.SHOT) { const r = await tab.send('Page.captureScreenshot', { format: 'png' }); require('fs').writeFileSync(process.env.SHOT + label.split(' ')[0] + '.png', Buffer.from(r.data, 'base64')); }
+      const vis = await tab.ev(`(() => { const b = document.querySelector('.slot-btn'); const r = b.getBoundingClientRect(); return { firstSlotTop: Math.round(r.top), firstSlotBottom: Math.round(r.bottom), viewport: window.innerHeight }; })()`);
+      console.log(`[${label}] first time slot sits at ${vis.firstSlotTop}px of a ${vis.viewport}px-high screen -> visible without scrolling: ${vis.firstSlotBottom <= vis.viewport}`);
       console.log(`[${label}] scroll position frame by frame: ${after.log}`);
     }
   } finally { close(); }

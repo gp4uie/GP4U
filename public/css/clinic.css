@@ -1144,3 +1144,15 @@ body.staff-page { background: var(--cream); }
 .claim-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line-warm); }
 .claim-actions { display: flex; gap: 8px; }
 .setup-test { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-warm); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* Booking: from the "Date & time" step on, the intro copy is hidden so the available times sit on the first screen. */
+.book-compact .book-intro, .book-compact #pharmacyNoticeText { display: none !important; }
+.clinic-page .book-compact h1 { font-size: 1.45rem; margin: 0 0 8px; }
+.clinic-page .page-shell.book-compact { padding-top: 22px; }
+.book-compact .booking-summary { padding: 8px 14px; margin-bottom: 10px; }
+.book-compact .booking-summary .bs-meta { display: none; }
+.book-compact .booking-summary .bs-price { font-size: 1.2rem; }
+.book-compact .progress-steps { margin-bottom: 4px; }
+.book-compact .progress-now { margin: 4px 0 8px; }
+.book-compact .slot-intro { margin: 0 0 4px; font-size: 0.95rem; }
+.book-compact .slot-day-label { margin-top: 8px; }

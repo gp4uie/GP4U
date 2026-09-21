@@ -82,6 +82,7 @@ async function start() {
     document.getElementById('camBtn').style.display = 'none';
   } else {
     localVideo.srcObject = localStream;
+    setupSelfView();
   }
 
   // Sanitised, deterministic peer IDs so the two participants can find each other for this booking only.
@@ -153,6 +154,122 @@ document.getElementById('fullscreenBtn').onclick = () => {
     document.documentElement.requestFullscreen().catch(() => {});
   }
 };
+
+// ---- Your own picture: drag, switch camera, minimise, close ----
+const selfView = document.getElementById('selfView');
+const selfChip = document.getElementById('selfChip');
+const selfBtn = document.getElementById('selfBtn');
+let videoDevices = [];
+
+function setSelfState(state) {
+  selfView.hidden = state !== 'open';
+  selfChip.hidden = state !== 'min';
+  selfBtn.hidden = audioOnly || state !== 'closed';
+  if (state === 'open') keepOnScreen(selfView);
+  if (state === 'min') keepOnScreen(selfChip);
+}
+
+function keepOnScreen(el) {
+  if (!el.style.left) return; // still in its default corner
+  const r = el.getBoundingClientRect();
+  const left = Math.min(Math.max(0, r.left), Math.max(0, window.innerWidth - r.width));
+  const top = Math.min(Math.max(0, r.top), Math.max(0, window.innerHeight - r.height));
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+}
+
+// Lets a finger or mouse move an element around the screen; a tap on one of its buttons never starts a drag.
+function makeDraggable(el, onEnd) {
+  let start = null;
+  el.addEventListener('pointerdown', (e) => {
+    const hit = e.target.closest && e.target.closest('button'); if (hit && hit !== el) return;
+    const r = el.getBoundingClientRect();
+    start = { x: e.clientX, y: e.clientY, left: r.left, top: r.top, moved: false };
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (!start.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+    if (!start.moved) { start.moved = true; el.classList.add('dragging'); }
+    const r = el.getBoundingClientRect();
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.left = Math.min(Math.max(0, start.left + dx), window.innerWidth - r.width) + 'px';
+    el.style.top = Math.min(Math.max(0, start.top + dy), window.innerHeight - r.height) + 'px';
+  });
+  const end = () => {
+    if (!start) return;
+    const moved = start.moved;
+    start = null;
+    el.classList.remove('dragging');
+    if (onEnd) onEnd(moved);
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+}
+
+async function refreshVideoDevices() {
+  try { videoDevices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput'); } catch (err) { videoDevices = []; }
+  document.getElementById('flipBtn').hidden = videoDevices.length < 2;
+}
+
+function updateMirror() {
+  const track = localStream && localStream.getVideoTracks()[0];
+  const facing = track && track.getSettings ? track.getSettings().facingMode : '';
+  // The back camera is shown as it really is; the front camera and webcams are mirrored, like a mirror.
+  selfView.classList.toggle('mirror', facing !== 'environment');
+}
+
+async function flipCamera() {
+  if (audioOnly || !localStream) return;
+  await refreshVideoDevices();
+  if (videoDevices.length < 2) return;
+  const oldTrack = localStream.getVideoTracks()[0];
+  const currentId = oldTrack && oldTrack.getSettings ? oldTrack.getSettings().deviceId : '';
+  const idx = videoDevices.findIndex((d) => d.deviceId === currentId);
+  const next = videoDevices[(idx + 1) % videoDevices.length];
+  if (oldTrack) oldTrack.stop(); // phones will not open a second camera while the first is still running
+  let newTrack;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: next.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    newTrack = s.getVideoTracks()[0];
+  } catch (err) {
+    try {
+      newTrack = (await navigator.mediaDevices.getUserMedia({ video: true, audio: false })).getVideoTracks()[0];
+    } catch (err2) {
+      setStatus('Could not switch camera.');
+      setTimeout(() => setStatus(''), 2500);
+      return;
+    }
+  }
+  newTrack.enabled = camOn;
+  if (oldTrack) localStream.removeTrack(oldTrack);
+  localStream.addTrack(newTrack);
+  localVideo.srcObject = localStream;
+  // send the new picture to the other person without restarting the call
+  const pc = currentCall && currentCall.peerConnection;
+  if (pc) {
+    const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video') || pc.getSenders().find((s) => !s.track);
+    if (sender) sender.replaceTrack(newTrack).catch(() => {});
+  }
+  updateMirror();
+}
+
+function setupSelfView() {
+  makeDraggable(selfView);
+  makeDraggable(selfChip, (moved) => { if (!moved) setSelfState('open'); });
+  document.getElementById('minBtn').onclick = () => setSelfState('min');
+  document.getElementById('closeSelfBtn').onclick = () => setSelfState('closed');
+  selfBtn.onclick = () => setSelfState('open');
+  document.getElementById('flipBtn').onclick = flipCamera;
+  window.addEventListener('resize', () => { keepOnScreen(selfView); keepOnScreen(selfChip); });
+  refreshVideoDevices();
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', refreshVideoDevices);
+  localVideo.addEventListener('loadedmetadata', updateMirror);
+  updateMirror();
+}
 
 document.getElementById('endBtn').onclick = () => {
   if (currentCall) currentCall.close();
