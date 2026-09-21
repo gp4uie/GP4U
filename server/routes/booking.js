@@ -8,6 +8,7 @@ const { getAvailableSlots } = require('../slots');
 const { upsertPatient } = require('../patients');
 const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
+const { notifyDoctorsOfBooking } = require('../claims');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -81,16 +82,11 @@ async function notifyBookingPaid(booking) {
     console.log('Booking confirmation email not sent:', err.message);
   }
 
-  if (process.env.DOCTOR_EMAIL) {
-    try {
-      await mailer.sendMail({
-        to: process.env.DOCTOR_EMAIL,
-        subject: `New booking: ${booking.patient_name}`,
-        html: `<p>${esc(booking.patient_name)} booked a ${esc(serviceLabel)} for ${esc(new Date(booking.slot_start).toLocaleString('en-IE', { timeZone: 'Europe/Dublin' }))}.</p>`,
-      });
-    } catch (err) {
-      console.log('Doctor notification email not sent:', err.message);
-    }
+  // Every doctor scheduled at that time gets a personal "claim this case" link (see server/claims.js).
+  try {
+    await notifyDoctorsOfBooking(booking, serviceLabel);
+  } catch (err) {
+    console.log('Doctor notification not sent:', err.message);
   }
 }
 

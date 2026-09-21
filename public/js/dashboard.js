@@ -22,6 +22,11 @@ function statusBadge(b) {
   if (b.status === 'completed') return '<span class="badge badge-green">Completed</span>';
   return `<span class="badge badge-amber">${isWalkIn(b) ? 'In clinic' : 'Booked'}</span>`;
 }
+// Who has taken an online case: "Unclaimed" until a doctor claims it from the email link or the chart.
+function claimBadge(b) {
+  if (isWalkIn(b) || b.status !== 'paid') return '';
+  return b.claimed_by ? `<span class="badge badge-claimed" title="Claimed">${esc(b.claimed_by_name || 'Claimed')}</span>` : '<span class="badge badge-unclaimed">Unclaimed</span>';
+}
 function fmtDob(dob) {
   if (!dob) return 'DOB not given';
   const d = new Date(dob + 'T00:00:00');
@@ -79,6 +84,7 @@ async function checkSession() {
     document.getElementById('logoutLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
     doctorTotpEnabled = !!data.totpEnabled;
+    handleClaimParam();
     loadServiceLabels();
     loadNotifications();
     loadMedications();
@@ -98,7 +104,49 @@ async function checkSession() {
       if (currentBookingId && panelOpen) openBooking(currentBookingId, null, true);
     }, 20000);
     setInterval(() => { if (activeTab === 'teammsg') { loadStaffDirectory(); loadStaffMessages(); } }, 15000);
+  } else {
+    explainClaimLinkBeforeLogin();
   }
+}
+
+// ---- claim links from the "new online booking" email: /dashboard.html?claim=<token>
+const claimToken = new URLSearchParams(location.search).get('claim');
+function clearClaimParam() { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* not important */ } }
+function showClaimBanner(kind, message) {
+  const el = document.getElementById('claimBanner');
+  el.className = 'claim-banner is-' + kind;
+  el.textContent = message;
+  el.hidden = false;
+}
+async function handleClaimParam() {
+  if (!claimToken) return;
+  clearClaimParam();
+  try {
+    const res = await fetch('/api/doctor/claims/' + encodeURIComponent(claimToken) + '/claim', { method: 'POST' });
+    if (res.status === 401) return showSessionExpired();
+    const data = await res.json();
+    if (data.ok) {
+      showClaimBanner('ok', 'You have claimed this case.');
+      openBooking(data.bookingId, 'online');
+    } else {
+      showClaimBanner(data.state === 'claimed' ? 'warn' : 'error', data.error || 'This link could not be used.');
+      if (data.state === 'claimed' && data.bookingId) { /* not theirs any more — just tell them */ }
+    }
+  } catch (err) { showClaimBanner('error', 'Something went wrong with that link. Please try again.'); }
+}
+// Before signing in, a link that has already been taken says so straight away.
+async function explainClaimLinkBeforeLogin() {
+  if (!claimToken) return;
+  const el = document.getElementById('claimNotice');
+  try {
+    const st = (await (await fetch('/api/doctor/claims/' + encodeURIComponent(claimToken) + '/status')).json()).state;
+    el.textContent = st === 'claimed' ? 'This case has already been claimed by another doctor, so this link is no longer active.'
+      : st === 'invalid' ? 'This link is not valid.'
+      : st === 'cancelled' ? 'This booking has been cancelled.'
+      : 'Sign in to claim this case.';
+    el.className = 'claim-notice ' + (st === 'open' || st === 'mine' ? 'is-ok' : 'is-warn');
+    el.hidden = false;
+  } catch (err) { /* the normal login still works */ }
 }
 
 async function login() {
@@ -409,7 +457,7 @@ function renderOnlineDay(bookings) {
         <span class="vc-sub">${esc(clinicAge(b.patient_dob))} · ${esc(svcLabel(b.service_type))}</span>
         <p class="vc-reason">${esc(b.reason || '')}</p>
       </div>
-      <div class="vc-side">${statusBadge(b)}<button class="btn btn-primary" onclick="openBooking('${esc(b.id)}', 'online')">Open chart</button></div>
+      <div class="vc-side">${statusBadge(b)}${claimBadge(b)}<button class="btn btn-primary" onclick="openBooking('${esc(b.id)}', 'online')">Open chart</button></div>
     </article>`).join('');
 }
 
@@ -525,7 +573,7 @@ async function loadRecent() {
       <td>${esc(new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td>
       <td>${esc(svcLabel(b.service_type))}</td>
       <td>${esc(b.patient_name)}</td>
-      <td>${statusBadge(b)}</td>
+      <td>${statusBadge(b)} ${claimBadge(b)}</td>
     </tr>
   `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No online cases yet.</td></tr>';
 }
@@ -608,6 +656,25 @@ function closeChart() {
   showTab(activeTab);
 }
 
+// Chart: who has this online case, with Claim / Release for the doctors involved.
+function claimControls(claim, b) {
+  if (!claim || b.status === 'completed' || b.status === 'cancelled') return claim && claim.byName ? `<span class="badge badge-claimed">${esc(claim.byName)}</span>` : '';
+  if (!claim.by) return `<span class="badge badge-unclaimed">Unclaimed</span> <button class="btn btn-primary claim-btn" type="button" onclick="claimCase('${esc(b.id)}')">Claim this case</button>`;
+  if (claim.mine) return `<span class="badge badge-claimed">Claimed by you</span> <button class="btn btn-secondary claim-btn" type="button" onclick="releaseCase('${esc(b.id)}')">Release</button>`;
+  return `<span class="badge badge-claimed">Claimed by ${esc(claim.byName || 'another doctor')}</span>`;
+}
+async function claimCase(id) {
+  const res = await doctorFetch(`/api/doctor/bookings/${encodeURIComponent(id)}/claim`, { method: 'POST' });
+  const data = await res.json();
+  if (!data.ok) showClaimBanner('warn', `${data.by || 'Another doctor'} has already claimed this case.`);
+  openBooking(id, null, true);
+  loadClinicSummary();
+}
+async function releaseCase(id) {
+  await doctorFetch(`/api/doctor/bookings/${encodeURIComponent(id)}/release`, { method: 'POST' });
+  openBooking(id, null, true);
+}
+
 // --- Booking detail panel ---
 // keepTab: preserve whichever chart sub-tab (Notes, Prescription, ...) was already open instead
 // of jumping back to Overview. Used for same-booking refreshes (a save/issue action, the
@@ -629,7 +696,7 @@ async function openBooking(id, listKey, keepTab) {
   const allergyText = (b.allergies || '').trim() || (pp.allergies || '').trim();
   const prevCount = summary.onlineVisits + summary.walkInVisits;
   document.getElementById('chartPatientMeta').innerHTML = `
-    <div class="pb-row">${visitBadge(b.service_type)} ${statusBadge(b)}<span class="pb-ref">Ref ${esc(b.id)}</span></div>
+    <div class="pb-row">${visitBadge(b.service_type)} ${statusBadge(b)}${walk ? '' : claimControls(data.claim, b)}<span class="pb-ref">Ref ${esc(b.id)}</span></div>
     <div class="pb-facts">
       <span><b>DOB</b> ${esc(fmtDob(b.patient_dob))} (${esc(clinicAge(b.patient_dob))})</span>
       ${b.patient_phone ? `<span><b>Phone</b> ${esc(b.patient_phone)}</span>` : ''}

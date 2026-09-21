@@ -543,3 +543,15 @@ built-in defaults in `clinic.js`. Tables: `site_config`, `site_config_history`, 
 - Patients with no email (walk-ins): "Send to patient" explains and points to **Download PDF** / **Print**.
 - Everything from the database is escaped in the printable pages and in emails; attachment file names are made ASCII-safe (accents, dashes).
 - Admin dashboard → Analytics has a **Setup checklist** (payments, email, address, phone, company details, fees, doctor hours, 2FA, secrets, https).
+
+### New online bookings: emailing the scheduled doctors and claiming a case
+
+- When an online booking is confirmed (`server/claims.js`), every **active doctor whose working hours cover that slot** (Admin → Doctors → Edit Schedule) gets an
+  email with a personal **Claim this case** link (`/dashboard.html?claim=<token>`). If nobody's hours cover it, every active doctor is emailed. Walk-ins are not emailed.
+  `DOCTOR_EMAIL`, if set and not one of the doctors, still gets a plain notice (no link).
+- The first doctor to claim it owns the case (one atomic database update — two simultaneous clicks cannot both win). From then on the other links are **inactive**:
+  before signing in the link's page says so (it reveals nothing about the patient); after signing in it names who has the case. A link only works for the doctor it was sent to.
+- In the dashboard: **Today** lists "New online bookings waiting for a doctor" with one-click **Claim**; online cards/rows show *Unclaimed* or the doctor's name; the chart has
+  **Claim this case / Release**. Releasing makes the other doctors' links live again. Starting a call claims the case; another doctor is stopped with a message.
+- Email must be set up (Admin → Analytics → Setup checklist) for the emails to go out; the waiting list in the dashboard works either way.
+- The server now runs in Irish time (`TZ=Europe/Dublin`), so doctors' hours such as "10:00" mean 10:00 Irish time all year.

@@ -47,6 +47,8 @@ function goToStep(n) {
   const now = document.getElementById('progressNow');
   if (now) now.textContent = 'Step ' + n + ' of 4 — ' + STEP_NAMES[n - 1];
   updateBookingSummary(n);
+  // Each step opens at the top of the page, so the patient never lands halfway down after pressing Continue.
+  window.scrollTo(0, 0);
   if (n === 3) loadSlots();
   if (n === 4) renderReview();
 }

@@ -413,10 +413,16 @@ async function main() {
       assert(sum.now === 'Step 2 of 4 — Your details' && sum.labels.join('|') === 'Service|Your details|Date & time|Review & pay', 'progress indicator wrong: ' + JSON.stringify(sum));
       await tab.set('[name=patientName]', ctx.patientName); await tab.set('[name=patientDob]', '1985-03-04'); await tab.set('[name=patientPhone]', '0851112222');
       await tab.set('[name=patientEmail]', ctx.patientEmail); await tab.set('[name=reason]', 'E2E test consultation - please ignore');
+      await tab.ev(`document.body.style.minHeight = '4500px'; window.scrollTo(0, 1500)`); // pretend the patient is far down the page
+      assert(await tab.ev(`window.scrollY > 500`), 'test set-up: the page should be scrolled down');
       await tab.ev(`document.getElementById('step2ContinueBtn').click()`);
       await tab.waitFor(`getComputedStyle(document.getElementById('step3')).display !== 'none' && document.querySelectorAll('.slot-btn').length > 0`, 8000, 'time slots');
+      assert(await tab.ev(`window.scrollY < 5`), 'choosing a time should start at the top of the page, but the page is at ' + await tab.ev(`window.scrollY`));
+      await tab.ev(`window.scrollTo(0, 1500)`);
       await tab.ev(`document.querySelector('.slot-btn').click()`);
       await tab.waitFor(`getComputedStyle(document.getElementById('step4')).display !== 'none'`, 6000, 'review step');
+      assert(await tab.ev(`window.scrollY < 5`), 'the review step should also start at the top of the page');
+      await tab.ev(`document.body.style.minHeight = ''`);
       const review = await tab.ev(`document.getElementById('reviewCard').innerText`);
       assert(review.includes(ctx.patientName) && /€35/.test(review), 'review is missing patient name or price: ' + review.slice(0, 80));
     });
@@ -1121,6 +1127,93 @@ async function main() {
         assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) === 401, 'the old admin password must stop working');
         assert(await postJson('/api/admin/login', { email: ADMIN_EMAIL, password: 'Another-Pass-1234' }) === 200, 'the new admin password should work');
         assert((await sendJson('POST', '/api/admin/me/password', { currentPassword: 'Another-Pass-1234', newPassword: ADMIN_PASSWORD })).status === 200, 'putting the admin password back failed');
+      });
+      await test('new online booking: every scheduled doctor gets a personal claim link; the first to claim wins and the others go inactive', async () => {
+        await asAdmin();
+        const mail = (n) => `zz-e2e-claim-${n}-${STAMP}@example.invalid`;
+        const ids = {};
+        for (const n of ['a', 'b']) {
+          assert((await sendJson('POST', '/api/admin/doctors', { name: 'ZZ Claim ' + n.toUpperCase(), regNumber: 'ZZ-' + n, email: mail(n), password: 'Claim-Pass-12345' })).status === 200, 'creating doctor ' + n + ' failed');
+          ids[n] = (await sendJson('GET', '/api/admin/doctors')).json.find((d) => d.email === mail(n)).id;
+          const ranges = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ dayOfWeek: d, startTime: '00:00', endTime: '23:45' }));
+          assert((await sendJson('PUT', '/api/admin/doctors/' + ids[n] + '/availability', { ranges })).status === 200, 'setting hours for doctor ' + n + ' failed');
+        }
+        // a third doctor with NO hours must not be told about it
+        assert((await sendJson('POST', '/api/admin/doctors', { name: 'ZZ Claim C', regNumber: 'ZZ-c', email: mail('c'), password: 'Claim-Pass-12345' })).status === 200, 'creating doctor c failed');
+        ids.c = (await sendJson('GET', '/api/admin/doctors')).json.find((d) => d.email === mail('c')).id;
+        // an online booking is made and confirmed (demo mode)
+        await tab.send('Network.clearBrowserCookies');
+        const svcs = await tab.ev(`fetch('/api/services').then((r) => r.json())`);
+        const svcKey = Object.keys(svcs).find((k) => svcs[k].label === 'Phone Consultation');
+        assert(svcKey, 'the Phone Consultation service should exist');
+        const slots = (await tab.ev(`fetch('/api/slots?service=${svcKey}').then((r) => r.json())`));
+        assert(slots.length > 0, 'there should be bookable times once doctors have hours');
+        const slot = slots.find((x) => { const h = new Date(x.start).getHours(); return h >= 10 && h <= 17; }) || slots[0];
+        const made = (await tab.ev(`fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceType: '${svcKey}', patientName: 'ZZ Claim Patient ${STAMP}', patientDob: '1980-01-01', patientPhone: '0851112222', patientEmail: 'zz-claim-patient-${STAMP}@example.invalid', reason: 'E2E claim test', slotStart: ${JSON.stringify(slot.start)}, slotEnd: ${JSON.stringify(slot.end)} }) }).then((r) => r.json())`));
+        assert(made.bookingId, 'creating the booking failed: ' + JSON.stringify(made));
+        const paid = await tab.ev(`fetch('/api/bookings/${made.bookingId}/confirm-payment', { method: 'POST' }).then((r) => r.json())`);
+        assert(paid.status === 'paid', 'demo confirmation failed: ' + JSON.stringify(paid));
+        const tokenFor = async (n) => {
+          await tab.send('Network.clearBrowserCookies');
+          assert(await postJson('/api/doctor/login', { email: mail(n), password: 'Claim-Pass-12345' }) === 200, 'doctor ' + n + ' login failed');
+          const pending = (await sendJson('GET', '/api/doctor/claims/pending')).json;
+          return (pending.find((p) => p.id === made.bookingId) || {}).token;
+        };
+        const tokA = await tokenFor('a'); const tokB = await tokenFor('b'); const tokC = await tokenFor('c');
+        assert(/^[0-9a-f]{48}$/.test(tokA || '') && /^[0-9a-f]{48}$/.test(tokB || '') && tokA !== tokB, 'both scheduled doctors should have their own claim link');
+        assert(!tokC, 'a doctor who is not scheduled must not be given a link');
+        const status = async (t) => (await sendJson('GET', '/api/doctor/claims/' + t + '/status')).json.state;
+        await tab.send('Network.clearBrowserCookies');
+        assert(await status(tokA) === 'open' && await status(tokB) === 'open', 'both links should be live before anyone claims');
+        assert(await status('nonsense') === 'invalid' && !JSON.stringify(await sendJson('GET', '/api/doctor/claims/' + tokA + '/status')).match(/ZZ Claim|patient/i), 'the public status must reveal nothing about the patient or doctors');
+        // a link only works for the doctor it was sent to
+        await tokenFor('b');
+        assert((await sendJson('POST', '/api/doctor/claims/' + tokA + '/claim')).status === 403, 'doctor B must not be able to use doctor A\'s link');
+        // doctor A claims from the link
+        await tokenFor('a');
+        const mine = await sendJson('POST', '/api/doctor/claims/' + tokA + '/claim');
+        assert(mine.json.ok === true && mine.json.bookingId === made.bookingId, 'doctor A should claim the case: ' + JSON.stringify(mine));
+        assert((await sendJson('POST', '/api/doctor/claims/' + tokA + '/claim')).json.ok === true, 'claiming again is harmless for the owner');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await status(tokA) === 'mine' && await status(tokB) === 'claimed', 'doctor B\'s link must now be inactive');
+        // the "waiting" list no longer shows it to B, and B is told who has it
+        await tokenFor('b');
+        assert(!(await sendJson('GET', '/api/doctor/claims/pending')).json.some((p) => p.id === made.bookingId), 'a claimed case must leave the waiting list');
+        const late = await sendJson('POST', '/api/doctor/claims/' + tokB + '/claim');
+        assert(late.json.ok === false && late.json.state === 'claimed' && /ZZ Claim A/.test(late.json.error), 'doctor B should be told it is already claimed by A: ' + JSON.stringify(late));
+        const chartB = (await sendJson('GET', '/api/doctor/bookings/' + made.bookingId)).json;
+        assert(chartB.claim.byName === 'ZZ Claim A' && chartB.claim.mine === false, 'the chart should show who owns the case');
+        assert((await sendJson('POST', '/api/doctor/bookings/' + made.bookingId + '/start-call', { mode: 'video' })).status === 409, 'another doctor must not start the call on a claimed case');
+        assert((await sendJson('POST', '/api/doctor/bookings/' + made.bookingId + '/release')).status === 403, 'only the owner can release');
+        // UI: the email link, opened by B, explains it is inactive (signed out first, then signed in)
+        await tab.send('Network.clearBrowserCookies');
+        await tab.goto('/dashboard.html?claim=' + tokB);
+        await tab.waitFor(`!document.getElementById('claimNotice').hidden && /already been claimed|already claimed/.test(document.getElementById('claimNotice').textContent) && /no longer active/.test(document.getElementById('claimNotice').textContent)`, 6000, 'notice on the login screen');
+        await tab.set('#emailInput', mail('b')); await tab.set('#passwordInput', 'Claim-Pass-12345');
+        await tab.ev(`document.querySelector('#loginBox button.btn-primary').click()`);
+        await tab.waitFor(`!document.getElementById('claimBanner').hidden && /no longer active/.test(document.getElementById('claimBanner').textContent)`, 8000, 'banner after signing in');
+        assert(!/claim=/.test(await tab.ev(`location.search`)), 'the token should be removed from the address bar');
+        await tab.shot('doctor-claim-inactive');
+        // A releases: the link is live again, and B can take it
+        await tokenFor('a');
+        assert((await sendJson('POST', '/api/doctor/bookings/' + made.bookingId + '/release')).status === 200, 'the owner should be able to release');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await status(tokB) === 'open', 'after a release the other link should work again');
+        await tokenFor('b');
+        assert((await sendJson('POST', '/api/doctor/claims/' + tokB + '/claim')).json.ok === true, 'doctor B should now be able to claim it');
+        // Claim UI: B opens the chart and sees it as theirs; A sees it is B's
+        await tab.goto('/dashboard.html?claim=' + tokB);
+        await tab.waitFor(`!document.getElementById('claimBanner').hidden`, 8000, 'claim banner');
+        await tab.waitFor(`getComputedStyle(document.getElementById('detailPanel')).display !== 'none' && /Claimed by you/.test(document.getElementById('chartPatientMeta').innerText)`, 8000, 'chart opens as claimed by you');
+        await tab.shot('doctor-claim-chart');
+        // clean up the three test doctors
+        await asAdmin();
+        // doctors who have opened charts are part of the audit trail: deleting is refused with a helpful message, deactivating works
+        const del = await sendJson('DELETE', '/api/admin/doctors/' + ids.b);
+        assert(del.status === 409 && /Deactivate/.test(del.json.error || ''), 'deleting a doctor with records should explain to deactivate instead: ' + JSON.stringify(del));
+        for (const n of ['a', 'b', 'c']) assert((await sendJson('POST', '/api/admin/doctors/' + ids[n] + '/deactivate')).status === 200, 'deactivating test doctor ' + n + ' failed');
+        await tab.send('Network.clearBrowserCookies');
+        assert(await postJson('/api/doctor/login', { email: mail('a'), password: 'Claim-Pass-12345' }) === 403 || await postJson('/api/doctor/login', { email: mail('a'), password: 'Claim-Pass-12345' }) === 401, 'a deactivated doctor must not sign in');
       });
       await test('admin dashboard: Website settings link, My account tab, Edit details buttons', async () => {
         await asAdmin();

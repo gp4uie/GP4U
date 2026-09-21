@@ -145,8 +145,21 @@ router.post('/doctors/:id/disable-totp', requireAdmin, async (req, res) => {
 router.delete('/doctors/:id', requireAdmin, async (req, res) => {
   const countRow = await db.get('SELECT COUNT(*) AS n FROM doctors');
   if (countRow.n <= 1) return res.status(400).json({ error: 'Cannot remove the only remaining doctor account' });
-  await db.run('DELETE FROM doctor_availability WHERE doctor_id = ?', [req.params.id]);
-  await db.run('DELETE FROM doctors WHERE id = ?', [req.params.id]);
+  // All or nothing: if the account cannot be deleted its working hours must not be lost either.
+  const conn = await db.pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM doctor_availability WHERE doctor_id = ?', [req.params.id]);
+    await conn.query('DELETE FROM doctors WHERE id = ?', [req.params.id]);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    // A doctor who has opened charts, written notes or claimed cases is part of the clinical audit trail and cannot be erased.
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.code === 'ER_ROW_IS_REFERENCED') return res.status(409).json({ error: 'This doctor has records in the system (charts opened, notes or cases), so the account cannot be deleted. Use Deactivate instead — it blocks their sign-in and keeps the record.' });
+    throw err;
+  } finally {
+    conn.release();
+  }
   res.json({ ok: true });
 });
 

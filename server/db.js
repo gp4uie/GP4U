@@ -162,6 +162,20 @@ async function initSchema() {
   // both poll for this instead of connecting on their own.
   await ensureColumn('bookings', 'call_started_at', 'DATETIME NULL');
   await ensureColumn('bookings', 'call_mode', "VARCHAR(16) NULL");
+  // Which doctor has taken an online booking ("claimed" it from the notification email or the dashboard).
+  await ensureColumn('bookings', 'claimed_by', 'INT NULL');
+  await ensureColumn('bookings', 'claimed_at', 'DATETIME NULL');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS booking_claim_links (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      booking_id VARCHAR(32) NOT NULL,
+      doctor_id INT NOT NULL,
+      token VARCHAR(64) NOT NULL UNIQUE,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_claim_booking (booking_id),
+      INDEX idx_claim_doctor (doctor_id)
+    )
+  `);
 
   // Append-only clinical notes: real clinical records are never edited after saving,
   // only added to, so there is deliberately no update/delete on this table.

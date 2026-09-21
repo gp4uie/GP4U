@@ -198,6 +198,16 @@ async function loadToday() {
     setBadge('regCount', sum.newRegistrations || 0);
     setBadge('onlineCount', appts.filter((b) => b.status !== 'completed').length);
 
+    const pending = await doctorFetch('/api/doctor/claims/pending').then((r) => r.json()).catch(() => []);
+    document.getElementById('tdClaims').innerHTML = pending.length ? `
+      <section class="card claim-list" aria-labelledby="claimListTitle">
+        <h2 id="claimListTitle">New online bookings waiting for a doctor <span class="badge badge-unclaimed">${pending.length}</span></h2>
+        ${pending.map((c) => `
+          <div class="claim-row">
+            <div><strong>${clinicEsc(c.patient_name)}</strong> <span class="appt-svc">${clinicEsc(svcLabel(c.service_type))} · ${clinicEsc(new Date(c.slot_start).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</span></div>
+            <div class="claim-actions"><button class="btn btn-primary" onclick="claimCase('${clinicEsc(c.id)}')">Claim</button><button class="btn btn-secondary" onclick="openBooking('${clinicEsc(c.id)}', 'online')">Open</button></div>
+          </div>`).join('')}
+      </section>` : '';
     document.getElementById('tdQueue').innerHTML = queue.length ? queue.slice(0, 6).map((r) => `
       <article class="queue-card st-${clinicEsc(r.status)}">
         <div class="qc-main">
@@ -213,7 +223,7 @@ async function loadToday() {
       <div class="appt-row">
         <span class="appt-time">${clinicEsc(new Date(b.slot_start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }))}</span>
         <span class="appt-who"><strong>${clinicEsc(b.patient_name)}</strong><span class="appt-svc">${clinicEsc(svcLabel(b.service_type))}</span></span>
-        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${statusBadge(b)}
+        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${statusBadge(b)}${claimBadge(b)}
         <button class="btn btn-secondary" style="padding:8px 16px;" onclick="openBooking('${clinicEsc(b.id)}', 'online')">Open</button></span>
       </div>`).join('') : '<div class="empty">No online appointments today.</div>';
   } catch (err) { /* session-expired handled by doctorFetch */ }

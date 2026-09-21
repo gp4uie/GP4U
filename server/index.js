@@ -1,3 +1,5 @@
+// Doctors' working hours and the times patients are offered are Irish local time, whatever timezone the server itself runs in.
+process.env.TZ = 'Europe/Dublin';
 require('dotenv').config();
 const path = require('path');
 const express = require('express');

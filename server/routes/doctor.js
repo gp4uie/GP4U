@@ -5,6 +5,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { generateSickCertPdf, generateReferralPdf, generatePrescriptionPdf } = require('../pdf');
 const { getPractice, escapeHtml: esc, emailHeader, enrichBooking, fileSafe } = require('../practice');
+const claims = require('../claims');
 const { DOCUMENT_TYPES } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
 const { getDayHoursRange } = require('../slots');
@@ -256,7 +257,8 @@ router.get('/schedule', requireDoctor, async (req, res) => {
   const date = req.query.date; // 'YYYY-MM-DD'
   if (!date) return res.status(400).json({ error: 'date is required' });
   const bookings = await db.all(`
-    SELECT id, patient_name, patient_dob, service_type, reason, slot_start, slot_end, status
+    SELECT id, patient_name, patient_dob, service_type, reason, slot_start, slot_end, status, claimed_by,
+      (SELECT name FROM doctors WHERE id = bookings.claimed_by) AS claimed_by_name
     FROM bookings
     WHERE status IN ('paid', 'completed') AND DATE(slot_start) = ?${typeFilter(req.query.type)}
     ORDER BY slot_start ASC
@@ -269,7 +271,8 @@ router.get('/schedule', requireDoctor, async (req, res) => {
 // Most recently handled cases (paid or completed), newest first — the "Recent Cases" tab.
 router.get('/recent', requireDoctor, async (req, res) => {
   const bookings = await db.all(`
-    SELECT id, patient_name, patient_dob, patient_phone, service_type, reason, slot_start, status
+    SELECT id, patient_name, patient_dob, patient_phone, service_type, reason, slot_start, status, claimed_by,
+      (SELECT name FROM doctors WHERE id = bookings.claimed_by) AS claimed_by_name
     FROM bookings WHERE status IN ('paid', 'completed')${typeFilter(req.query.type)}
     ORDER BY slot_start DESC LIMIT 60
   `);
@@ -399,7 +402,9 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   };
 
   const { patient_token, ...safeBooking } = booking;
-  res.json({ booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile, patientSummary });
+  const claimer = booking.claimed_by ? await db.get('SELECT name FROM doctors WHERE id = ?', [booking.claimed_by]) : null;
+  const claim = { by: booking.claimed_by || null, byName: claimer ? claimer.name : null, mine: booking.claimed_by === req.session.doctorId };
+  res.json({ claim, booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile, patientSummary });
 });
 
 router.get('/attachments/:attId', requireDoctor, async (req, res) => {
@@ -474,6 +479,8 @@ router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
   const mode = req.body.mode === 'audio' ? 'audio' : 'video';
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const taken = await claims.claimBooking(req.params.id, req.session.doctorId);
+  if (!taken.ok) return res.status(409).json({ error: `${taken.claimedByName || 'Another doctor'} has claimed this case. Ask them to release it if you need to take over.` });
   await db.run("UPDATE bookings SET call_started_at = NOW(), call_mode = ? WHERE id = ?", [mode, req.params.id]);
 
   // Best-effort — reaches the patient even if they don't have the confirmation page open.
@@ -550,6 +557,46 @@ router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
     }
   }
 
+  res.json({ ok: true });
+});
+
+// --- Claiming new online bookings (see server/claims.js) ---
+// Public: what does this email link mean right now? Reveals nothing about the patient.
+router.get('/claims/:token/status', async (req, res) => {
+  const st = await claims.linkStatus(req.params.token);
+  res.json({ state: st.state });
+});
+
+// Cases still waiting for a doctor that this doctor was told about (each with their own link token).
+router.get('/claims/pending', requireDoctor, async (req, res) => {
+  const rows = await db.all(`
+    SELECT b.id, b.patient_name, b.service_type, b.slot_start, l.token
+    FROM booking_claim_links l JOIN bookings b ON b.id = l.booking_id
+    WHERE l.doctor_id = ? AND b.claimed_by IS NULL AND b.status = 'paid' AND b.service_type <> 'walk_in' AND b.slot_end > (NOW() - INTERVAL 1 DAY)
+    ORDER BY b.slot_start ASC LIMIT 50`, [req.session.doctorId]);
+  res.json(rows);
+});
+
+// Claim by the link in the email. The link belongs to one doctor: it only works when that doctor is signed in.
+router.post('/claims/:token/claim', requireDoctor, async (req, res) => {
+  const st = await claims.linkStatus(req.params.token);
+  if (st.state === 'invalid') return res.status(404).json({ ok: false, state: 'invalid', error: 'This link is not valid.' });
+  if (st.doctorId !== req.session.doctorId) return res.status(403).json({ ok: false, state: 'other-doctor', error: 'This link was sent to a different doctor account. Please sign in as the doctor it was sent to.' });
+  if (st.state === 'cancelled') return res.json({ ok: false, state: 'cancelled', error: 'This booking has been cancelled.' });
+  const r = await claims.claimBooking(st.bookingId, req.session.doctorId);
+  if (r.ok) return res.json({ ok: true, state: 'mine', bookingId: st.bookingId });
+  res.json({ ok: false, state: 'claimed', by: r.claimedByName, bookingId: st.bookingId, error: `${r.claimedByName || 'Another doctor'} has already claimed this case, so this link is no longer active.` });
+});
+
+// Claim / release from the chart
+router.post('/bookings/:id/claim', requireDoctor, async (req, res) => {
+  const r = await claims.claimBooking(req.params.id, req.session.doctorId);
+  if (r.notFound) return res.status(404).json({ error: 'Booking not found' });
+  res.json({ ok: r.ok, by: r.claimedByName });
+});
+router.post('/bookings/:id/release', requireDoctor, async (req, res) => {
+  const ok = await claims.releaseBooking(req.params.id, req.session.doctorId);
+  if (!ok) return res.status(403).json({ error: 'Only the doctor who claimed this case can release it.' });
   res.json({ ok: true });
 });
 
