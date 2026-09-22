@@ -1,4 +1,9 @@
 const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+
+const LOGO_PATH = path.join(__dirname, '..', 'public', 'img', 'gp4u-icon-pdf.png');
+const logoBuffer = fs.existsSync(LOGO_PATH) ? fs.readFileSync(LOGO_PATH) : null;
 
 /*
  * Clinic documents as PDFs: sick certificates, referral letters and prescriptions. They share one letterhead (clinic name,
@@ -28,9 +33,13 @@ function drawLetterhead(doc, practice) {
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const top = doc.y;
-  doc.font('Helvetica-Bold').fontSize(18).fillColor(TEAL).text(practice.name, left, top, { width: 300 });
-  doc.font('Helvetica').fontSize(9).fillColor(GREY).text(practice.tagline || '', left, doc.y + 1, { width: 300 });
-  const leftBottom = doc.y;
+  // Logo mark to the left of the practice name, sized to sit level with the two lines of text beside it.
+  const logoSize = 30;
+  const textLeft = logoBuffer ? left + logoSize + 10 : left;
+  if (logoBuffer) doc.image(logoBuffer, left, top, { width: logoSize, height: logoSize });
+  doc.font('Helvetica-Bold').fontSize(18).fillColor(TEAL).text(practice.name, textLeft, top, { width: 300 - (textLeft - left) });
+  doc.font('Helvetica').fontSize(9).fillColor(GREY).text(practice.tagline || '', textLeft, doc.y + 1, { width: 300 - (textLeft - left) });
+  const leftBottom = Math.max(doc.y, top + logoSize);
   // contact block, right-aligned
   const lines = [...practice.addressLines, practice.phone && `Tel ${practice.phone}`, practice.email, practice.website].filter(Boolean);
   let y = top + 2;
@@ -101,19 +110,20 @@ function signature(doc, name, reg, practice) {
 }
 
 function generateSickCertPdf({ fields, booking, doctor, practice, id }) {
+  const isFitToWork = fields.fitForWork === 'fit to return to work';
   const reference = `CERT-${String(id || '').padStart(5, '0') || 'NEW'}`;
   const issued = new Date();
   return pdfBufferFrom(practice, reference, issued, (doc) => {
-    doc.font('Helvetica-Bold').fontSize(16).fillColor(TEAL).text('Medical Certificate');
+    doc.font('Helvetica-Bold').fontSize(16).fillColor(TEAL).text(isFitToWork ? 'Fit to Work Certificate' : 'Medical Certificate');
     doc.moveDown(0.8);
     patientBlock(doc, booking);
     row(doc, 'Seen', visitLine(booking));
     doc.moveDown(0.8);
-    doc.font('Helvetica').fontSize(11.5).fillColor(INK).text(
-      `This is to certify that ${booking.patient_name} was assessed by me and is ${fields.fitForWork} from ` +
-      `${dateIE(fields.dateFrom)} to ${dateIE(fields.dateTo)} inclusive, due to: ${fields.diagnosis}.`,
-      { lineGap: 5 }
-    );
+    const bodyText = isFitToWork
+      ? `This is to certify that ${booking.patient_name} was assessed by me and is fit to return to work from ${dateIE(fields.dateFrom)}, due to: ${fields.diagnosis}.`
+      : `This is to certify that ${booking.patient_name} was assessed by me and is ${fields.fitForWork} from ` +
+        `${dateIE(fields.dateFrom)} to ${dateIE(fields.dateTo)} inclusive, due to: ${fields.diagnosis}.`;
+    doc.font('Helvetica').fontSize(11.5).fillColor(INK).text(bodyText, { lineGap: 5 });
     signature(doc, doctor.name, doctor.reg_number, practice);
   });
 }

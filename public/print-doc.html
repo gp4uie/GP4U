@@ -59,12 +59,17 @@ const url = (bookingId && token)
 
 function renderSickCert(f, b, practice, doc) {
   const L = window.PrintLetter;
+  const isFitToWork = f.fitForWork === 'fit to return to work';
+  const bodyText = isFitToWork
+    ? `This is to certify that ${L.esc(b.patient_name)} was assessed by me and is fit to return to work from ${L.dateIE(f.dateFrom)}, due to: ${L.esc(f.diagnosis)}.`
+    : `This is to certify that ${L.esc(b.patient_name)} was assessed by me and is ${L.esc(f.fitForWork)} from ${L.dateIE(f.dateFrom)} to ${L.dateIE(f.dateTo)} inclusive, due to: ${L.esc(f.diagnosis)}.`;
+  document.title = (isFitToWork ? 'Fit to Work Certificate' : 'Medical Certificate') + ' — GP4U';
   return `
     ${L.letterhead(practice)}
-    <h2>Medical Certificate</h2>
+    <h2>${isFitToWork ? 'Fit to Work Certificate' : 'Medical Certificate'}</h2>
     ${L.patientFields(b)}
     ${L.field('Seen', L.visitLine(b))}
-    <p class="body-text" style="margin-top:18px;">This is to certify that ${L.esc(b.patient_name)} was assessed by me and is ${L.esc(f.fitForWork)} from ${L.dateIE(f.dateFrom)} to ${L.dateIE(f.dateTo)} inclusive, due to: ${L.esc(f.diagnosis)}.</p>
+    <p class="body-text" style="margin-top:18px;">${bodyText}</p>
     ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice)}
     ${L.footer(practice, 'CERT-' + String(doc.id).padStart(5, '0'), doc.created_at)}
   `;

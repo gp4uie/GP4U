@@ -15,4 +15,15 @@ const DOCUMENT_TYPES = {
   },
 };
 
-module.exports = { DOCUMENT_TYPES };
+// A "sick_cert" document covers two different certificates — "unfit for work" (a date range) and
+// "fit to return to work" (a single date). Label and file each one by what it actually certifies,
+// so a fit-to-work cert is never emailed or downloaded looking like a sick note.
+function certLabelFor(doc) {
+  if (doc.doc_type !== 'sick_cert') return (DOCUMENT_TYPES[doc.doc_type] && DOCUMENT_TYPES[doc.doc_type].label) || doc.doc_type;
+  try {
+    const fields = typeof doc.fields === 'string' ? JSON.parse(doc.fields) : doc.fields;
+    return fields && fields.fitForWork === 'fit to return to work' ? 'Fit to Work Certificate' : 'Sick Certificate';
+  } catch (err) { return 'Sick Certificate'; }
+}
+
+module.exports = { DOCUMENT_TYPES, certLabelFor };

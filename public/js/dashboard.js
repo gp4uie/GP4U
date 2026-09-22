@@ -718,6 +718,7 @@ async function openBooking(id, listKey, keepTab) {
 
   const dRow = (label, value, force) => (value || force) ? `<p><strong>${label}:</strong> ${esc(value) || '—'}</p>` : '';
   document.getElementById('detailInfo').innerHTML = `
+    <p class="encounter-eyebrow">Today's visit — this appointment only</p>
     <h3 style="margin-top:0;">This visit</h3>
     ${dRow('Service', svcLabel(b.service_type), true)}
     <p><strong>${walk ? 'Arrived' : 'When'}:</strong> ${esc(new Date(b.slot_start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }))}</p>
@@ -813,6 +814,16 @@ function renderAllergyBanner(booking, patientProfile) {
 
 const DOC_TYPE_LABELS = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
 
+// A "sick cert" document covers both "unfit for work" and "fit to return to work" — label and file
+// each one by what it actually certifies, so a fit-to-work cert never shows up looking like a sick note.
+function certLabelFor(d) {
+  if (d.doc_type !== 'sick_cert') return DOC_TYPE_LABELS[d.doc_type] || d.doc_type;
+  try {
+    const f = typeof d.fields === 'string' ? JSON.parse(d.fields) : d.fields;
+    return f && f.fitForWork === 'fit to return to work' ? 'Fit to Work Certificate' : 'Sick Certificate';
+  } catch (err) { return 'Sick Certificate'; }
+}
+
 // How many of the most recent previous visits to show fully expanded by default. Older visits
 // (this list is newest-first) collapse into a <details> summary line instead, so a long-standing
 // patient's history doesn't turn into one very long fully-expanded scroll. See chart-review notes.
@@ -831,21 +842,26 @@ function renderPreviousConsultations(previous, summary) {
     container.innerHTML = '<div class="empty">No previous visits for this patient. This is their first consultation.</div>';
     return;
   }
+  // Same long date+time style everywhere in this list (visit headings, note/document timestamps) so nothing
+  // reads as if it's a different kind of record just because it used a different date format.
+  const dateTimeLong = (iso) => new Date(iso).toLocaleString('en-IE', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
   container.innerHTML = previous.map((p, idx) => {
     const notesHtml = p.notes.length
-      ? p.notes.map(n => `<div style="margin-bottom:6px;"><p style="white-space:pre-wrap; margin:0;">${esc(n.note_text)}</p><p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${esc(n.doctor_name)} • ${esc(new Date(n.created_at).toLocaleString('en-IE'))}</p></div>`).join('')
+      ? p.notes.map(n => `<div style="margin-bottom:6px;"><p style="white-space:pre-wrap; margin:0;">${esc(n.note_text)}</p><p style="color:var(--ink-500);font-size:0.78rem;margin:2px 0 0;">${esc(n.doctor_name)} • ${esc(dateTimeLong(n.created_at))}</p></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">No notes recorded.</p>';
     const rxHtml = p.prescriptions.length
       ? p.prescriptions.map(rx => `<div style="margin-bottom:6px;"><strong>${esc(rx.medication)}</strong> — ${esc(rx.dose)}, qty ${esc(rx.quantity)} <a href="/print-rx.html?rxId=${rx.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
     const docsHtml = p.documents.length
-      ? p.documents.map(d => `<div style="margin-bottom:6px;">${esc(DOC_TYPE_LABELS[d.doc_type] || d.doc_type)} — ${esc(new Date(d.created_at).toLocaleDateString('en-IE'))} <a href="/print-doc.html?docId=${d.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
+      ? p.documents.map(d => `<div style="margin-bottom:6px;">${esc(certLabelFor(d))} — ${esc(dateTimeLong(d.created_at))} <a href="/print-doc.html?docId=${d.id}" target="_blank" style="font-size:0.8rem;">Print</a></div>`).join('')
       : '<p style="color:var(--ink-500);font-size:0.85rem;">None issued.</p>';
 
     const dateLabel = new Date(p.slot_start).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const summaryLine = `
+      <p class="encounter-eyebrow">Previous visit</p>
       <strong>${esc(dateLabel)}</strong>
-      ${visitBadge(p.service_type)} ${p.service_type === 'walk_in' ? '' : `<span class="pv-svc">${esc(svcLabel(p.service_type))}</span>`}
+      ${visitBadge(p.service_type)} ${p.service_type === 'walk_in' ? '' : `<span class="badge badge-neutral">${esc(svcLabel(p.service_type))}</span>`}
       ${statusBadge(p)}
     `;
     const body = `
@@ -866,10 +882,11 @@ function renderPreviousConsultations(previous, summary) {
         <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="event.stopPropagation(); openBooking('${esc(p.id)}', currentListKey)">Open This Visit</button>
       </div>
     `;
+    const borderClass = p.service_type === 'walk_in' ? 'encounter-card walkin' : 'encounter-card online';
 
     if (idx < PREVIOUS_VISITS_EXPANDED) {
       return `
-        <div class="card" style="margin-bottom:14px;">
+        <div class="card ${borderClass}" style="margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div>${summaryLine}</div>
           </div>
@@ -879,7 +896,7 @@ function renderPreviousConsultations(previous, summary) {
     }
     const visitCounts = `${p.notes.length} note${p.notes.length === 1 ? '' : 's'} · ${p.prescriptions.length} rx · ${p.documents.length} doc${p.documents.length === 1 ? '' : 's'}`;
     return `
-      <details class="card prev-visit" style="margin-bottom:14px;">
+      <details class="card prev-visit ${borderClass}" style="margin-bottom:14px;">
         <summary>
           <span>${summaryLine}</span>
           <span class="prev-visit-counts">${visitCounts}</span>
@@ -993,7 +1010,7 @@ function renderDocuments(documents) {
   const sick = documents.filter(d => d.doc_type === 'sick_cert');
   const referrals = documents.filter(d => d.doc_type !== 'sick_cert');
   document.getElementById('existingDocs_sick_cert').innerHTML = sick.length
-    ? '<h4>Issued sick certs</h4>' + sick.map(docCard).join('') : '';
+    ? '<h4>Issued certificates</h4>' + sick.map(docCard).join('') : '';
   document.getElementById('existingDocs_referral').innerHTML = referrals.length
     ? '<h4>Issued referral letters</h4>' + referrals.map(docCard).join('') : '';
 }
@@ -1008,7 +1025,7 @@ function renderAllDocuments(prescriptions, documents) {
   `);
   const docCards = documents.map(d => `
     <div class="card" style="margin-bottom:8px;">
-      <p><strong>${DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</strong></p>
+      <p><strong>${esc(certLabelFor(d))}</strong></p>
       <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
       <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
     </div>
@@ -1020,13 +1037,22 @@ function renderAllDocuments(prescriptions, documents) {
 function docCard(d) {
   const fields = JSON.parse(d.fields);
   const isSickCert = d.doc_type === 'sick_cert';
+  const isFitToWork = isSickCert && fields.fitForWork === 'fit to return to work';
   const noEmail = !currentPatientEmail;
   const sendButton = isSickCert
     ? (noEmail ? '<span style="color:var(--ink-500);font-size:0.8rem;align-self:center;">No email on file — download and hand it over</span>' : `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendSickCertToPatient(${d.id})">Send to Patient</button>`)
     : `<button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="sendDocument(${d.id})">Send by Email</button>`;
+  const certDate = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fieldsHtml = isSickCert
+    ? `<p style="margin:0 0 4px;"><strong>${esc(certLabelFor(d))}</strong></p>
+       <p style="font-size:0.85rem; color:var(--ink-700); margin:0;">
+         ${isFitToWork ? `Fit to return to work from <strong>${esc(certDate(fields.dateFrom))}</strong>` : `${esc(fields.fitForWork)} from <strong>${esc(certDate(fields.dateFrom))}</strong> to <strong>${esc(certDate(fields.dateTo))}</strong>`}<br>
+         Diagnosis: ${esc(fields.diagnosis)}
+       </p>`
+    : `<p style="font-size:0.85rem; color:var(--ink-700);">${Object.entries(fields).map(([k, v]) => `<strong>${esc(k)}:</strong> ${esc(v)}`).join('<br>')}</p>`;
   return `
     <div class="card" style="margin-bottom:8px;">
-      <p style="font-size:0.85rem; color:var(--ink-700);">${Object.entries(fields).map(([k, v]) => `<strong>${esc(k)}:</strong> ${esc(v)}`).join('<br>')}</p>
+      ${fieldsHtml}
       <p style="color:var(--ink-500);font-size:0.8rem;">Created ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
       <div style="display:flex; gap:10px;">
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
@@ -1114,14 +1140,32 @@ async function issueDocument(docType, fields) {
   openBooking(currentBookingId);
 }
 
+// "Fit to return to work" certifies one date (the date the patient is fit from) — there is no
+// "to" date to set, unlike "unfit for work", which certifies a date range. Swap the form between
+// the two shapes so a fit-to-work cert can't be issued with a meaningless second date.
+function updateCertForm() {
+  const isFitToWork = document.getElementById('scFitness').value === 'fit to return to work';
+  document.getElementById('scToRow').style.display = isFitToWork ? 'none' : 'block';
+  document.getElementById('scFromLabel').textContent = isFitToWork ? 'Fit to return to work from' : 'From';
+  document.getElementById('certSectionTitle').textContent = isFitToWork ? 'Fit to Work Certificate' : 'Sick Certificate';
+  document.getElementById('scSubmitBtn').textContent = isFitToWork ? 'Generate Fit to Work Cert' : 'Generate Sick Cert';
+}
+
 function collectSickCertAndIssue() {
+  const isFitToWork = document.getElementById('scFitness').value === 'fit to return to work';
+  const dateFrom = document.getElementById('scFrom').value;
   const fields = {
-    dateFrom: document.getElementById('scFrom').value,
-    dateTo: document.getElementById('scTo').value,
+    dateFrom,
+    // A fit-to-work cert has no end date — store the same date as dateFrom so anything reading
+    // the old two-date shape (summaries, etc.) still works, rather than adding a second field type.
+    dateTo: isFitToWork ? dateFrom : document.getElementById('scTo').value,
     diagnosis: document.getElementById('scDiagnosis').value || 'Not specified',
     fitForWork: document.getElementById('scFitness').value,
   };
-  if (!fields.dateFrom || !fields.dateTo) { alert('Please set both dates.'); return; }
+  if (!fields.dateFrom || (!isFitToWork && !fields.dateTo)) {
+    alert(isFitToWork ? 'Please set the date the patient is fit to return to work.' : 'Please set both dates.');
+    return;
+  }
   issueDocument('sick_cert', fields);
 }
 

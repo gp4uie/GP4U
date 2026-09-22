@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=d67c8a5a">
+<link rel="stylesheet" href="/css/clinic.css?v=c5623a62">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -253,7 +253,7 @@
     <div class="side-layout" style="margin-top:20px;">
       <div class="side-nav">
         <button class="chart-tab-btn active" data-chart-tab="overview" onclick="showChartTab('overview')">Overview</button>
-        <button class="chart-tab-btn" data-chart-tab="previous" onclick="showChartTab('previous')">History <span class="side-badge" id="historyCount" style="display:none;">0</span></button>
+        <button class="chart-tab-btn" data-chart-tab="previous" onclick="showChartTab('previous')">Previous Visits <span class="side-badge" id="historyCount" style="display:none;">0</span></button>
         <button class="chart-tab-btn" id="chartTabBtn_messages" data-chart-tab="messages" onclick="showChartTab('messages')">Message Patient</button>
         <button class="chart-tab-btn" data-chart-tab="notes" onclick="showChartTab('notes')">Clinical Notes</button>
         <button class="chart-tab-btn" data-chart-tab="prescription" onclick="showChartTab('prescription')">Prescription</button>
@@ -266,7 +266,7 @@
 
         <div id="chartSection_overview">
           <div class="card" id="patientProfileInfo" style="background:var(--bg-soft, #f6f9f9);"></div>
-          <div class="card" id="detailInfo" style="margin-top:12px;"></div>
+          <div class="card encounter-card current" id="detailInfo" style="margin-top:12px;"></div>
           <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
             <a id="joinCallBtn" class="btn btn-primary">Join Video Call</a>
             <a id="joinAudioCallBtn" class="btn btn-secondary">Join Audio Call</a>
@@ -277,8 +277,9 @@
         </div>
 
         <div id="chartSection_previous" style="display:none;">
-          <h3 style="margin-top:0;">Patient history</h3>
-          <p id="historySummary" style="color:var(--ink-500); font-size:0.9rem;"></p>
+          <h3 style="margin-top:0;">Previous visits</h3>
+          <p style="color:var(--ink-500); font-size:0.9rem; margin-top:-6px;">Everything from this patient's earlier appointments — today's visit is on the <a href="#" onclick="showChartTab('overview'); return false;">Overview</a> tab. Most recent first.</p>
+          <p id="historySummary" style="color:var(--ink-500); font-size:0.9rem; font-weight:600;"></p>
           <div id="previousConsultationsList"></div>
         </div>
 
@@ -357,22 +358,22 @@
         </div>
 
         <div id="chartSection_sickcert" style="display:none;">
-          <h3 style="margin-top:0;">Sick Certificate</h3>
+          <h3 style="margin-top:0;" id="certSectionTitle">Sick Certificate</h3>
           <div class="form-grid">
-            <div class="form-row"><label>From</label><input type="date" id="scFrom"></div>
-            <div class="form-row"><label>To</label><input type="date" id="scTo"></div>
+            <div class="form-row"><label id="scFromLabel">From</label><input type="date" id="scFrom"></div>
+            <div class="form-row" id="scToRow"><label>To</label><input type="date" id="scTo"></div>
           </div>
           <div class="form-grid">
             <div class="form-row"><label>Diagnosis (shown on cert)</label><input id="scDiagnosis" placeholder="e.g. Viral illness"></div>
             <div class="form-row"><label>Certified as</label>
-              <select id="scFitness">
+              <select id="scFitness" onchange="updateCertForm()">
                 <option value="unfit for work">Unfit for work</option>
                 <option value="unfit for work or study">Unfit for work or study</option>
                 <option value="fit to return to work">Fit to return to work</option>
               </select>
             </div>
           </div>
-          <button class="btn btn-primary" onclick="collectSickCertAndIssue()">Generate Sick Cert</button>
+          <button class="btn btn-primary" id="scSubmitBtn" onclick="collectSickCertAndIssue()">Generate Sick Cert</button>
           <p style="color:var(--ink-500); font-size:0.85rem;">Sends straight to the patient's email once generated and you click "Send to Patient" below — no need to type their address.</p>
           <div id="existingDocs_sick_cert" style="margin-top:16px;"></div>
         </div>
@@ -421,7 +422,7 @@
 
 </main>
 
-<script src="/js/dashboard.js?v=fe778ca6"></script>
+<script src="/js/dashboard.js?v=1772adb0"></script>
 <script src="/js/dashboard-clinic.js?v=ecd12251"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=34e440f6"></script>

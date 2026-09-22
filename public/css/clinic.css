@@ -793,6 +793,20 @@ body.staff-page { background: var(--cream); }
 .search-bar input { flex: 1; min-height: 48px; padding: 0 16px; border: 1.5px solid #ddd2bf; border-radius: 14px; background: #fffdf9; font: inherit; }
 .badge-walkin { background: #fbeadb; color: #8a4a12; }
 .badge-online { background: #dff3f1; color: #0a4d4d; }
+.badge-neutral { background: #eef1f0; color: var(--ink-500, #5d6b6b); }
+
+/* Doctor chart: a small uppercase label above "This visit" (Overview) and each entry in Previous
+   Visits, so it is never ambiguous which one the doctor is looking at while scrolling. */
+.encounter-eyebrow { margin: 0 0 4px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal-deep, #0a4d4d); }
+/* Same colour-coded left border as the appointment list (.visit-card), carried into the chart so a
+   walk-in vs. an online visit reads the same way everywhere in the app. */
+.encounter-card { border-left: 5px solid var(--teal-deep, #0a4d4d); }
+.encounter-card.walkin { border-left-color: #8a4a12; }
+details.encounter-card summary { list-style: none; cursor: pointer; }
+/* The current visit (Overview tab) gets its own colour and a slightly heavier border so it never
+   looks like just another entry from Previous Visits. */
+.encounter-card.current { border-left: 6px solid var(--navy, #1a2f4b); background: #fbfaf7; }
+.encounter-card.current .encounter-eyebrow { color: var(--navy, #1a2f4b); }
 
 .visit-card { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 18px; align-items: center; background: #fff; border: 1px solid var(--line-warm); border-left: 6px solid var(--teal); border-radius: var(--r-md); padding: 16px 20px; margin-bottom: 12px; }
 .visit-card.is-done { opacity: .66; border-left-color: var(--line-warm); }

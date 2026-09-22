@@ -6,7 +6,7 @@ const mailer = require('../mailer');
 const { generateSickCertPdf, generateReferralPdf, generatePrescriptionPdf } = require('../pdf');
 const { getPractice, escapeHtml: esc, emailHeader, enrichBooking, fileSafe } = require('../practice');
 const claims = require('../claims');
-const { DOCUMENT_TYPES } = require('../documentTypes');
+const { DOCUMENT_TYPES, certLabelFor } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
 const { getDayHoursRange } = require('../slots');
 const loginLimiter = require('../loginLimiter');
@@ -525,8 +525,12 @@ router.post('/bookings/:id/complete', requireDoctor, async (req, res) => {
           .filter((d) => d.doc_type === 'sick_cert')
           .map((d) => {
             const f = JSON.parse(d.fields);
+            const label = certLabelFor(d);
+            if (f.fitForWork === 'fit to return to work') {
+              return `${label}: fit to return to work from ${new Date(f.dateFrom).toLocaleDateString('en-IE')}, diagnosis: ${f.diagnosis}`;
+            }
             const days = Math.round((new Date(f.dateTo) - new Date(f.dateFrom)) / (1000 * 60 * 60 * 24)) + 1;
-            return `${days} day(s) (${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')}), ${f.fitForWork}, diagnosis: ${f.diagnosis}`;
+            return `${label}: ${days} day(s) (${new Date(f.dateFrom).toLocaleDateString('en-IE')} to ${new Date(f.dateTo).toLocaleDateString('en-IE')}), ${f.fitForWork}, diagnosis: ${f.diagnosis}`;
           });
         const referralLines = documents
           .filter((d) => d.doc_type !== 'sick_cert')
@@ -752,7 +756,7 @@ router.get('/documents/:docId/pdf', requireDoctor, async (req, res) => {
     ? await generateSickCertPdf({ fields, booking, doctor, practice, id: doc.id })
     : await generateReferralPdf({ fields, booking, doctor, practice, isAE: doc.doc_type === 'referral_ae', id: doc.id });
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${fileSafe(DOCUMENT_TYPES[doc.doc_type].label)}-${fileSafe(booking.patient_name)}.pdf"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${fileSafe(certLabelFor(doc))}-${fileSafe(booking.patient_name)}.pdf"`);
   res.send(pdfBuffer);
 });
 
@@ -768,7 +772,7 @@ router.post('/documents/:docId/send', requireDoctor, async (req, res) => {
       : 'Recipient email address is required' });
   }
   const fields = JSON.parse(doc.fields);
-  const label = DOCUMENT_TYPES[doc.doc_type].label;
+  const label = certLabelFor(doc);
   const practice = await getPractice();
   const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number };
 
