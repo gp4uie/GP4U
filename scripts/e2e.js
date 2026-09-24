@@ -193,7 +193,7 @@ async function main() {
     await test('homepage: hero with three equal buttons (Online, Walk-in, Register), three photo columns', async () => {
       await tab.goto('/');
       const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), ctas: [...document.querySelectorAll('.hero2-actions a')].map((a) => a.textContent.trim()), meta: (document.querySelector('.hero2-meta') || {}).textContent, cards: [...document.querySelectorAll('.need-card')].map((c) => c.querySelector('h3').textContent.trim() + ' | ' + c.querySelector('.need-go').textContent.trim() + ' | ' + c.getAttribute('href')), heading: (document.querySelector('#choose h2') || {}).textContent, tiles: document.querySelectorAll('.tile').length })`);
-      assert(r.h1 === 'GP care, when you need it.', 'hero headline wrong: ' + r.h1);
+      assert(r.h1 === 'One tap. Real care.', 'hero headline wrong: ' + r.h1);
       assert(r.ctas.join(' | ') === 'Online GP | Walk-In Clinic | Register with GP', 'hero actions wrong: ' + r.ctas.join(' | '));
       assert(await tab.ev(`[...document.querySelectorAll('.hero2-actions a')].every((a) => a.className === 'btn btn-primary btn-lg')`), 'the three hero buttons should look identical (equal importance)');
       assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
@@ -220,7 +220,7 @@ async function main() {
       })`);
       assert(r.trust.length === 5 && /GP-led care/.test(r.trust[0]) && /Secure/.test(r.trust[4]), 'trust bar wrong: ' + r.trust.join(' | '));
       assert(r.services.length === 0 && !r.whyHead.includes('How can we help?'), 'the services list should not be on the homepage, got ' + r.services.length);
-      assert(r.steps.join(',') === '01,02,03', 'how-it-works steps wrong: ' + r.steps.join(','));
+      assert(r.steps.join(',') === '01,02,03,01,02,03', 'how-it-works steps wrong (online 3-step + walk-in 3-step): ' + r.steps.join(','));
       assert(/No appointment is required\./.test(r.explain) && /does not reserve a specific appointment time/.test(r.explain), 'walk-in explanation wording is missing');
       assert(r.addr === 'Address coming soon', 'location should say the address is coming soon: ' + r.addr);
       assert(r.hoursRows === 7, 'opening hours should list 7 days');
@@ -1028,7 +1028,7 @@ async function main() {
         await tab.waitFor(`/Saved/.test(document.getElementById('paneMsg').textContent)`, 6000, 'saved');
         await tab.send('Network.clearBrowserCookies');
         await tab.goto('/');
-        assert(await tab.ev(`document.querySelector('h1').innerText === 'GP care, when you need it.'`), 'the original headline should be back');
+        assert(await tab.ev(`document.querySelector('h1').innerText === 'One tap. Real care.'`), 'the original headline should be back');
       });
       await test('photos: upload replaces the picture, non-images and oversize files are refused, "use original" puts it back', async () => {
         await asAdmin();

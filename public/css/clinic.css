@@ -890,6 +890,12 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .online-note { margin: 0 0 4px; color: var(--muted); }
 .footer-online { margin: 12px 0 0; font-size: .9rem; max-width: 250px; color: #cfe0e2; }
 .footer-online strong { color: #fff; }
+/* The brand line at the top of the footer's first column: the slogan in white, the three ways to
+   get care underneath in the same muted teal used for the rest of the footer's supporting text. */
+/* ".clinic-page p { color: var(--muted) }" (line 30) otherwise wins on specificity over a plain
+   ".footer-tagline" rule and turns this dark-on-dark, so it is scoped under .site-footer to beat it. */
+.site-footer .footer-tagline { margin: 4px 0 14px; font-weight: 700; color: #fff; font-size: 1.02rem; line-height: 1.5; }
+.site-footer .footer-tagline span { font-weight: 500; color: #cfe0e2; font-size: 0.85rem; }
 @media (max-width: 760px) { .hours-strip-grid { grid-template-columns: 1fr; } }
 
 
