@@ -54,9 +54,11 @@ function clinicLd(c) {
   ORDER.forEach((d) => { if (hours[d]) { const k = hours[d].join('-'); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(DAY[d]); } });
   const today = dublinToday();
   const closures = (c.closures || []).filter((x) => (x.to || x.from) >= today);
+  const open = !!c.clinicOpen;
   const address = { '@type': 'PostalAddress', addressLocality: c.town, addressRegion: c.county, addressCountry: 'IE' };
-  if (c.streetAddress) address.streetAddress = c.streetAddress;
-  if (c.eircode) address.postalCode = c.eircode;
+  // street address / Eircode only once the clinic is switched to open — never before launch
+  if (open && c.streetAddress) address.streetAddress = c.streetAddress;
+  if (open && c.eircode) address.postalCode = c.eircode;
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'MedicalClinic',
@@ -75,7 +77,7 @@ function clinicLd(c) {
   };
   if (c.email) ld.email = c.email;
   if (c.phone) ld.telephone = c.phone;
-  if (c.streetAddress) ld.hasMap = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([c.name, c.streetAddress, c.town, c.county, c.eircode].filter(Boolean).join(', '));
+  if (open && c.streetAddress) ld.hasMap = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([c.name, c.streetAddress, c.town, c.county, c.eircode].filter(Boolean).join(', '));
   if (closures.length) {
     ld.specialOpeningHoursSpecification = closures.map((x) => ({ '@type': 'OpeningHoursSpecification', opens: '00:00', closes: '00:00', validFrom: x.from, validThrough: x.to || x.from }));
   }
@@ -88,7 +90,9 @@ function clinicLd(c) {
     url: `${ORIGIN}/`,
     logo: `${ORIGIN}/img/gp4u-logo-card.png`,
     slogan: 'One tap. Real care.',
-    description: `GP-led care in Ireland: online GP consultations by video or phone, and a walk-in GP clinic and family practice in ${c.town}, ${c.county}.`,
+    description: open
+      ? `GP-led care in Ireland: online GP consultations by video or phone, and a walk-in GP clinic and family practice in ${c.town}, ${c.county}.`
+      : `GP-led care in Ireland: online GP consultations by video or phone, from anywhere in Ireland. A new walk-in GP clinic in ${c.town}, ${c.county} is opening soon.`,
     medicalSpecialty: 'https://schema.org/PrimaryCare',
     areaServed: { '@type': 'Country', name: 'Ireland' },
     address,
@@ -97,7 +101,8 @@ function clinicLd(c) {
   if (c.phone) org.telephone = c.phone;
   if (c.companyName) org.legalName = c.companyName;
   delete ld['@context'];
-  const json = JSON.stringify({ '@context': 'https://schema.org', '@graph': [org, ld] }, null, 2).split('<').join('\\u003c');
+  // Before launch the clinic itself is left out: no clinic listing or opening hours for a place that isn't open yet.
+  const json = JSON.stringify({ '@context': 'https://schema.org', '@graph': open ? [org, ld] : [org] }, null, 2).split('<').join('\\u003c');
   return `<script type="application/ld+json">\n${json}\n</script>`;
 }
 
@@ -112,17 +117,39 @@ function hoursText(c) {
   return groups.map((g) => { const a = DAY[g.days[0]]; const b = DAY[g.days[g.days.length - 1]]; const label = g.days.length === 1 ? a : g.days.length === 2 ? `${a} and ${b}` : `${a} to ${b}`; return `${label} ${g.h ? `${fmt(g.h[0])} – ${fmt(g.h[1])}` : '(closed)'}`; }).join(', ');
 }
 
+// Pages are written for the "opening soon" state: [data-if-clinic-open] blocks carry `hidden`, [data-if-clinic-soon]
+// blocks don't. Once the clinic is switched to open the server flips them (clinic.js does the same in the browser).
+function flip(html, open) {
+  if (!open) return html;
+  return html
+    .replace(/(<[a-z0-9]+\b[^>]*\sdata-if-clinic-open)( hidden)?(?=[\s>])/g, '$1')
+    .replace(/(<[a-z0-9]+\b[^>]*\sdata-if-clinic-soon)( hidden)?(?=[\s>])/g, '$1 hidden');
+}
+const SOON_HOURS = '<p class="online-note">Opening hours will be published before the clinic opens.</p>';
+
 async function render(file) {
   let html = fs.readFileSync(pagePath(file), 'utf8');
-  if (!/data-clinic-|<!-- @clinic-ld -->/.test(html)) return html;
+  if (!/data-clinic-|data-if-clinic-|<!-- @clinic-ld -->/.test(html)) return html;
   const c = await clinic();
-  const addr = [c.streetAddress, c.town, c.county, c.eircode].filter(Boolean);
-  const addrText = c.streetAddress ? addr.map(esc).join('<br>') : `${esc(c.town)}, ${esc(c.county)}`;
-  html = html
+  const open = !!c.clinicOpen;
+  const addrText = open && c.streetAddress
+    ? [c.streetAddress, c.town, c.county, c.eircode].filter(Boolean).map(esc).join('<br>')
+    : `${esc(c.town)}, ${esc(c.county)}`;
+  html = flip(html, open)
     .replace('<!-- @clinic-ld -->', clinicLd(c))
     .replace(/(<(div|span|dd|li)\b[^>]*\sdata-clinic-address>)(<\/\2>)/g, `$1${addrText}$3`)
-    .replace(/(<(div)\b[^>]*\sdata-clinic-hours>)(<\/\2>)/g, `$1${hoursTable(c)}$3`)
-    .replace(/(<span data-clinic-hours-text>)[^<]*(<\/span>)/g, `$1${esc(hoursText(c))}$2`);
+    .replace(/(<(div)\b[^>]*\sdata-clinic-hours>)(<\/\2>)/g, `$1${open ? hoursTable(c) : SOON_HOURS}$3`)
+    .replace(/(<(div)\b[^>]*\sdata-clinic-hours-summary>)(<\/\2>)/g, `$1${open ? '' : SOON_HOURS}$3`)
+    .replace(/(<span data-clinic-hours-text>)[^<]*(<\/span>)/g, `$1${esc(open ? hoursText(c) : 'from opening day (hours to be announced)')}$2`);
+  // Titles/descriptions that describe the open clinic (server/pages.js `whenOpen`) take over from launch day.
+  const page = PAGES.find((p) => p.file === file);
+  if (open && page && page.whenOpen) {
+    const a = (t) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    html = html.split(`<title>${page.title.replace(/&/g, '&amp;')}</title>`).join(`<title>${page.whenOpen.title.replace(/&/g, '&amp;')}</title>`)
+      .split(`content="${a(page.title)}"`).join(`content="${a(page.whenOpen.title)}"`)
+      .split(`content="${a(page.description)}"`).join(`content="${a(page.whenOpen.description)}"`);
+    if (page.whenOpen.image && page.image) html = html.split(`${ORIGIN}${page.image}`).join(`${ORIGIN}${page.whenOpen.image}`);
+  }
   if (c.email) html = html.replace(/(<(li|dd|p)\b[^>]*\sdata-clinic-email>)(<\/\2>)/g, `$1<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>$3`);
   return html;
 }

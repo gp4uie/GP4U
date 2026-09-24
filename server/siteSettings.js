@@ -45,6 +45,7 @@ function cleanClinic(input) {
   if (!input || typeof input !== 'object') bad('Nothing to save');
   const out = {};
   const set = (k, v) => { out[k] = v; };
+  if ('clinicOpen' in input) set('clinicOpen', !!input.clinicOpen);
   if ('name' in input) { const v = str(input.name, 80); if (!v) bad('The clinic name cannot be empty'); set('name', v); }
   if ('tagline' in input) set('tagline', str(input.tagline, 140));
   if ('streetAddress' in input) set('streetAddress', str(input.streetAddress, 120));

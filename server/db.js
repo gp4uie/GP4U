@@ -583,6 +583,23 @@ async function initSchema() {
       INDEX idx_site_log_time (created_at)
     )
   `);
+  // Marketing email sign-ups ("tell me when the Newbridge clinic opens", GP4U news). Deliberately holds nothing but
+  // the address, what they asked for, the exact consent wording they agreed to, and an unsubscribe token — never
+  // anything from a booking or consultation (see server/routes/marketing.js).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS marketing_signups (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      email VARCHAR(255) NOT NULL,
+      topic VARCHAR(32) NOT NULL,
+      source VARCHAR(64) NULL,
+      consent_text VARCHAR(500) NOT NULL,
+      unsubscribe_token VARCHAR(64) NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      unsubscribed_at DATETIME NULL,
+      UNIQUE KEY uniq_signup (email, topic),
+      UNIQUE KEY uniq_signup_token (unsubscribe_token)
+    )
+  `);
 
   // Seed default homepage text and starter blog posts once, so the site looks the same
   // as before the content editor existed until someone actually edits it.

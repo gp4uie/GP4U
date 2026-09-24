@@ -1,10 +1,4 @@
-/*
- * The built-in FAQ (question/answer pairs, grouped). One source for the generated pages and for the admin FAQ editor.
- * Answers are simple HTML (links, bold). {{hours}} is replaced on the page with the current walk-in opening hours.
- * Pre-launch wording (clinic "opening soon"). The open-clinic version is saved in
- * marketing/clinic-launch/faq-when-clinic-open.json — restore it on launch day (see the launch checklist there).
- */
-const FAQ = [
+[
   {
     "id": "online",
     "title": "Online GP",
@@ -31,33 +25,41 @@ const FAQ = [
       ],
       [
         "Is an online consultation right for every problem?",
-        "No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and advise you where to be seen."
+        "No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic."
       ],
       [
-        "When is an online GP consultation not the right choice?",
-        "Online consultations suit advice, repeat prescriptions, certificates and follow-ups, and you can have one from anywhere in Ireland. Problems that need to be examined — a sore ear, a rash that needs a closer look, an injury — need an in-person visit; our <a href=\"/walk-in-gp-newbridge/\">new clinic in Newbridge</a> is opening soon for exactly that. If you’re unsure, book online and your GP will advise you."
+        "Should I see a GP online or at the walk-in clinic?",
+        "Online consultations suit advice, repeat prescriptions, certificates and follow-ups, and you can have one from anywhere in Ireland. If your problem needs to be examined — a sore ear, a rash that needs a closer look, an injury — come to our <a href=\"/walk-in-gp-newbridge/\">walk-in clinic in Newbridge</a> instead. If you're unsure, the walk-in clinic is the safer choice."
       ]
     ]
   },
   {
     "id": "walk-in",
-    "title": "Our Newbridge clinic (opening soon)",
+    "title": "Walk-in clinic",
     "items": [
       [
-        "When will the Newbridge clinic open?",
-        "Soon — the clinic is being prepared now. We’ll announce the opening date on our <a href=\"/walk-in-gp-newbridge/\">Newbridge clinic page</a> and by email to everyone who <a href=\"/walk-in-gp-newbridge/#clinic-news\">asks to hear about it</a>."
+        "Where is the GP4U walk-in clinic?",
+        "Our walk-in clinic is in Newbridge, Co. Kildare. Opening hours and how to reach us are on our <a href=\"/walk-in-gp-newbridge/\">walk-in clinic page</a> and <a href=\"/contact/\">contact page</a>."
       ],
       [
-        "Where is the GP4U clinic?",
-        "In Newbridge, Co. Kildare. We’ll publish the full address and directions before we open."
+        "Do I need an appointment?",
+        "No appointment is required. You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time. You can <a href=\"/walk-in-gp-newbridge/#book-in\">check in online</a> if you'd like to."
       ],
       [
-        "Will I need an appointment at the clinic?",
-        "No. Once it opens, the clinic will be a walk-in GP clinic: you’ll be able to come in during opening hours and see a GP without an appointment."
+        "How does the walk-in clinic work?",
+        "Walk in during opening hours, check in at reception, and see a GP. If you'd like, you can <a href=\"/walk-in-gp-newbridge/#book-in\">check in online</a> first so we know you're on your way. Waiting times vary depending on how busy we are."
       ],
       [
-        "Can I see a GP before the clinic opens?",
-        "Yes. <a href=\"/online-gp/\">Online GP consultations</a> are available now, by video or phone, from anywhere in Ireland."
+        "When is the walk-in clinic open?",
+        "We're open {{hours}}. Hours may differ on public holidays."
+      ],
+      [
+        "How long will I wait?",
+        "Waiting times vary depending on how busy we are. Checking in online lets us know you're coming, but it doesn't reserve a set appointment time."
+      ],
+      [
+        "What should I bring to the clinic?",
+        "A list of any medicines you take, and anything relevant such as recent test results or letters from other doctors."
       ]
     ]
   },
@@ -66,16 +68,16 @@ const FAQ = [
     "title": "Appointments & registration",
     "items": [
       [
-        "How do I register with the family practice?",
-        "Our family practice opens with the Newbridge clinic. You can <a href=\"/family-gp/\">register your interest</a> now; our team will review your details and get in touch before we open, and you’ll receive a confirmation email with a reference number."
+        "How do I register as a family practice patient?",
+        "Complete our short <a href=\"/family-gp/\">registration form</a>. Our team will review your details and get in touch, and you'll receive a confirmation email with a reference number."
       ],
       [
         "Can I register my family?",
         "Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go."
       ],
       [
-        "Will I need to register to use the walk-in clinic?",
-        "No. Once it opens, anyone will be able to use the walk-in clinic without registering. Registering with our <a href=\"/family-gp/\">family practice</a> is for ongoing care for you and your family — you can register your interest now."
+        "Do I need to register to use the walk-in clinic?",
+        "No. Anyone can use the walk-in clinic without registering. Registering with our <a href=\"/family-gp/\">family practice</a> is for ongoing care — for you and your family, including reviews of long-term conditions and follow-up — rather than one-off visits."
       ]
     ]
   },
@@ -103,7 +105,7 @@ const FAQ = [
     "items": [
       [
         "Can I get a medical certificate?",
-        "Yes, where your GP considers it appropriate. You can request a sick certificate through our online booking. Your GP can also write medical letters where clinically appropriate."
+        "Yes, where your GP considers it appropriate. You can request a sick certificate through our online booking, or ask your GP during a walk-in visit. Your GP can also write medical letters where clinically appropriate."
       ],
       [
         "What do I need for a sick certificate?",
@@ -137,7 +139,7 @@ const FAQ = [
     "items": [
       [
         "How much does a consultation cost?",
-        "Online consultation prices are shown on our <a href=\"/fees/\">Fees page</a> and again before you pay. We’ll publish fees for our Newbridge clinic before it opens."
+        "Online consultation prices are shown on our <a href=\"/fees/\">Fees page</a> and again before you pay. For walk-in and family practice fees, please <a href=\"/contact/\">contact us</a> or ask at reception."
       ],
       [
         "How do I pay for an online consultation?",
@@ -151,7 +153,7 @@ const FAQ = [
     "items": [
       [
         "Do you see children?",
-        "Our Newbridge clinic and family practice, once open, will care for children as well as adults. For an online consultation for a child, please <a href=\"/contact/\">contact us</a> first."
+        "Our family practice cares for children as well as adults, and children can be brought to the walk-in clinic. For an online consultation for a child, please <a href=\"/contact/\">contact us</a> first."
       ]
     ]
   },
@@ -189,6 +191,4 @@ const FAQ = [
       ]
     ]
   }
-];
-
-module.exports = { FAQ };
+]

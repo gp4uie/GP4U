@@ -88,6 +88,7 @@
           ${field('cEircode', 'Eircode', c.eircode, { max: 10 })}
         </div>
         <label class="check-line"><input type="checkbox" id="cMap"${c.showMap ? ' checked' : ''}> Show a map once the street address is filled in</label>
+        <label class="check-line"><input type="checkbox" id="cOpen"${c.clinicOpen ? ' checked' : ''}> <strong>The Newbridge clinic is open to patients.</strong> Leave this off until launch day: while it is off the website says "opening soon" and shows no clinic hours, no check-in form and no address.</label>
         <h2 style="margin-top:26px;">Company details</h2>
         <p class="ed-hint">Shown in the footer if you fill them in (Irish company law asks for these on a company's website).</p>
         <div class="form-grid">
@@ -102,7 +103,7 @@
       try {
         await send('/api/admin/site/clinic', 'PUT', {
           name: val('cName'), tagline: val('cTagline'), phone: val('cPhone'), email: val('cEmail'), streetAddress: val('cStreet'), town: val('cTown'),
-          county: val('cCounty'), eircode: val('cEircode'), showMap: $('cMap').checked, companyName: val('cCompany'), companyNumber: val('cCompanyNo'), registeredOffice: val('cOffice'),
+          county: val('cCounty'), eircode: val('cEircode'), showMap: $('cMap').checked, clinicOpen: $('cOpen').checked, companyName: val('cCompany'), companyNumber: val('cCompanyNo'), registeredOffice: val('cOffice'),
         });
         await reload(); ok('Saved. The website now shows these details.');
       } catch (er) { fail(er); }

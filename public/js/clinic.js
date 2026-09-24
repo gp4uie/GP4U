@@ -10,6 +10,10 @@
  * and the full address, the directions buttons and the map links all appear automatically.
  */
 const CLINIC = {
+  // Is the Newbridge clinic open to patients yet? While false the whole site says "opening soon": no opening hours,
+  // no open/closed badge, no walk-in check-in, and search engines are not told about clinic hours. Switch it on at
+  // launch in Admin → Website settings → Clinic details (see marketing/clinic-launch/ for the full launch checklist).
+  clinicOpen: false,
   name: 'GP4U Clinic',
   tagline: 'Walk-In Clinic & Comprehensive Family Practice',
   streetAddress: '',
@@ -71,7 +75,7 @@ const CLINIC = {
 // file) replaces the built-in value above. The pages keep working with the values above if that script is missing.
 window.CLINIC_DEFAULTS = JSON.parse(JSON.stringify(CLINIC)); // the built-in values, before any admin edits (used by the admin editor)
 const SETTINGS = window.GP4U_SETTINGS || {};
-['name', 'tagline', 'streetAddress', 'town', 'county', 'eircode', 'phone', 'email', 'companyName', 'companyNumber', 'registeredOffice',
+['clinicOpen', 'name', 'tagline', 'streetAddress', 'town', 'county', 'eircode', 'phone', 'email', 'companyName', 'companyNumber', 'registeredOffice',
   'hoursNote', 'onlineNote', 'showMap', 'hours', 'onlineHours', 'fees', 'founder', 'closures'].forEach((k) => {
   if (SETTINGS.clinic && k in SETTINGS.clinic) CLINIC[k] = SETTINGS.clinic[k];
 });
@@ -111,6 +115,7 @@ const SETTINGS = window.GP4U_SETTINGS || {};
   }
 
   function status() {
+    if (!CLINIC.clinicOpen) return { open: false, soon: true, text: 'Opening soon' };
     const { day, mins } = dublinNow();
     const todayDate = dublinDate();
     const shut = closureOn(todayDate);
@@ -178,23 +183,30 @@ const SETTINGS = window.GP4U_SETTINGS || {};
   }
 
   function fill() {
-    const addr = [CLINIC.streetAddress, CLINIC.town, CLINIC.county, CLINIC.eircode].filter(Boolean);
-    const hasStreet = !!CLINIC.streetAddress;
+    // The street address and Eircode are never shown until the clinic is switched to open — even if already typed in.
+    const hasStreet = !!CLINIC.streetAddress && !!CLINIC.clinicOpen;
+    const addr = (hasStreet ? [CLINIC.streetAddress, CLINIC.town, CLINIC.county, CLINIC.eircode] : [CLINIC.town, CLINIC.county]).filter(Boolean);
 
     document.querySelectorAll('[data-open-status]').forEach((el) => {
       const s = status();
       el.className = `open-status ${s.open ? 'is-open' : 'is-closed'}`;
-      el.innerHTML = `<span class="open-dot"></span>Walk-in clinic · ${s.text}`;
+      el.innerHTML = s.soon ? '<span class="open-dot"></span>Newbridge clinic · Opening soon' : `<span class="open-dot"></span>Walk-in clinic · ${s.text}`;
     });
     // Online GP times (separate from the walk-in clinic): fixed hours if configured, otherwise a plain note.
     document.querySelectorAll('[data-online-hours]').forEach((el) => {
       el.innerHTML = CLINIC.onlineHours ? hoursSummary(CLINIC.onlineHours) : `<p class="online-note">${CLINIC.onlineNote}</p>`;
     });
     document.querySelectorAll('[data-online-hours-text]').forEach((el) => { el.textContent = CLINIC.onlineHours ? hoursSummaryText(CLINIC.onlineHours) : CLINIC.onlineNote; });
-    document.querySelectorAll('[data-clinic-hours-text]').forEach((el) => { el.textContent = hoursText(); });
-    document.querySelectorAll('[data-clinic-hours-summary]').forEach((el) => { el.innerHTML = hoursSummary(); });
-    document.querySelectorAll('[data-clinic-hours]').forEach((el) => { el.innerHTML = hoursTable(); });
-    document.querySelectorAll('[data-clinic-hours-note]').forEach((el) => { el.textContent = CLINIC.hoursNote; });
+    // Clinic not open yet: no hours anywhere, just "opening soon"; open/soon-only content swaps over.
+    const soon = !CLINIC.clinicOpen;
+    document.body.classList.toggle('clinic-soon', soon);
+    document.querySelectorAll('[data-if-clinic-open]').forEach((el) => { el.hidden = soon; });
+    document.querySelectorAll('[data-if-clinic-soon]').forEach((el) => { el.hidden = !soon; });
+    const SOON_HOURS = 'Opening hours will be published before the clinic opens.';
+    document.querySelectorAll('[data-clinic-hours-text]').forEach((el) => { el.textContent = soon ? 'from opening day (hours to be announced)' : hoursText(); });
+    document.querySelectorAll('[data-clinic-hours-summary]').forEach((el) => { el.innerHTML = soon ? `<p class="online-note">${SOON_HOURS}</p>` : hoursSummary(); });
+    document.querySelectorAll('[data-clinic-hours]').forEach((el) => { el.innerHTML = soon ? `<p class="online-note">${SOON_HOURS}</p>` : hoursTable(); });
+    document.querySelectorAll('[data-clinic-hours-note]').forEach((el) => { el.textContent = soon ? '' : CLINIC.hoursNote; });
     // No street address yet: show just the town and county ("Newbridge, Co. Kildare"). Type the street into
     // CLINIC.streetAddress above and the full address (and directions buttons) appear automatically.
     document.querySelectorAll('[data-clinic-address]').forEach((el) => { if (hasStreet) el.innerHTML = addr.join('<br>'); else el.textContent = [CLINIC.town, CLINIC.county].filter(Boolean).join(', '); });
@@ -282,7 +294,7 @@ const SETTINGS = window.GP4U_SETTINGS || {};
   // ---------------------------------------------------------------- upcoming closures ("Closed: Thu 25 Dec (Christmas)")
   function fillClosures() {
     const today = dublinDate();
-    const upcoming = (CLINIC.closures || []).filter((c) => (c.to || c.from) >= today).sort((a, b) => (a.from < b.from ? -1 : 1)).slice(0, 6);
+    const upcoming = (CLINIC.clinicOpen ? (CLINIC.closures || []) : []).filter((c) => (c.to || c.from) >= today).sort((a, b) => (a.from < b.from ? -1 : 1)).slice(0, 6);
     const day = (ymd) => new Intl.DateTimeFormat('en-IE', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(ymd + 'T12:00:00Z'));
     const text = upcoming.length
       ? 'Closed: ' + upcoming.map((c) => `${day(c.from)}${c.to && c.to !== c.from ? ' – ' + day(c.to) : ''}${c.label ? ' (' + c.label + ')' : ''}`).join(' · ')

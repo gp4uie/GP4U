@@ -1193,3 +1193,18 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .need-more a { font-weight: 700; white-space: nowrap; }
 .page-note { max-width: 760px; }
 .page-note p { font-size: 1.02rem; }
+
+/* ---------- clinic "opening soon" state + email sign-up (launch phase, Sept 2026) ---------- */
+[data-if-clinic-open][hidden], [data-if-clinic-soon][hidden] { display: none !important; }
+.soon-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--teal-soft); color: var(--teal-deep); border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: .82rem; }
+.signup { background: #fff; border: 1px solid var(--line-warm); border-radius: 18px; padding: 22px 24px; max-width: 560px; }
+.signup h3 { margin: 0 0 6px; }
+.signup p { margin: 0 0 14px; }
+.signup-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.signup-row input[type="email"] { flex: 1 1 220px; min-width: 0; }
+.signup-row .btn { width: auto; }
+.signup .check-line { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; font-size: .9rem; margin: 12px 0 0; color: var(--muted); }
+.signup .check-line input { width: auto; margin-top: 4px; min-height: 0; }
+.signup [data-signup-msg] { margin: 10px 0 0; font-weight: 600; color: #b3261e; min-height: 1em; }
+.signup [data-signup-msg].is-ok { color: var(--teal-deep); }
+.signup .fine { font-size: .82rem; margin: 10px 0 0; }

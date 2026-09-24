@@ -6,6 +6,7 @@ const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('..
 const formLimiter = require('../formLimiter');
 const { requireDoctor } = require('./doctor');
 const { applyWalkInStatus, ensureWalkInBooking } = require('../walkins');
+const seo = require('../seo');
 
 const router = express.Router();
 
@@ -123,6 +124,10 @@ router.post('/register-patient', formLimiter.limit('register'), async (req, res)
 // ---------------------------------------------------------------- public: walk-in check-in
 router.post('/walk-in', formLimiter.limit('walkin'), async (req, res) => {
   try {
+    // No online check-ins before the Newbridge clinic opens (Admin → Website settings → clinic open switch).
+    if (!(await seo.clinic()).clinicOpen) {
+      return res.status(409).json({ error: "Our Newbridge clinic isn't open yet. You can see a GP online now." });
+    }
     const b = req.body || {};
     const fullName = clean(b.fullName, 255);
     const dob = clean(b.dob, 20);

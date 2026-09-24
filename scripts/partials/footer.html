@@ -3,16 +3,16 @@
     <div class="footer-cols">
       <div>
         <h4>GP4U Clinic</h4>
-        <p class="footer-tagline">One tap. Real care.<br><span>Online GP · Walk-in Clinic · Family GP</span></p>
+        <p class="footer-tagline">One tap. Real care.<br><span>Online GP across Ireland · Newbridge clinic</span></p>
         <ul>
-          <li>Walk-in clinic &amp; comprehensive family practice</li>
+          <li data-if-clinic-open hidden>Walk-in clinic &amp; comprehensive family practice</li><li data-if-clinic-soon>Online GP consultations across Ireland · new walk-in GP clinic in Newbridge opening soon</li>
           <li data-clinic-address></li>
           <li class="contact-item" data-clinic-phone></li>
           <li data-clinic-email></li>
         </ul>
       </div>
       <div class="footer-hours-col">
-        <h4>Walk-in clinic hours</h4>
+        <h4 data-if-clinic-open hidden>Walk-in clinic hours</h4><h4 data-if-clinic-soon>Newbridge clinic</h4>
         <div data-clinic-hours></div>
         <p class="footer-online"><strong>Online GP:</strong> open 7 days. <span data-online-hours-text></span></p>
       </div>
@@ -20,7 +20,7 @@
         <h4>Book &amp; visit</h4>
         <ul>
           <li><a href="/book/">Book a GP</a></li>
-          <li><a href="/walk-in-gp-newbridge/">Walk-in clinic</a></li>
+          <li><a href="/walk-in-gp-newbridge/">Newbridge clinic</a></li>
           <li><a href="/online-gp/">Online GP</a></li>
           <li><a href="/family-gp/">Register as a patient</a></li>
           <li><a href="/contact/">Contact</a></li>

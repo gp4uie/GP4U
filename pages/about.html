@@ -4,24 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- @seo -->
-<title>About GP4U | Irish Online &amp; Walk-In GP Service</title>
-<meta name="description" content="GP4U is a GP-led service: a walk-in clinic and family practice in Newbridge, Co. Kildare, with online GP consultations across Ireland from doctors registered with the Medical Council.">
+<title>About GP4U | Irish Online GP Service</title>
+<meta name="description" content="GP4U is a GP-led Irish service: online GP consultations across Ireland from doctors registered with the Medical Council, with a new walk-in clinic opening soon in Newbridge, Co. Kildare.">
 <link rel="canonical" href="https://www.gp4u.ie/about/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="GP4U">
 <meta property="og:locale" content="en_IE">
-<meta property="og:title" content="About GP4U | Irish Online &amp; Walk-In GP Service">
-<meta property="og:description" content="GP4U is a GP-led service: a walk-in clinic and family practice in Newbridge, Co. Kildare, with online GP consultations across Ireland from doctors registered with the Medical Council.">
+<meta property="og:title" content="About GP4U | Irish Online GP Service">
+<meta property="og:description" content="GP4U is a GP-led Irish service: online GP consultations across Ireland from doctors registered with the Medical Council, with a new walk-in clinic opening soon in Newbridge, Co. Kildare.">
 <meta property="og:url" content="https://www.gp4u.ie/about/">
-<meta property="og:image" content="https://www.gp4u.ie/img/social/gp4u-one-tap-real-care.jpg">
+<meta property="og:image" content="https://www.gp4u.ie/img/social/gp4u-online-gp-ireland.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.">
+<meta property="og:image:alt" content="GP4U — One tap. Real care. Online GP care from wherever you are in Ireland.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="About GP4U | Irish Online &amp; Walk-In GP Service">
-<meta name="twitter:description" content="GP4U is a GP-led service: a walk-in clinic and family practice in Newbridge, Co. Kildare, with online GP consultations across Ireland from doctors registered with the Medical Council.">
-<meta name="twitter:image" content="https://www.gp4u.ie/img/social/gp4u-one-tap-real-care.jpg">
-<meta name="twitter:image:alt" content="GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.">
+<meta name="twitter:title" content="About GP4U | Irish Online GP Service">
+<meta name="twitter:description" content="GP4U is a GP-led Irish service: online GP consultations across Ireland from doctors registered with the Medical Council, with a new walk-in clinic opening soon in Newbridge, Co. Kildare.">
+<meta name="twitter:image" content="https://www.gp4u.ie/img/social/gp4u-online-gp-ireland.jpg">
+<meta name="twitter:image:alt" content="GP4U — One tap. Real care. Online GP care from wherever you are in Ireland.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -49,7 +49,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=2cd24f66">
+<link rel="stylesheet" href="/css/clinic.css?v=42b37bab">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light">
@@ -64,10 +64,10 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark" width="24" height="24"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
-    <a class="btn btn-primary header-book" href="/book/">Book a GP</a>
+    <a class="btn btn-primary header-book" href="/book.html" data-if-clinic-soon>Book a GP</a><a class="btn btn-primary header-book" href="/book/" data-if-clinic-open hidden>Book a GP</a>
     <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
     <nav class="main-nav" id="siteNav" aria-label="Main">
-      <a href="/walk-in-gp-newbridge/">Walk-In Clinic</a>
+      <a href="/walk-in-gp-newbridge/">Newbridge Clinic</a>
       <a href="/online-gp/">Online GP</a>
       <a href="/family-gp/">Family GP</a>
       <a href="/services/">Services</a>
@@ -77,7 +77,7 @@
       <a href="/contact/">Contact</a>
       <a href="/patient-login.html" id="patientLoginLink" class="nav-login">Patient Login</a>
       <a href="/patient-portal.html" id="patientPortalLink" class="nav-login" hidden>My account</a>
-      <a href="/book/" class="btn btn-primary nav-book">Book a GP</a>
+      <a href="/book.html" class="btn btn-primary nav-book" data-if-clinic-soon>Book a GP</a><a href="/book/" class="btn btn-primary nav-book" data-if-clinic-open hidden>Book a GP</a>
     </nav>
   </div>
 </header>
@@ -94,8 +94,9 @@
       <h1 data-cms="about.title">Built by a GP. Designed around patients.</h1>
       <p class="lead" data-cms="about.lead">GP4U was set up by a practising Irish GP to make everyday GP care more convenient — without losing the careful, personal approach of a good family doctor.</p>
       <div class="hero2-actions">
-        <a href="/walk-in-gp-newbridge/" class="btn btn-primary btn-lg" data-cms="about.btn1">Walk-In Clinic</a>
-        <a href="/online-gp/" class="btn btn-secondary btn-lg" data-cms="about.btn2">See a GP Online</a>
+        <a href="/online-gp/" class="btn btn-primary btn-lg" data-if-clinic-soon data-cms="about.btn2">See a GP Online</a>
+        <a href="/walk-in-gp-newbridge/" class="btn btn-primary btn-lg" data-if-clinic-open hidden data-cms="about.btn1">Walk-In Clinic</a>
+        <a href="/online-gp/" class="btn btn-secondary btn-lg">See a GP Online</a>
       </div>
     </div>
     <div class="phero-media"><img src="/img/clinic/clinic-room.jpg" alt="A sunlit consulting room with a stethoscope and a vase of flowers on the doctor's desk" width="1672" height="941" fetchpriority="high" data-cms-img="page.about"></div>
@@ -106,8 +107,8 @@
   <div class="container">
     <div class="sec-head"><p class="eyebrow">Who we are</p><h2>One service, three ways to get care</h2></div>
     <div class="grid-3">
-      <div class="info-card"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><h3 style="margin-top:16px;">Walk-in clinic</h3><p style="margin:0;">See a GP in Newbridge, Co. Kildare without an appointment, seven days a week.</p></div>
-      <div class="info-card"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><h3 style="margin-top:16px;">Comprehensive family practice</h3><p style="margin:0;">Register yourself and your family for continuing care, from children to older adults.</p></div>
+      <div class="info-card"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><h3 style="margin-top:16px;">Walk-in clinic</h3><p style="margin:0;" data-if-clinic-open hidden>See a GP in Newbridge, Co. Kildare without an appointment, seven days a week.</p><p style="margin:0;" data-if-clinic-soon>Opening soon in Newbridge, Co. Kildare — see a GP without an appointment once we open.</p></div>
+      <div class="info-card"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><h3 style="margin-top:16px;">Comprehensive family practice</h3><p style="margin:0;" data-if-clinic-open hidden>Register yourself and your family for continuing care, from children to older adults.</p><p style="margin:0;" data-if-clinic-soon>Coming with our Newbridge clinic: continuing care for you and your family. <a href="/family-gp/">Register your interest</a>.</p></div>
       <div class="info-card"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span><h3 style="margin-top:16px;">Online GP</h3><p style="margin:0;">Video and phone consultations, repeat prescriptions and certificates from home.</p></div>
     </div>
   </div>
@@ -135,7 +136,7 @@
     <div class="sec-head center"><p class="eyebrow">Our approach</p><h2>Why GP4U was created</h2><p>To give patients a simpler way to see a GP — in person or online — with the personal, careful approach of a good family doctor.</p></div>
     <div class="why-grid why-3">
       <div class="why-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><h3>Personal and careful</h3><p>The approach of a good family doctor, whichever way you see us.</p></div>
-      <div class="why-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h3>Convenient</h3><p>Walk in at the clinic, or see a GP from home.</p></div>
+      <div class="why-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h3>Convenient</h3><p>See a GP from home now — or at our Newbridge clinic once it opens.</p></div>
       <div class="why-item"><span class="ico-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span><h3>Clear</h3><p>Services and prices explained plainly, before you book.</p></div>
     </div>
   </div>
@@ -145,7 +146,7 @@
   <div class="container">
     <div class="sec-head center"><p class="eyebrow">What patients can expect</p><h2>How your care works</h2></div>
     <div class="steps3">
-      <div class="step3"><div class="num">1</div><h3>Choose how you'd like to be seen</h3><p>Book an online GP consultation, or walk in at the clinic — no appointment required.</p></div>
+      <div class="step3"><div class="num">1</div><h3>Choose how you'd like to be seen</h3><p>Book an online GP consultation by video or phone<span data-if-clinic-open hidden>, or walk in at the clinic — no appointment required</span>.</p></div>
       <div class="step3"><div class="num">2</div><h3>Be seen by a registered GP</h3><p>Your GP listens, assesses you, and explains their advice. If you need to be examined in person, they'll tell you.</p></div>
       <div class="step3"><div class="num">3</div><h3>Follow-up where needed</h3><p>Prescriptions, certificates or referral letters are issued where clinically appropriate, and online patients can message their GP securely.</p></div>
     </div>
@@ -178,16 +179,16 @@
     <div class="footer-cols">
       <div>
         <h4>GP4U Clinic</h4>
-        <p class="footer-tagline">One tap. Real care.<br><span>Online GP · Walk-in Clinic · Family GP</span></p>
+        <p class="footer-tagline">One tap. Real care.<br><span>Online GP across Ireland · Newbridge clinic</span></p>
         <ul>
-          <li>Walk-in clinic &amp; comprehensive family practice</li>
+          <li data-if-clinic-open hidden>Walk-in clinic &amp; comprehensive family practice</li><li data-if-clinic-soon>Online GP consultations across Ireland · new walk-in GP clinic in Newbridge opening soon</li>
           <li data-clinic-address></li>
           <li class="contact-item" data-clinic-phone></li>
           <li data-clinic-email></li>
         </ul>
       </div>
       <div class="footer-hours-col">
-        <h4>Walk-in clinic hours</h4>
+        <h4 data-if-clinic-open hidden>Walk-in clinic hours</h4><h4 data-if-clinic-soon>Newbridge clinic</h4>
         <div data-clinic-hours></div>
         <p class="footer-online"><strong>Online GP:</strong> open 7 days. <span data-online-hours-text></span></p>
       </div>
@@ -195,7 +196,7 @@
         <h4>Book &amp; visit</h4>
         <ul>
           <li><a href="/book/">Book a GP</a></li>
-          <li><a href="/walk-in-gp-newbridge/">Walk-in clinic</a></li>
+          <li><a href="/walk-in-gp-newbridge/">Newbridge clinic</a></li>
           <li><a href="/online-gp/">Online GP</a></li>
           <li><a href="/family-gp/">Register as a patient</a></li>
           <li><a href="/contact/">Contact</a></li>
@@ -231,12 +232,12 @@
 <!-- @sticky -->
 <div class="sticky-cta" role="region" aria-label="Book a GP">
   <a class="btn btn-primary" href="/book.html">Book online</a>
-  <a class="btn btn-secondary" href="/walk-in-gp-newbridge/">Walk-in clinic</a>
+  <a class="btn btn-secondary" href="/walk-in-gp-newbridge/" data-if-clinic-open hidden>Walk-in clinic</a><a class="btn btn-secondary" href="/online-gp/" data-if-clinic-soon>How it works</a>
 </div>
 <!-- @/sticky -->
 
 <script src="/api/site-settings.js"></script>
-<script src="/js/clinic.js?v=ec9ebf81"></script>
+<script src="/js/clinic.js?v=dd645959"></script>
 <script src="/js/nav-toggle.js?v=b1c26f07"></script>
 </body>
 </html>

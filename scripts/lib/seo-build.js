@@ -38,8 +38,8 @@ const fileForKey = (key) => { const c = CONDITIONS.find(([slug]) => slug === dat
 // ---------------------------------------------------------------- head
 function seoBlock(page) {
   const url = ORIGIN + page.url;
-  const img = ORIGIN + (page.image || '/img/social/gp4u-one-tap-real-care.jpg');
-  const imgAlt = img.includes('walk-in') ? 'GP4U walk-in GP clinic, Newbridge, Co. Kildare — GP care when you need it.' : 'GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.';
+  const img = ORIGIN + (page.image || '/img/social/gp4u-online-gp-ireland.jpg');
+  const imgAlt = img.includes('walk-in') ? 'GP4U walk-in GP clinic, Newbridge, Co. Kildare — GP care when you need it.' : 'GP4U — One tap. Real care. Online GP care from wherever you are in Ireland.';
   const lines = [
     `<title>${text(page.title)}</title>`,
     `<meta name="description" content="${attr(page.description)}">`,
@@ -108,7 +108,7 @@ ${ld({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: content
 <div class="grid">${related.map((k) => { const f = fileForKey(k); return `
   <a class="card service-card" style="text-decoration:none; color:inherit; display:block;" href="${BY_FILE.get(f).url}"><h3>${text(h1Of(f))}</h3><p style="color:var(--ink-500);font-size:0.85rem;">${text(D.SERVICE_TAGLINES[k] || '')}</p></a>`; }).join('')}
 </div>
-<p style="margin:22px 0 0;">See <a href="/online-gp/">all online GP consultations</a>, <a href="/online-gp/repeat-prescription/">repeat prescriptions</a> or <a href="/fees/">our fees</a>. Prefer to be seen in person? <a href="/walk-in-gp-newbridge/">Visit our walk-in GP clinic in Newbridge</a>.</p>`;
+<p style="margin:22px 0 0;">See <a href="/online-gp/">all online GP consultations</a>, <a href="/online-gp/repeat-prescription/">repeat prescriptions</a> or <a href="/fees/">our fees</a>. <span data-if-clinic-open hidden>Prefer to be seen in person? <a href="/walk-in-gp-newbridge/">Visit our walk-in GP clinic in Newbridge</a>.</span><span data-if-clinic-soon>Our <a href="/walk-in-gp-newbridge/">new walk-in GP clinic in Newbridge</a> is opening soon.</span></p>`;
   parts['cond-ld'] = ld({
     '@context': 'https://schema.org', '@type': 'MedicalWebPage',
     name: h1Of(file), url: ORIGIN + page.url, description: page.description, inLanguage: 'en-IE',
@@ -133,13 +133,13 @@ function rxHubHtml() {
 const HOURS_SPAN = '<span data-clinic-hours-text>seven days a week</span>';
 const FAQ_PICKS = {
   'faq-online': ['online:*', 'Will I always be given a prescription', 'How much does a consultation cost', 'How do I pay for an online'],
-  'faq-walkin': ['walk-in:*', 'Do I need to register to use the walk-in', 'Do you see children', 'How much does a consultation cost', 'Can I get a medical certificate'],
+  'faq-walkin': ['walk-in:*', 'register to use the walk-in', 'Do you see children', 'How much does a consultation cost', 'Can I get a medical certificate'],
 };
 function faqItems(picks) {
   const { FAQ } = freshFaq();
   return picks.flatMap((p) => {
     if (p.endsWith(':*')) return FAQ.find((g) => g.id === p.slice(0, -2)).items;
-    for (const g of FAQ) for (const it of g.items) if (it[0].startsWith(p)) return [it];
+    for (const g of FAQ) for (const it of g.items) if (it[0].includes(p)) return [it];
     throw new Error('FAQ not found: ' + p);
   });
 }

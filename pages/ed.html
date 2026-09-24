@@ -13,15 +13,15 @@
 <meta property="og:title" content="Erectile Dysfunction Treatment Online in Ireland | GP4U">
 <meta property="og:description" content="Confidential online GP review for erectile dysfunction in Ireland, with a prescription issued where clinically appropriate.">
 <meta property="og:url" content="https://www.gp4u.ie/online-gp/erectile-dysfunction/">
-<meta property="og:image" content="https://www.gp4u.ie/img/social/gp4u-one-tap-real-care.jpg">
+<meta property="og:image" content="https://www.gp4u.ie/img/social/gp4u-online-gp-ireland.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.">
+<meta property="og:image:alt" content="GP4U — One tap. Real care. Online GP care from wherever you are in Ireland.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Erectile Dysfunction Treatment Online in Ireland | GP4U">
 <meta name="twitter:description" content="Confidential online GP review for erectile dysfunction in Ireland, with a prescription issued where clinically appropriate.">
-<meta name="twitter:image" content="https://www.gp4u.ie/img/social/gp4u-one-tap-real-care.jpg">
-<meta name="twitter:image:alt" content="GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.">
+<meta name="twitter:image" content="https://www.gp4u.ie/img/social/gp4u-online-gp-ireland.jpg">
+<meta name="twitter:image:alt" content="GP4U — One tap. Real care. Online GP care from wherever you are in Ireland.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -55,7 +55,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=2cd24f66">
+<link rel="stylesheet" href="/css/clinic.css?v=42b37bab">
 <!-- @/head -->
 <!-- @cond-ld -->
 <script type="application/ld+json">
@@ -94,10 +94,10 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark" width="24" height="24"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
-    <a class="btn btn-primary header-book" href="/book/">Book a GP</a>
+    <a class="btn btn-primary header-book" href="/book.html" data-if-clinic-soon>Book a GP</a><a class="btn btn-primary header-book" href="/book/" data-if-clinic-open hidden>Book a GP</a>
     <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
     <nav class="main-nav" id="siteNav" aria-label="Main">
-      <a href="/walk-in-gp-newbridge/">Walk-In Clinic</a>
+      <a href="/walk-in-gp-newbridge/">Newbridge Clinic</a>
       <a href="/online-gp/">Online GP</a>
       <a href="/family-gp/">Family GP</a>
       <a href="/services/">Services</a>
@@ -107,7 +107,7 @@
       <a href="/contact/">Contact</a>
       <a href="/patient-login.html" id="patientLoginLink" class="nav-login">Patient Login</a>
       <a href="/patient-portal.html" id="patientPortalLink" class="nav-login" hidden>My account</a>
-      <a href="/book/" class="btn btn-primary nav-book">Book a GP</a>
+      <a href="/book.html" class="btn btn-primary nav-book" data-if-clinic-soon>Book a GP</a><a href="/book/" class="btn btn-primary nav-book" data-if-clinic-open hidden>Book a GP</a>
     </nav>
   </div>
 </header>
@@ -218,7 +218,7 @@
 <div class="grid">
   <a class="card service-card" style="text-decoration:none; color:inherit; display:block;" href="/online-gp/hair-loss/"><h3>Hair Loss Treatment</h3><p style="color:var(--ink-500);font-size:0.85rem;">Review for pattern hair loss</p></a>
 </div>
-<p style="margin:22px 0 0;">See <a href="/online-gp/">all online GP consultations</a>, <a href="/online-gp/repeat-prescription/">repeat prescriptions</a> or <a href="/fees/">our fees</a>. Prefer to be seen in person? <a href="/walk-in-gp-newbridge/">Visit our walk-in GP clinic in Newbridge</a>.</p>
+<p style="margin:22px 0 0;">See <a href="/online-gp/">all online GP consultations</a>, <a href="/online-gp/repeat-prescription/">repeat prescriptions</a> or <a href="/fees/">our fees</a>. <span data-if-clinic-open hidden>Prefer to be seen in person? <a href="/walk-in-gp-newbridge/">Visit our walk-in GP clinic in Newbridge</a>.</span><span data-if-clinic-soon>Our <a href="/walk-in-gp-newbridge/">new walk-in GP clinic in Newbridge</a> is opening soon.</span></p>
 <!-- @/cond-related -->
 </div>
 </section>
@@ -231,16 +231,16 @@
     <div class="footer-cols">
       <div>
         <h4>GP4U Clinic</h4>
-        <p class="footer-tagline">One tap. Real care.<br><span>Online GP · Walk-in Clinic · Family GP</span></p>
+        <p class="footer-tagline">One tap. Real care.<br><span>Online GP across Ireland · Newbridge clinic</span></p>
         <ul>
-          <li>Walk-in clinic &amp; comprehensive family practice</li>
+          <li data-if-clinic-open hidden>Walk-in clinic &amp; comprehensive family practice</li><li data-if-clinic-soon>Online GP consultations across Ireland · new walk-in GP clinic in Newbridge opening soon</li>
           <li data-clinic-address></li>
           <li class="contact-item" data-clinic-phone></li>
           <li data-clinic-email></li>
         </ul>
       </div>
       <div class="footer-hours-col">
-        <h4>Walk-in clinic hours</h4>
+        <h4 data-if-clinic-open hidden>Walk-in clinic hours</h4><h4 data-if-clinic-soon>Newbridge clinic</h4>
         <div data-clinic-hours></div>
         <p class="footer-online"><strong>Online GP:</strong> open 7 days. <span data-online-hours-text></span></p>
       </div>
@@ -248,7 +248,7 @@
         <h4>Book &amp; visit</h4>
         <ul>
           <li><a href="/book/">Book a GP</a></li>
-          <li><a href="/walk-in-gp-newbridge/">Walk-in clinic</a></li>
+          <li><a href="/walk-in-gp-newbridge/">Newbridge clinic</a></li>
           <li><a href="/online-gp/">Online GP</a></li>
           <li><a href="/family-gp/">Register as a patient</a></li>
           <li><a href="/contact/">Contact</a></li>
@@ -284,7 +284,7 @@
 <!-- @sticky -->
 <div class="sticky-cta" role="region" aria-label="Book a GP">
   <a class="btn btn-primary" href="/book.html">Book online</a>
-  <a class="btn btn-secondary" href="/walk-in-gp-newbridge/">Walk-in clinic</a>
+  <a class="btn btn-secondary" href="/walk-in-gp-newbridge/" data-if-clinic-open hidden>Walk-in clinic</a><a class="btn btn-secondary" href="/online-gp/" data-if-clinic-soon>How it works</a>
 </div>
 <!-- @/sticky -->
 
@@ -293,7 +293,7 @@
 <script src="/js/condition-content.js?v=ba045517"></script>
 <script src="/js/service-page.js?v=c2437be6"></script>
 <script src="/api/site-settings.js"></script>
-<script src="/js/clinic.js?v=ec9ebf81"></script>
+<script src="/js/clinic.js?v=dd645959"></script>
 <script src="/js/nav-toggle.js?v=b1c26f07"></script>
 </body>
 </html>

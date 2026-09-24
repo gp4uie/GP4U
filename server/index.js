@@ -15,6 +15,7 @@ const siteRoutes = require('./routes/site');
 const clinicRoutes = require('./routes/clinic');
 const { router: receptionRoutes } = require('./routes/reception');
 const seo = require('./seo');
+const { router: marketingRoutes } = require('./routes/marketing');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -91,6 +92,7 @@ app.use('/api/patient', patientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', contentRoutes);
 app.use('/api', siteRoutes);
+app.use('/api', marketingRoutes);
 app.use(seo.notFound);
 
 db.initSchema()
