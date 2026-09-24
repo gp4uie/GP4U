@@ -778,6 +778,12 @@ async function openBooking(id, listKey, keepTab) {
   renderAllergyBanner(b, pp);
   renderPreviousConsultations(previous, summary);
   renderMessages(data.messages);
+  // So the doctor isn't left assuming the patient saw something they never got: a walk-in typically
+  // has no email on file, in which case a message only shows up if the patient later checks the
+  // booking online — it is never emailed to them.
+  document.getElementById('messageEmailNote').textContent = currentPatientEmail
+    ? `Also emailed to ${currentPatientEmail} when you send a message.`
+    : 'No email on file for this patient — they will only see a message if they check their booking online.';
   renderNotes(data.notes);
   renderPrescriptions(data.prescriptions);
   renderDocuments(data.documents);

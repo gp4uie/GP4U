@@ -418,6 +418,29 @@ router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
   const { body } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
   await db.run("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'doctor', ?)", [req.params.id, body.trim()]);
+  // Best-effort — a patient with an email on file (most online bookings; some walk-ins have none)
+  // is told a message is waiting, with a link straight to the thread. The message text itself is
+  // deliberately left out of the email: it may contain health information, and this address was
+  // typed by the patient rather than verified, so it isn't treated as a safe place to put clinical
+  // content — only the same "you have a message" notice a patient portal would show.
+  try {
+    const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+    if (booking && booking.patient_email) {
+      const practice = await getPractice();
+      const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+      await mailer.sendMail({
+        to: booking.patient_email,
+        subject: `New message about your consultation — ${practice.name}`,
+        html: `
+          ${emailHeader(practice)}
+          <p>Hi ${esc(booking.patient_name)},</p>
+          <p>Your GP has sent you a message about your consultation. Read it and reply here:</p>
+          <p><a href="${link}">${link}</a></p>
+          <p>Questions? ${esc([practice.phone, practice.email].filter(Boolean).join(' · '))}</p>
+        `,
+      });
+    }
+  } catch (err) { console.log('Patient message notification email not sent:', err.message); }
   res.json({ ok: true });
 });
 
