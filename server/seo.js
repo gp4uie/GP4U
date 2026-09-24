@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { ORIGIN, PAGES, BY_URL, REDIRECTS } = require('./pages');
+const { ORIGIN, PAGES, BY_URL, REDIRECTS, pagePath } = require('./pages');
 const S = require('./siteSettings');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -113,7 +113,7 @@ function hoursText(c) {
 }
 
 async function render(file) {
-  let html = fs.readFileSync(path.join(PUBLIC, file), 'utf8');
+  let html = fs.readFileSync(pagePath(file), 'utf8');
   if (!/data-clinic-|<!-- @clinic-ld -->/.test(html)) return html;
   const c = await clinic();
   const addr = [c.streetAddress, c.town, c.county, c.eircode].filter(Boolean);
@@ -129,7 +129,7 @@ async function render(file) {
 
 function sitemap() {
   const today = dublinToday();
-  const lastmod = (file) => { try { return fs.statSync(path.join(PUBLIC, file)).mtime.toISOString().slice(0, 10); } catch (e) { return today; } };
+  const lastmod = (file) => { try { return fs.statSync(pagePath(file)).mtime.toISOString().slice(0, 10); } catch (e) { return today; } };
   const urls = PAGES.filter((p) => p.index).map((p) => `  <url><loc>${ORIGIN}${p.url}</loc><lastmod>${lastmod(p.file)}</lastmod><changefreq>${p.changefreq || 'monthly'}</changefreq><priority>${(p.priority || 0.5).toFixed(2)}</priority></url>`);
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
 }
@@ -160,7 +160,7 @@ async function pages(req, res, next) {
 // Unknown public addresses: a helpful page with a real 404 status (API calls keep their own JSON/plain errors).
 function notFound(req, res, next) {
   if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/')) return next();
-  res.status(404).type('html').set('Cache-Control', 'no-cache').sendFile(path.join(PUBLIC, '404.html'));
+  res.status(404).type('html').set('Cache-Control', 'no-cache').sendFile(pagePath('404.html'));
 }
 
 module.exports = { redirects, pages, notFound, render, sitemap, clinicLd, clinic };

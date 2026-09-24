@@ -464,7 +464,7 @@ sticky **Online GP / Walk-in** bar stays at the bottom of the screen.
 
 and commit the changed HTML. Pages mark where a part goes with `<!-- @header --> … <!-- @/header -->` comments.
 
-**Pages are plain HTML.** Edit the `.html` files in `public/` directly (the old `scripts/generate-pages.js` generator was
+**Pages are plain HTML.** The public pages are in `pages/` (not `public/` — Hostinger serves anything in `public/` directly, which would skip the redirects from the old `.html` addresses); `book.html` and the private/staff pages stay in `public/`. Edit them directly (the old `scripts/generate-pages.js` generator was
 retired in September 2026 — the pages had moved on from it, and running it would have overwritten later work). Page
 titles/descriptions live in `server/pages.js`; FAQ answers live once in `server/faqDefaults.js` and `npm run pages` writes
 them into the FAQ page (with its structured data), the Online GP page and the walk-in page.

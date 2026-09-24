@@ -137,12 +137,12 @@ router.post('/bookings', async (req, res) => {
     const slotStartSql = db.toMySQLDateTime(slotStart);
     const slotEndSql = db.toMySQLDateTime(slotEnd);
 
-    // Re-check the slot is still free (someone else may have taken it just now).
-    const clash = await db.get(
-      "SELECT 1 AS x FROM bookings WHERE status IN ('paid','pending_payment') AND slot_start = ?",
-      [slotStartSql]
-    );
-    if (clash) return res.status(409).json({ error: 'That slot was just booked by someone else. Please pick another.' });
+    // Re-check the slot is still free (someone else may have taken it just now) — by the same rule the time list
+    // uses: free while fewer bookings overlap it than there are doctors working then. (The old check refused any
+    // slot with one booking, so with two doctors on, the list offered times that could then never be booked.)
+    const wanted = new Date(slotStart).getTime();
+    const stillFree = (await getAvailableSlots(serviceType)).some((s) => new Date(s.start).getTime() === wanted);
+    if (!stillFree) return res.status(409).json({ error: 'That slot was just booked by someone else. Please pick another.' });
 
     const id = newId('GP4U');
     const patientToken = crypto.randomBytes(16).toString('hex');

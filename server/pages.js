@@ -9,11 +9,22 @@
  * Titles: what the page is, for the person searching, then "GP4U". Descriptions: one or two plain sentences, no claims
  * the service doesn't make.
  *
+ * Page HTML files are in /pages (see PAGES_DIR below); book.html and private pages are in /public.
+ *
  * Fields: url (canonical, with trailing slash), file (in /public), title, description, crumb (breadcrumb label),
  * parent (url of the parent page, for breadcrumbs), image (social preview, /img/...), index (false = noindex + not in
  * sitemap), priority / changefreq (sitemap hints).
  */
+const fs = require('fs');
+const path = require('path');
+
 const ORIGIN = 'https://www.gp4u.ie';
+// The public pages' HTML lives in /pages, NOT /public: Hostinger's front end serves any file in /public directly,
+// which would bypass the app — so /walk-in.html would never reach the 301 to /walk-in-gp-newbridge/. Only book.html
+// (address unchanged) and the private pages stay in /public.
+const PAGES_DIR = path.join(__dirname, '..', 'pages');
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const pagePath = (file) => { const p = path.join(PAGES_DIR, file); return fs.existsSync(p) ? p : path.join(PUBLIC_DIR, file); };
 const SOCIAL = '/img/social/gp4u-one-tap-real-care.jpg';
 const SOCIAL_CLINIC = '/img/social/gp4u-walk-in-newbridge.jpg';
 
@@ -180,4 +191,4 @@ function crumbsFor(page) {
   return chain;
 }
 
-module.exports = { ORIGIN, PAGES, BY_URL, BY_FILE, REDIRECTS, CONDITIONS, urlFor, crumbsFor };
+module.exports = { ORIGIN, PAGES_DIR, PUBLIC_DIR, pagePath, PAGES, BY_URL, BY_FILE, REDIRECTS, CONDITIONS, urlFor, crumbsFor };

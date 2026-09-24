@@ -49,8 +49,10 @@ function versionOf(urlPath) {
 
 let changed = 0;
 let unknown = 0;
-for (const file of fs.readdirSync(PUBLIC).filter((f) => f.endsWith('.html'))) {
-  const full = path.join(PUBLIC, file);
+// public pages live in /pages (see server/pages.js); private and booking pages in /public
+const PAGES_DIR = path.join(__dirname, '..', 'pages');
+const htmlFiles = [PAGES_DIR, PUBLIC].flatMap((dir) => fs.readdirSync(dir).filter((f) => f.endsWith('.html')).map((f) => [f, path.join(dir, f)]));
+for (const [file, full] of htmlFiles) {
   const before = fs.readFileSync(full, 'utf8');
   const stamped = seo.apply(file, before).replace(MARKER, (match, name) => {
     if (seo.OWN_NAMES.test(name)) return match; // search-engine parts, written above

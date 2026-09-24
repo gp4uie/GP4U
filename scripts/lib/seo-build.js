@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { ORIGIN, PAGES, BY_FILE, BY_URL, REDIRECTS, CONDITIONS, crumbsFor } = require('../../server/pages');
+const { ORIGIN, PAGES, BY_FILE, BY_URL, REDIRECTS, CONDITIONS, crumbsFor, pagePath } = require('../../server/pages');
 
 const PUBLIC = path.join(__dirname, '..', '..', 'public');
 const attr = (s) => String(s).replace(/&(?!(amp|lt|gt|quot|#\d+);)/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -32,7 +32,7 @@ function data() {
   DATA = vm.runInNewContext(code, { window: {}, console });
   return DATA;
 }
-const h1Of = (file) => { const m = fs.readFileSync(path.join(PUBLIC, file), 'utf8').match(/<h1[^>]*>([\s\S]*?)<\/h1>/); return m ? plain(m[1]) : file; };
+const h1Of = (file) => { const m = fs.readFileSync(pagePath(file), 'utf8').match(/<h1[^>]*>([\s\S]*?)<\/h1>/); return m ? plain(m[1]) : file; };
 const fileForKey = (key) => { const c = CONDITIONS.find(([slug]) => slug === data().PAGE_SLUGS[key]); if (!c) throw new Error(`no page for service ${key}`); return c[1]; };
 
 // ---------------------------------------------------------------- head
