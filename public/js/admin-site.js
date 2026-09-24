@@ -82,7 +82,7 @@
           ${field('cTagline', 'Tagline', c.tagline)}
           ${field('cPhone', 'Phone', c.phone, { type: 'tel', max: 24, hint: 'Leave empty to hide the phone number everywhere.' })}
           ${field('cEmail', 'Contact email', c.email, { type: 'email' })}
-          ${field('cStreet', 'Street address', c.streetAddress, { wide: true, hint: 'Leave empty to keep the address hidden ("Address coming soon"). Once you add it, the address, "Get directions" buttons and map appear on every page.' })}
+          ${field('cStreet', 'Street address', c.streetAddress, { wide: true, hint: 'Leave empty to show just the town and county ("Newbridge, Co. Kildare"). Once you add it, the address, "Get directions" buttons and map appear on every page.' })}
           ${field('cTown', 'Town', c.town)}
           ${field('cCounty', 'County', c.county)}
           ${field('cEircode', 'Eircode', c.eircode, { max: 10 })}

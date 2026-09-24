@@ -195,10 +195,10 @@ const SETTINGS = window.GP4U_SETTINGS || {};
     document.querySelectorAll('[data-clinic-hours-summary]').forEach((el) => { el.innerHTML = hoursSummary(); });
     document.querySelectorAll('[data-clinic-hours]').forEach((el) => { el.innerHTML = hoursTable(); });
     document.querySelectorAll('[data-clinic-hours-note]').forEach((el) => { el.textContent = CLINIC.hoursNote; });
-    // No street address yet: show "Address coming soon" instead of any address. Type the street into
+    // No street address yet: show just the town and county ("Newbridge, Co. Kildare"). Type the street into
     // CLINIC.streetAddress above and the full address (and directions buttons) appear automatically.
-    document.querySelectorAll('[data-clinic-address]').forEach((el) => { if (hasStreet) el.innerHTML = addr.join('<br>'); else el.textContent = 'Address coming soon'; });
-    document.querySelectorAll('[data-clinic-address-inline]').forEach((el) => { el.textContent = hasStreet ? addr.join(', ') : 'Address coming soon'; });
+    document.querySelectorAll('[data-clinic-address]').forEach((el) => { if (hasStreet) el.innerHTML = addr.join('<br>'); else el.textContent = [CLINIC.town, CLINIC.county].filter(Boolean).join(', '); });
+    document.querySelectorAll('[data-clinic-address-inline]').forEach((el) => { el.textContent = hasStreet ? addr.join(', ') : [CLINIC.town, CLINIC.county].filter(Boolean).join(', '); });
     // Directions only make sense once there's a real street address to point at.
     document.querySelectorAll('[data-clinic-directions]').forEach((el) => {
       if (!hasStreet) { el.hidden = true; return; }

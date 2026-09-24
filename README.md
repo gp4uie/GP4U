@@ -505,7 +505,7 @@ content-based version stamp (`/css/clinic.css?v=1a2b3c4d`). **After changing any
 - **Clinic details, fees, map and lead GP** are all in `public/js/clinic.js`: `streetAddress` (shows the address, "Get directions" and an
   embedded map automatically), `phone`, `fees.walkIn` (walk-in prices appear on the Fees page once you list them — nothing is shown or
   invented until then), and `founder` (name, role, bio, qualifications, Medical Council number, photo — the About page shows only what
-  you fill in). Until the address is entered the site says "Address coming soon".
+  you fill in). Until the street is entered the site shows just "Newbridge, Co. Kildare" (no directions or map).
 - **Walk-in wording rule:** "Book" = an online GP appointment. Walk-in = "no appointment is required"; the optional form is "Check in
   online" and never implies a fixed time.
 - **Health Info** (`/blog.html`) is out of the navigation, footer and sitemap (and marked noindex) because its three starter posts are

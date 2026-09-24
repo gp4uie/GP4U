@@ -547,7 +547,7 @@ router.get('/setup-status', requireAdmin, async (req, res) => {
     item('notify', 'Online bookings', 'Notification email address for new bookings and registrations', !!process.env.DOCTOR_EMAIL,
       'Set DOCTOR_EMAIL in the hosting settings.', 'Otherwise nobody is emailed when a booking, message or registration arrives (the dashboards still show them).'),
     item('address', 'Website', 'Street address entered', !!o.streetAddress,
-      'Admin → Website settings → Clinic details.', 'Until then the website says "Address coming soon" and prescriptions/letters show only "Newbridge, Co. Kildare".'),
+      'Admin → Website settings → Clinic details.', 'Until then the website shows only "Newbridge, Co. Kildare" (no directions or map), and prescriptions/letters show only "Newbridge, Co. Kildare".'),
     item('phone', 'Website', 'Phone number entered', !!practice.phone, 'Admin → Website settings → Clinic details.', 'Patients and pharmacies have no number to ring.'),
     item('company', 'Website', 'Company details entered (name, CRO number, registered office)', !!(o.companyName && o.companyNumber && o.registeredOffice),
       'Admin → Website settings → Clinic details.', 'Irish company law expects these on a company website; they also print in the footer of letters.'),

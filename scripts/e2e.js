@@ -143,12 +143,12 @@ async function main() {
           assert(info.overflow <= 1, `horizontal overflow of ${info.overflow}px`);
           assert(!/George Street/i.test(info.text), 'street name is visible');
           {
-            const scrubbed = info.text.replace(/Address coming soon|Directions coming soon|very shortly/g, '');
+            const scrubbed = info.text.replace(/Directions coming soon|very shortly/g, '');
             const bad = scrubbed.match(/coming soon|shortly|will be published|will be added|to be confirmed|TODO|lorem ipsum|Update this section|once confirmed|Patient reviews/i);
             assert(!bad, 'placeholder or drafting wording on this page: "' + (bad && bad[0]) + '"');
           }
           assert(!/book(ed)? in for (our |the )?walk-in|you.re booked in|walk-in appointment/i.test(info.text), 'old walk-in wording ("book in") is still on this page');
-          if (info.footerAddr !== undefined) assert(info.footerAddr === 'Address coming soon', `footer address shows "${info.footerAddr}"`);
+          if (info.footerAddr !== undefined) assert(info.footerAddr === 'Newbridge, Co. Kildare', `footer address shows "${info.footerAddr}"`);
           assert(info.brokenImgs.length === 0, 'broken images: ' + info.brokenImgs.join(', '));
           assert(info.styled, 'page is not styled correctly (stylesheet missing/stale — "Skip to main content" would show at top left)');
           assert(info.unversioned.length === 0, 'CSS/JS links without a version stamp (browsers may show stale files): ' + info.unversioned.join(', ') + ' — run: npm run pages');
@@ -222,7 +222,7 @@ async function main() {
       assert(r.services.length === 0 && !r.whyHead.includes('How can we help?'), 'the services list should not be on the homepage, got ' + r.services.length);
       assert(r.steps.join(',') === '01,02,03,01,02,03', 'how-it-works steps wrong (online 3-step + walk-in 3-step): ' + r.steps.join(','));
       assert(/No appointment is required\./.test(r.explain) && /does not reserve a specific appointment time/.test(r.explain), 'walk-in explanation wording is missing');
-      assert(r.addr === 'Address coming soon', 'location should say the address is coming soon: ' + r.addr);
+      assert(r.addr === 'Newbridge, Co. Kildare', 'location should show the town and county only: ' + r.addr);
       assert(r.hoursRows === 7, 'opening hours should list 7 days');
       assert(r.faq === 0, 'the FAQ should not be on the homepage, got ' + r.faq);
       assert(await tab.ev(`!document.querySelector('a[href="/blog.html"]')`), 'Health Info should not be in the navigation or footer');
@@ -247,7 +247,7 @@ async function main() {
     await test('Contact page: address status, hours, email, and "Need a GP?" choices', async () => {
       await tab.goto('/contact/');
       const r = await tab.ev(`({ addr: document.querySelector('[data-clinic-address]').textContent, rows: document.querySelectorAll('.loc .hours-table tr').length, email: !!document.querySelector('.loc a[href^="mailto:"]'), ctas: [...document.querySelectorAll('.pcards a.btn')].map((a) => a.textContent.trim()), phoneHidden: document.querySelector('.loc .contact-item').hidden })`);
-      assert(r.addr === 'Address coming soon' && r.rows === 7 && r.email, 'contact details incomplete: ' + JSON.stringify(r));
+      assert(r.addr === 'Newbridge, Co. Kildare' && r.rows === 7 && r.email, 'contact details incomplete: ' + JSON.stringify(r));
       assert(r.ctas.join(' | ') === 'Walk-In Clinic | See a GP Online', 'Need a GP? choices wrong');
       assert(r.phoneHidden, 'phone must stay hidden until configured (no invented number)');
     });
@@ -1287,7 +1287,7 @@ async function main() {
         await tab.send('Network.clearBrowserCookies');
         await tab.goto('/contact/');
         await sleep(400);
-        assert(await tab.ev(`document.querySelector('.loc [data-clinic-address]').innerText.trim() === 'Address coming soon'`), 'the address should be hidden again');
+        assert(await tab.ev(`document.querySelector('.loc [data-clinic-address]').innerText.trim() === 'Newbridge, Co. Kildare'`), 'the street address should be hidden again');
       });
     }
 
