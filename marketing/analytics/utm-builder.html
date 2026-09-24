@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GP4U UTM builder</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #FBF7F0; color: #12303A; margin: 0; padding: 24px 16px; }
+  main { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #EADFCD; border-radius: 16px; padding: 24px; }
+  h1 { font-family: Georgia, serif; margin: 0 0 4px; } p { color: #4D646D; margin-top: 0; }
+  label { display: block; font-weight: 700; margin: 14px 0 6px; font-size: .92rem; }
+  select, input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #EADFCD; border-radius: 10px; font-size: 1rem; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+  output { display: block; margin-top: 18px; padding: 14px; background: #E2F1EF; border-radius: 10px; word-break: break-all; font-family: ui-monospace, Consolas, monospace; }
+  button { margin-top: 12px; background: #0A4D4D; color: #fff; border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer; }
+  .warn { color: #b3261e; font-weight: 600; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GP4U UTM builder</h1>
+  <p>Follows <code>utm-framework.md</code>. Lowercase, underscores, never personal or health details.</p>
+  <label for="page">Page</label>
+  <select id="page">
+    <option value="/online-gp/">Online GP — /online-gp/</option>
+    <option value="/book.html">Online booking — /book.html</option>
+    <option value="/">Home — /</option>
+    <option value="/fees/">Fees — /fees/</option>
+    <option value="/faq/">FAQs — /faq/</option>
+    <option value="/about/">About — /about/</option>
+    <option value="/online-gp/repeat-prescription/">Repeat prescriptions</option>
+    <option value="/walk-in-gp-newbridge/">Newbridge clinic — /walk-in-gp-newbridge/</option>
+    <option value="/walk-in-gp-newbridge/#clinic-news">Newbridge clinic sign-up</option>
+    <option value="/family-gp/">Family GP — /family-gp/</option>
+  </select>
+  <div class="row">
+    <div><label for="channel">Channel</label>
+      <select id="channel">
+        <option value="instagram|social">Instagram (organic)</option><option value="facebook|social">Facebook (organic)</option>
+        <option value="tiktok|social">TikTok (organic)</option><option value="linkedin|social">LinkedIn</option>
+        <option value="youtube|social">YouTube</option><option value="facebook|paid_social">Facebook (paid)</option>
+        <option value="instagram|paid_social">Instagram (paid)</option><option value="tiktok|paid_social">TikTok (paid)</option>
+        <option value="google|cpc">Google Ads</option><option value="google|organic">Google Business Profile</option>
+        <option value="email|email">Email</option><option value="custom|referral">Partner (referral)</option>
+        <option value="custom|pr">PR</option><option value="custom|offline">Print / QR</option>
+      </select></div>
+    <div><label for="source">Source (for partner/PR/QR)</label><input id="source" placeholder="e.g. qr_poster_pharmacy"></div>
+  </div>
+  <div class="row">
+    <div><label for="campaign">Campaign</label><input id="campaign" value="online_gp_launch" list="camps">
+      <datalist id="camps"><option value="online_gp_launch"><option value="online_gp_always_on"><option value="brand"><option value="profile"><option value="welcome_series"><option value="clinic_teaser"><option value="clinic_launch"></datalist></div>
+    <div><label for="content">Content</label><input id="content" placeholder="e.g. reel_01, v05_cough, bio_link"></div>
+  </div>
+  <p class="warn" id="warn"></p>
+  <output id="out"></output>
+  <button type="button" id="copy">Copy link</button>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const clean = (v) => v.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  function build() {
+    const [src, medium] = $('channel').value.split('|');
+    const source = src === 'custom' ? clean($('source').value) : src;
+    const p = new URLSearchParams({ utm_source: source || 'missing_source', utm_medium: medium, utm_campaign: clean($('campaign').value) || 'missing_campaign' });
+    if ($('content').value.trim()) p.set('utm_content', clean($('content').value));
+    const [path, hash] = $('page').value.split('#');
+    $('out').textContent = `https://www.gp4u.ie${path}?${p.toString()}${hash ? '#' + hash : ''}`;
+    $('warn').textContent = /@|\d{6,}|patient|name|dob|symptom/i.test($('content').value + $('source').value) ? 'Looks like personal or health information — remove it.' : '';
+  }
+  document.querySelectorAll('select, input').forEach((el) => el.addEventListener('input', build));
+  $('copy').addEventListener('click', () => { navigator.clipboard.writeText($('out').textContent); $('copy').textContent = 'Copied'; setTimeout(() => { $('copy').textContent = 'Copy link'; }, 1500); });
+  build();
+</script>
+</body>
+</html>

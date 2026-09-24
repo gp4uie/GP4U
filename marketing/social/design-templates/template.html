@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  GP4U social design templates. Open in a browser with ?t=<template>&h=<headline>&b=<body>&k=<kicker>&w=<width>&hh=<height>
+  e.g. template.html?t=education&k=GP%20EDUCATION&h=When%20should%20a%20cough%20be%20checked%3F&b=Line%20one|Line%20two
+  Body lines are separated by |. Export to PNG with: node marketing/social/design-templates/render.js
+  Brand: marketing/brand/brand-guidelines.md (palette and type from the website — do not change).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GP4U template</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,600&display=block">
+<style>
+  :root { --cream:#FBF7F0; --sand:#F3ECDF; --line:#EADFCD; --ink:#12303A; --muted:#4D646D; --teal:#0F6E6E; --deep:#0A4D4D; --soft:#E2F1EF; --warm:#C8742B; }
+  * { margin:0; box-sizing:border-box; }
+  html, body { overflow:hidden; }
+  body { font-family:Manrope, sans-serif; color:var(--ink); background:var(--cream); }
+  .c { position:relative; overflow:hidden; background:var(--cream); display:flex; flex-direction:column; }
+  .pad { padding:7% 8%; flex:1; display:flex; flex-direction:column; }
+  .brand { display:flex; align-items:center; gap:.6em; font-weight:800; letter-spacing:-.03em; color:var(--deep); font-size:var(--brand); }
+  .badge { width:1.7em; height:1.7em; border-radius:.45em; background:radial-gradient(circle at 30% 30%,#0f3d3a,#0a0e14 85%); display:flex; align-items:center; justify-content:center; }
+  .badge img { height:1em; }
+  .kicker { display:inline-block; margin-top:1.2em; font-size:var(--kick); font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--teal); }
+  h1 { font-family:Fraunces, serif; font-weight:600; line-height:1.06; letter-spacing:-.01em; font-size:var(--h); margin:.35em 0 .45em; }
+  ul { list-style:none; display:flex; flex-direction:column; gap:.55em; font-size:var(--b); font-weight:600; color:var(--ink); }
+  ul li { display:flex; gap:.6em; line-height:1.3; }
+  ul li::before { content:""; flex:none; width:.55em; height:.55em; margin-top:.4em; border-radius:50%; background:var(--teal); }
+  p.body { font-size:var(--b); font-weight:600; line-height:1.4; color:var(--muted); }
+  .strip { background:var(--deep); color:#E8F4F1; display:flex; justify-content:space-between; align-items:center; padding:2.4% 8%; font-size:var(--strip); font-weight:700; }
+  .strip b { font-family:Fraunces, serif; font-weight:600; letter-spacing:.01em; }
+  .safety { font-size:var(--safe); color:var(--muted); font-weight:600; margin-top:auto; padding-top:1em; border-top:2px solid var(--line); }
+  .bar { position:absolute; left:0; top:0; bottom:0; width:1.4%; background:var(--teal); }
+  .quote h1 { font-size:calc(var(--h) * .82); }
+  .quote h1::before { content:"“"; display:block; color:var(--teal); font-size:1.6em; line-height:.6; }
+  .who { font-size:var(--b); font-weight:700; color:var(--teal); }
+  .mf { display:grid; gap:4%; margin-top:1em; }
+  .mf div { border-radius:1em; padding:5% 6%; font-size:var(--b); font-weight:600; line-height:1.35; }
+  .mf .myth { background:var(--sand); color:var(--muted); }
+  .mf .fact { background:var(--soft); color:var(--ink); }
+  .mf strong { display:block; font-size:.7em; letter-spacing:.14em; text-transform:uppercase; margin-bottom:.4em; color:var(--teal); }
+  .mf .myth strong { color:var(--warm); }
+  .soon { display:inline-flex; align-self:flex-start; background:var(--soft); color:var(--deep); border-radius:999px; padding:.35em 1em; font-weight:800; font-size:var(--kick); margin-top:1.2em; }
+  .photo { position:absolute; inset:0 0 0 auto; width:46%; background-size:cover; background-position:center; }
+  .photo::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,var(--cream) 0%, rgba(251,247,240,.8) 16%, rgba(251,247,240,0) 55%); }
+  .num { font-family:Fraunces, serif; color:var(--teal); font-size:calc(var(--h) * 1.1); line-height:1; }
+  .center { align-items:center; justify-content:center; text-align:center; }
+  .profile { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--cream); }
+  .profile .badge { width:62%; height:62%; border-radius:22%; }
+  .profile .badge img { height:60%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const T = q.get('t') || 'announcement';
+const W = +q.get('w') || 1080, H = +q.get('hh') || 1350;
+const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const h = esc(q.get('h') || 'One tap. Real care.').replace(/\\n/g, '<br>');
+const k = esc(q.get('k') || '');
+const lines = (q.get('b') || '').split('|').filter(Boolean).map(esc);
+const img = q.get('img') ? `../../../public/img/${q.get('img')}` : '';
+const s = +q.get('sc') || Math.min(W, H) / 1080; // scale factor (sc= overrides it for wide banners)
+document.documentElement.style.cssText = `--brand:${46 * s}px; --kick:${24 * s}px; --h:${(+q.get('hs') || 84) * s}px; --b:${(+q.get('bs') || 34) * s}px; --strip:${26 * s}px; --safe:${22 * s}px;`;
+const BRAND = `<div class="brand"><span class="badge"><img src="../../../public/img/gp4u-icon-bright.svg" alt=""></span>GP4U</div>`;
+const STRIP = `<div class="strip"><b>One tap. Real care.</b><span>www.gp4u.ie</span></div>`;
+const SAFETY = q.get('safety') === '0' ? '' : `<p class="safety">General information, not personal medical advice. Emergencies: call 112 or 999.</p>`;
+const list = lines.length ? `<ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>` : '';
+const para = lines.length ? `<p class="body">${lines.join('<br>')}</p>` : '';
+const V = {
+  announcement: () => `<div class="pad">${BRAND}${k ? `<span class="kicker">${k}</span>` : ''}<h1 style="margin-top:auto">${h}</h1>${para}</div>${STRIP}`,
+  education: () => `<div class="pad">${BRAND}<span class="kicker">${k || 'GP education'}</span><h1>${h}</h1>${list}${SAFETY}</div>${STRIP}`,
+  carousel: () => `<div class="pad">${BRAND}${q.get('n') ? `<div class="num" style="margin-top:1em">${esc(q.get('n'))}</div>` : `<span class="kicker">${k}</span>`}<h1>${h}</h1>${list || para}</div>${STRIP}`,
+  faq: () => `<div class="pad">${BRAND}<span class="kicker">${k || 'Your questions'}</span><h1>${h}</h1>${para}</div>${STRIP}`,
+  'myth-fact': () => `<div class="pad">${BRAND}<span class="kicker">Myth vs fact</span><div class="mf"><div class="myth"><strong>Myth</strong>${h}</div><div class="fact"><strong>Fact</strong>${lines.join('<br>')}</div></div>${SAFETY}</div>${STRIP}`,
+  quote: () => `<div class="pad quote">${BRAND}<h1 style="margin-top:auto">${h}</h1>${lines[0] ? `<p class="who">${lines[0]}</p>` : ''}</div>${STRIP}`,
+  'clinic-teaser': () => `<div class="pad">${BRAND}<span class="soon">${k || 'Coming soon'}</span><h1 style="margin-top:auto">${h}</h1>${para}</div><div class="strip"><b>GP care when you need it.</b><span>www.gp4u.ie</span></div>`,
+  photo: () => `${img ? `<div class="photo" style="background-image:url('${img}')"></div>` : ''}<div class="bar"></div><div class="pad" style="width:62%;justify-content:center">${BRAND}<h1>${h}</h1>${para}</div>`,
+  cover: () => `${img ? `<div class="photo" style="background-image:url('${img}')"></div>` : ''}<div class="bar"></div><div class="pad center" style="${img ? 'width:60%;align-items:flex-start;text-align:left' : ''}"><h1 style="margin:0">${h}</h1>${para}</div>`,
+  'reel-cover': () => `<div class="pad center">${BRAND}<span class="kicker">${k}</span><h1>${h}</h1></div>${STRIP}`,
+  profile: () => `<div class="profile"><span class="badge"><img src="../../../public/img/gp4u-icon-bright.svg" alt=""></span></div>`,
+};
+const root = document.getElementById('root');
+root.className = 'c' + (T === 'quote' ? ' quote' : '');
+root.style.width = W + 'px'; root.style.height = H + 'px';
+root.innerHTML = (V[T] || V.announcement)();
+</script>
+</body>
+</html>

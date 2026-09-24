@@ -1,0 +1,64 @@
+# Google Ads negative keywords — campaign-level list "GP4U core negatives" (phrase match unless [exact])
+# Review search terms twice a week in the first month and add more.
+
+# Jobs and training
+jobs
+job
+careers
+vacancies
+salary
+locum
+training
+course
+exam
+mrcgp
+icgp
+become a gp
+gp scheme
+
+# Free / public services we are not
+free
+medical card only
+hse gp
+out of hours hse
+caredoc
+southdoc
+nedoc
+westdoc
+shannondoc
+kdoc
+emergency
+a&e
+ambulance
+hospital
+
+# Wrong service
+vet
+dentist
+dental
+pharmacy jobs
+optician
+physio
+chiropractor
+nhs
+uk
+northern ireland
+belfast
+
+# Things we don't do online (update to match the actual service list)
+controlled
+benzodiazepine
+diazepam
+xanax
+zopiclone
+codeine
+tramadol
+adhd medication
+methadone
+
+# Research / free information intent (add only if they waste spend)
+wikipedia
+definition
+meaning
+symptoms of
+pictures of
