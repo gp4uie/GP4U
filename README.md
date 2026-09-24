@@ -330,6 +330,16 @@ all redirects, the 404, robots.txt and the sitemap.
   named clinical reviewer for it; lead GP name, qualifications and Medical Council number (Admin → Fees & lead GP).
 - Real photos of the clinic and team to replace the stock photos.
 
+### Launch phase (September 2026): clinic "opening soon" + marketing
+
+- **Clinic switch:** Admin → Website settings → Clinic details → *"The Newbridge clinic is open to patients."* Off (default)
+  = the whole site says the Newbridge clinic is opening soon; no hours, check-in, street address or clinic schema, and the
+  server refuses walk-in check-ins. On = open-clinic content, titles and schema. Steps: `marketing/clinic-launch/website-launch-steps.md`.
+- **Email sign-ups** ("Be the first to know"): `marketing_signups` table; CSV for your email tool at `/api/admin/signups?format=csv`.
+- **Measurement:** optional `GA4_MEASUREMENT_ID`, `META_PIXEL_ID`, `TIKTOK_PIXEL_ID` environment variables; consent banner
+  appears only then (`public/js/consent.js`, `marketing/analytics/tracking-plan.md`).
+- **Marketing system** (strategy, calendars, scripts, ads, email, launch kit): `marketing/README.md`. Not served publicly.
+
 ## 9. Deploying to Hostinger (going live on gp4u.ie)
 
 This assumes you have **Hostinger Business Web Hosting** (or a Cloud plan) and already own the
