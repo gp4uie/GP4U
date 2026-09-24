@@ -368,7 +368,7 @@
           ${field('bText', 'Message', b.text, { wide: true, max: 240, placeholder: 'e.g. The clinic is closed on Monday 3 August (bank holiday).' })}
           <div class="form-row"><label for="bTone">Style</label><select id="bTone"><option value="info"${b.tone === 'info' ? ' selected' : ''}>Information (green)</option><option value="warning"${b.tone === 'warning' ? ' selected' : ''}>Important (amber)</option></select></div>
           ${field('bLinkText', 'Link text (optional)', b.linkText, { max: 40, placeholder: 'e.g. See our hours' })}
-          ${field('bLinkUrl', 'Link address (optional)', b.linkUrl, { max: 300, placeholder: '/contact.html', hint: 'A page on this site starting with /, or a full https:// address.' })}
+          ${field('bLinkUrl', 'Link address (optional)', b.linkUrl, { max: 300, placeholder: '/contact/', hint: 'A page on this site starting with /, or a full https:// address.' })}
         </div>
         <div class="site-banner is-info" id="bPreview" style="margin-top:8px;border-radius:12px;"><span></span></div>
         <div class="ed-actions"><button class="btn btn-primary btn-lg" type="submit">Save</button></div>

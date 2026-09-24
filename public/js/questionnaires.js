@@ -270,7 +270,7 @@ const CATEGORIES = {
 
 // Human-readable labels for the service pages / hub page, keyed the same as QUESTIONNAIRES
 // and the `services` table (underscore-case). Page filenames use hyphens for SEO-friendly URLs —
-// see PAGE_SLUGS below for the key -> filename mapping.
+// see PAGE_SLUGS below for the key -> page address (/online-gp/<slug>/) mapping.
 // Note: travel health is deliberately not a repeat-prescription condition here — it's covered by
 // the standalone "Travel Health Consultation" (`travel`) service instead, since a trip isn't a
 // "repeat" of anything a patient already takes.
@@ -284,12 +284,12 @@ const PAGE_SLUGS = {
   contraception: 'contraception',
   period_delay: 'period-delay',
   uti: 'uti',
-  ed: 'ed',
+  ed: 'erectile-dysfunction',
   hair_loss: 'hair-loss',
   acne: 'acne',
   asthma: 'asthma',
   migraine: 'migraine',
-  hypothyroidism: 'hypothyroidism',
+  hypothyroidism: 'underactive-thyroid',
   stop_smoking: 'stop-smoking',
   hay_fever: 'hay-fever',
   cold_sores: 'cold-sores',

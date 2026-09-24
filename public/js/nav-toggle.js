@@ -20,12 +20,32 @@
   });
 
   if (!document.body.classList.contains('clinic-page')) return;
+
+  // Measurable calls to action, for when an analytics tool is added (none is installed today). Each click is pushed to
+  // window.dataLayer ONLY if that already exists, and carries just the action name and the page address — never
+  // anything typed into a form, no names, no health details, no booking references.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a || !Array.isArray(window.dataLayer)) return;
+    const href = a.getAttribute('href') || '';
+    const action = a.dataset.track
+      || (href.startsWith('tel:') ? 'phone_click'
+        : href.startsWith('mailto:') ? 'email_click'
+          : a.hasAttribute('data-clinic-directions') ? 'directions_click'
+            : /^\/book(\.html|\/)/.test(href) ? 'online_booking_click'
+              : href.startsWith('/walk-in-gp-newbridge/') ? 'walk_in_click'
+                : href.startsWith('/family-gp/') ? 'registration_click' : '');
+    if (action) window.dataLayer.push({ event: 'gp4u_cta', action, page: location.pathname });
+  });
+
   if (document.body.classList.contains('staff-page')) return; // staff tools: no public-site behaviour (login swap, reveal)
 
   // Mark the link for the page you're on (helps everyone, and screen readers announce it).
-  const here = location.pathname === '/' ? '/index.html' : location.pathname;
+  // (online condition pages such as /online-gp/acne/ sit under Online GP)
+  const here = location.pathname;
   document.querySelectorAll('nav.main-nav a:not(.btn)').forEach((a) => {
-    if (a.getAttribute('href') === here) a.setAttribute('aria-current', 'page');
+    const href = a.getAttribute('href');
+    if (href === here || (href === '/online-gp/' && here.startsWith('/online-gp/'))) a.setAttribute('aria-current', 'page');
   });
 
   fetch('/api/patient/me').then((r) => r.json()).then((me) => {

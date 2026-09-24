@@ -3,41 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Online GP Ireland — Video &amp; Phone GP Consultations | GP4U Clinic</title>
-<meta name="description" content="See a GP online in Ireland. Video and phone GP consultations, repeat prescriptions and sick certs from home, with Medical Council registered doctors.">
-<link rel="canonical" href="https://www.gp4u.ie/online.html">
+<!-- @seo -->
+<title>Online GP Ireland | Video &amp; Phone GP Consultations | GP4U</title>
+<meta name="description" content="See a GP online from anywhere in Ireland. Book a video or phone consultation with an Irish-registered GP, with prescriptions and sick certs where appropriate. Prices shown upfront.">
+<link rel="canonical" href="https://www.gp4u.ie/online-gp/">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="GP4U Clinic">
+<meta property="og:site_name" content="GP4U">
 <meta property="og:locale" content="en_IE">
-<meta property="og:title" content="Online GP Ireland — Video &amp; Phone GP Consultations | GP4U Clinic">
-<meta property="og:description" content="See a GP online in Ireland. Video and phone GP consultations, repeat prescriptions and sick certs from home, with Medical Council registered doctors.">
-<meta property="og:url" content="https://www.gp4u.ie/online.html">
-<meta property="og:image" content="https://www.gp4u.ie/img/clinic/online-gp-home.jpg">
+<meta property="og:title" content="Online GP Ireland | Video &amp; Phone GP Consultations | GP4U">
+<meta property="og:description" content="See a GP online from anywhere in Ireland. Book a video or phone consultation with an Irish-registered GP, with prescriptions and sick certs where appropriate. Prices shown upfront.">
+<meta property="og:url" content="https://www.gp4u.ie/online-gp/">
+<meta property="og:image" content="https://www.gp4u.ie/img/social/gp4u-one-tap-real-care.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Online GP Ireland | Video &amp; Phone GP Consultations | GP4U">
+<meta name="twitter:description" content="See a GP online from anywhere in Ireland. Book a video or phone consultation with an Irish-registered GP, with prescriptions and sick certs where appropriate. Prices shown upfront.">
+<meta name="twitter:image" content="https://www.gp4u.ie/img/social/gp4u-one-tap-real-care.jpg">
+<meta name="twitter:image:alt" content="GP4U — One tap. Real care. Online GP across Ireland and a walk-in GP clinic in Newbridge.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://www.gp4u.ie/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Online GP",
+      "item": "https://www.gp4u.ie/online-gp/"
+    }
+  ]
+}
+</script>
+<!-- @/seo -->
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
 <!-- @head -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=b613968f">
+<link rel="stylesheet" href="/css/clinic.css?v=2cd24f66">
 <!-- @/head -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "MedicalBusiness",
-  "name": "GP4U Clinic — Online GP",
-  "url": "https://www.gp4u.ie/online.html",
-  "description": "Online GP consultations in Ireland: video and phone appointments, repeat prescriptions and sick certificates.",
+  "@type": "Service",
+  "@id": "https://www.gp4u.ie/online-gp/#service",
+  "name": "Online GP consultations",
+  "serviceType": "Online GP consultation",
+  "url": "https://www.gp4u.ie/online-gp/",
+  "description": "Video and phone GP consultations with Irish-registered GPs, including repeat prescriptions and sick certificates where clinically appropriate.",
+  "provider": {
+    "@id": "https://www.gp4u.ie/#organization"
+  },
   "areaServed": {
     "@type": "Country",
     "name": "Ireland"
   },
-  "medicalSpecialty": "GeneralPractice",
-  "parentOrganization": {
-    "@type": "MedicalClinic",
-    "name": "GP4U Clinic",
-    "url": "https://www.gp4u.ie/"
+  "availableChannel": {
+    "@type": "ServiceChannel",
+    "serviceUrl": "https://www.gp4u.ie/book.html",
+    "availableLanguage": "English"
   }
 }
 </script>
@@ -53,39 +86,43 @@
 <!-- @header -->
 <header class="site-header">
   <div class="nav-wrap">
-    <a class="brand" href="/" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
-    <a class="btn btn-primary header-book" href="/book-now.html">Book a GP</a>
+    <a class="brand" href="/" aria-label="GP4U Clinic — home"><span class="brand-badge"><img src="/img/gp4u-icon-bright.svg" alt="" class="brand-mark" width="24" height="24"></span><span class="brand-text">GP4U<span class="brand-sub"> Clinic</span></span></a>
+    <a class="btn btn-primary header-book" href="/book/">Book a GP</a>
     <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
     <nav class="main-nav" id="siteNav" aria-label="Main">
-      <a href="/walk-in.html">Walk-In Clinic</a>
-      <a href="/online.html">Online GP</a>
-      <a href="/new-patients.html">Family GP</a>
-      <a href="/services.html">Services</a>
-      <a href="/fees.html">Fees</a>
-      <a href="/about.html">About</a>
-      <a href="/faq.html">FAQs</a>
-      <a href="/contact.html">Contact</a>
+      <a href="/walk-in-gp-newbridge/">Walk-In Clinic</a>
+      <a href="/online-gp/">Online GP</a>
+      <a href="/family-gp/">Family GP</a>
+      <a href="/services/">Services</a>
+      <a href="/fees/">Fees</a>
+      <a href="/about/">About</a>
+      <a href="/faq/">FAQs</a>
+      <a href="/contact/">Contact</a>
       <a href="/patient-login.html" id="patientLoginLink" class="nav-login">Patient Login</a>
       <a href="/patient-portal.html" id="patientPortalLink" class="nav-login" hidden>My account</a>
-      <a href="/book-now.html" class="btn btn-primary nav-book">Book a GP</a>
+      <a href="/book/" class="btn btn-primary nav-book">Book a GP</a>
     </nav>
   </div>
 </header>
 <!-- @/header -->
 <main id="main">
+<!-- @crumbs -->
+<nav class="crumbs" aria-label="Breadcrumb"><div class="container"><ol><li><a href="/">Home</a></li><li><span aria-current="page" data-cms="online.eyebrow">Online GP</span></li></ol></div></nav>
+<!-- @/crumbs -->
 
 <section class="phero">
   <div class="container phero-grid">
     <div>
-      <p class="eyebrow" data-cms="online.eyebrow">Online GP</p>
+      <p class="eyebrow">Online GP</p>
       <h1 id="heroTitle" data-cms="online.title">See a GP online, from anywhere in Ireland.</h1>
       <p class="lead" id="heroSubtitle" data-cms="online.lead">GP4U connects you with Irish-registered GPs for video and phone consultations, repeat prescriptions and sick certs — quick to book, no waiting room.</p>
       <div class="hero2-actions">
         <a href="/book.html" class="btn btn-primary btn-lg" data-cms="online.btn1">Book an Online GP Consultation</a>
-        <a href="/repeat-prescription.html" class="btn btn-secondary btn-lg" data-cms="online.btn2">Request a repeat prescription</a>
+        <a href="/online-gp/repeat-prescription/" class="btn btn-secondary btn-lg" data-cms="online.btn2">Request a repeat prescription</a>
       </div>
       <div class="trust-row">
         <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Video or phone</span>
+        <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Open 7 days</span>
         <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private &amp; secure</span>
         <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pay by card at booking</span>
       </div>
@@ -98,7 +135,7 @@
   <div class="container">
     <div class="sec-head center"><p class="eyebrow">Choose a consultation</p><h2>What would you like to see a GP about?</h2><p>Prices are shown upfront — no surprises.</p></div>
     <div class="svc-cards" data-services="cards" aria-live="polite" aria-busy="true"><span class="sr-only">Loading services…</span><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div><div class="skel-card" aria-hidden="true"><div class="skeleton skel-chip"></div><div class="skeleton skel-line w80"></div><div class="skeleton skel-line w40"></div><div class="skeleton skel-line w60"></div><div class="skeleton skel-btn"></div></div></div>
-    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/fees.html">See all fees →</a></p>
+    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/fees/">See all fees →</a></p>
   </div>
 </section>
 
@@ -106,11 +143,11 @@
   <div class="container">
     <div class="sec-head center"><p class="eyebrow">Common conditions</p><h2>Treatment for everyday conditions, online</h2><p>Answer a few safety questions and your GP can assess whether a prescription is appropriate.</p></div>
     <div class="chip-links" style="justify-content:center;">
-      <a href="/uti.html">UTI / cystitis</a><a href="/contraception.html">Contraception</a><a href="/period-delay.html">Delaying your period</a>
-      <a href="/asthma.html">Asthma</a><a href="/migraine.html">Migraine</a><a href="/hay-fever.html">Hay fever</a>
-      <a href="/eczema-psoriasis.html">Eczema &amp; psoriasis</a><a href="/acne.html">Acne</a><a href="/cold-sores.html">Cold sores</a>
-      <a href="/hair-loss.html">Hair loss</a><a href="/ed.html">Erectile dysfunction</a><a href="/hypothyroidism.html">Underactive thyroid</a>
-      <a href="/stop-smoking.html">Stopping smoking</a>
+      <a href="/online-gp/uti/">UTI / cystitis</a><a href="/online-gp/contraception/">Contraception</a><a href="/online-gp/period-delay/">Delaying your period</a>
+      <a href="/online-gp/asthma/">Asthma</a><a href="/online-gp/migraine/">Migraine</a><a href="/online-gp/hay-fever/">Hay fever</a>
+      <a href="/online-gp/eczema-psoriasis/">Eczema &amp; psoriasis</a><a href="/online-gp/acne/">Acne</a><a href="/online-gp/cold-sores/">Cold sores</a>
+      <a href="/online-gp/hair-loss/">Hair loss</a><a href="/online-gp/erectile-dysfunction/">Erectile dysfunction</a><a href="/online-gp/underactive-thyroid/">Underactive thyroid</a>
+      <a href="/online-gp/stop-smoking/">Stopping smoking</a>
     </div>
   </div>
 </section>
@@ -146,23 +183,27 @@
 <section class="sec">
   <div class="container">
     <div class="sec-head center"><p class="eyebrow">Online GP questions</p><h2>Common questions</h2></div>
-    <div class="faq">
+    <!-- @faq-online -->
+<div class="faq">
   <details><summary>What is an online GP consultation?</summary><p>A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer.</p></details>
-  <details><summary>Can I see a GP online?</summary><p>Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose <a href="/book.html">Book Online</a>, pick a service and a time that suits you.</p></details>
+  <details><summary>Can I see a GP online in Ireland?</summary><p>Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose <a href="/book.html">Book Online</a>, pick a service and a time that suits you.</p></details>
   <details><summary>How do I book an online GP consultation?</summary><p>Choose <a href="/book.html">Book Online</a>, pick a service, tell us briefly what's going on, choose a time and pay by card. You'll get a confirmation with a private link to your consultation.</p></details>
   <details><summary>What happens during an online consultation?</summary><p>At your appointment time you join a private video or phone call using the link on your confirmation page. Your GP will talk through what's going on, ask the questions they need to, and advise on next steps. Where clinically appropriate that may include a prescription, a certificate, a letter or a referral — or a recommendation to be seen in person.</p></details>
   <details><summary>What do I need for a video consultation?</summary><p>A phone, tablet or computer with a camera and microphone, a stable internet connection, and somewhere private. For a phone consultation you just need your phone.</p></details>
   <details><summary>Is an online consultation right for every problem?</summary><p>No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic.</p></details>
-  <details><summary>How do I pay for an online consultation?</summary><p>By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details.</p></details>
+  <details><summary>Should I see a GP online or at the walk-in clinic?</summary><p>Online consultations suit advice, repeat prescriptions, certificates and follow-ups, and you can have one from anywhere in Ireland. If your problem needs to be examined — a sore ear, a rash that needs a closer look, an injury — come to our <a href="/walk-in-gp-newbridge/">walk-in clinic in Newbridge</a> instead. If you're unsure, the walk-in clinic is the safer choice.</p></details>
   <details><summary>Will I always be given a prescription?</summary><p>No. A prescription is only issued where your GP considers it clinically appropriate and safe for you.</p></details>
+  <details><summary>How much does a consultation cost?</summary><p>Online consultation prices are shown on our <a href="/fees/">Fees page</a> and again before you pay. For walk-in and family practice fees, please <a href="/contact/">contact us</a> or ask at reception.</p></details>
+  <details><summary>How do I pay for an online consultation?</summary><p>By card when you book. Payment is processed securely by Stripe — GP4U never sees or stores your card details.</p></details>
 </div>
-    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/faq.html">See all FAQs →</a></p>
+<!-- @/faq-online -->
+    <p style="text-align:center;margin:28px 0 0;"><a class="link-arrow" href="/faq/">See all FAQs →</a></p>
   </div>
 </section>
 
 <section class="sec sec-tight">
   <div class="container">
-    <div class="callout"><p><strong>Prefer to be seen in person?</strong> GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare — no appointment needed. <a href="/walk-in.html">Visit our walk-in clinic</a></p></div>
+    <div class="callout"><p><strong>Prefer to be seen in person?</strong> GP4U Clinic is a walk-in clinic and comprehensive family practice in Newbridge, Co. Kildare — no appointment needed. <a href="/walk-in-gp-newbridge/">Visit our walk-in clinic</a></p></div>
     <div style="margin-top:20px;"><div class="notice-strip"><strong>In an emergency, call 112 or 999</strong> or go to your nearest Emergency Department. GP4U is not an emergency service.</div></div>
   </div>
 </section>
@@ -185,33 +226,33 @@
       <div class="footer-hours-col">
         <h4>Walk-in clinic hours</h4>
         <div data-clinic-hours></div>
-        <p class="footer-online"><strong>Online GP:</strong> <span data-online-hours-text></span></p>
+        <p class="footer-online"><strong>Online GP:</strong> open 7 days. <span data-online-hours-text></span></p>
       </div>
       <div>
         <h4>Book &amp; visit</h4>
         <ul>
-          <li><a href="/book-now.html">Book a GP</a></li>
-          <li><a href="/walk-in.html">Walk-in clinic</a></li>
-          <li><a href="/online.html">Online GP</a></li>
-          <li><a href="/new-patients.html">Register as a patient</a></li>
-          <li><a href="/contact.html">Contact</a></li>
+          <li><a href="/book/">Book a GP</a></li>
+          <li><a href="/walk-in-gp-newbridge/">Walk-in clinic</a></li>
+          <li><a href="/online-gp/">Online GP</a></li>
+          <li><a href="/family-gp/">Register as a patient</a></li>
+          <li><a href="/contact/">Contact</a></li>
         </ul>
       </div>
       <div>
         <h4>Information</h4>
         <ul>
-          <li><a href="/services.html">Services</a></li>
-          <li><a href="/fees.html">Fees</a></li>
-          <li><a href="/about.html">About GP4U</a></li>
-          <li><a href="/faq.html">FAQs</a></li>
+          <li><a href="/services/">Services</a></li>
+          <li><a href="/fees/">Fees</a></li>
+          <li><a href="/about/">About GP4U</a></li>
+          <li><a href="/faq/">FAQs</a></li>
         </ul>
       </div>
       <div>
         <h4>Legal</h4>
         <ul>
-          <li><a href="/privacy.html">Privacy &amp; GDPR Notice</a></li>
-          <li><a href="/privacy.html#terms">Terms of Use</a></li>
-          <li><a href="/privacy.html#cookies">Cookies</a></li>
+          <li><a href="/privacy/">Privacy &amp; GDPR Notice</a></li>
+          <li><a href="/privacy/#terms">Terms of Use</a></li>
+          <li><a href="/privacy/#cookies">Cookies</a></li>
           <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
@@ -227,14 +268,14 @@
 <!-- @sticky -->
 <div class="sticky-cta" role="region" aria-label="Book a GP">
   <a class="btn btn-primary" href="/book.html">Book online</a>
-  <a class="btn btn-secondary" href="/walk-in.html">Walk-in clinic</a>
+  <a class="btn btn-secondary" href="/walk-in-gp-newbridge/">Walk-in clinic</a>
 </div>
 <!-- @/sticky -->
 
-<script src="/js/questionnaires.js?v=1201355e"></script>
-<script src="/js/services-list.js?v=da2a9e12"></script>
+<script src="/js/questionnaires.js?v=d2ce8a6e"></script>
+<script src="/js/services-list.js?v=268a777e"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=34e440f6"></script>
-<script src="/js/nav-toggle.js?v=f65c51ad"></script>
+<script src="/js/nav-toggle.js?v=b1c26f07"></script>
 </body>
 </html>

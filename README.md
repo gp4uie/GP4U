@@ -273,38 +273,62 @@ is a well-scoped next step once this version has been tested.
 
 ## 8. SEO — getting found on Google
 
-**Nobody can guarantee a top search ranking** — it depends on things no code change controls: how
-long a site's been live, who links to it, and how competitive the search terms are. "GP" + "Ireland"
-is a competitive space. What's done here is the technical foundation, so the site isn't starting
-from zero once it's actually live.
+**Nobody can guarantee a top search ranking.** It depends on things no code change controls: how long the site has been
+live, who links to it, reviews, and the Google Business Profile. What the code does is make every page clear, fast,
+crawlable and accurate. (Full SEO pass: September 2026.)
 
-**Already in place:**
-- Unique title and meta description on the homepage, booking page, and blog, written around real
-  search terms people use ("online GP Ireland", "book GP appointment online", etc.)
-- Open Graph / Twitter card tags, so links shared on social media or WhatsApp show a proper preview
-- `schema.org` structured data (`MedicalBusiness`) on the homepage, which can help Google show richer
-  results and matters for local/medical search
-- `robots.txt` and `sitemap.xml`, so search engines know what to crawl
-- Every private/functional page (dashboard, patient portal, booking confirmation, video call,
-  printable prescriptions/documents) is marked `noindex` — these should never show up in search
-  results or get cached by Google, which matters for privacy as much as SEO, since some of these
-  pages are only "protected" by a link containing a token
-- A favicon, so the site looks finished in browser tabs and bookmarks
+**Page addresses (one list: `server/pages.js`).** Every public page has one short address, and every old `.html` address
+301-redirects to it, so old links and bookmarks keep working:
 
-**Still needed once the site is actually hosted on gp4u.ie (none of this works from localhost):**
-- Verify the site in [Google Search Console](https://search.google.com/search-console) and submit
-  `sitemap.xml` — this is what actually tells Google the site exists
-- Set up a **Google Business Profile** for the practice — for a local medical service, this matters
-  more for being found than almost anything else here
-- Update `PRACTICE_ADDRESS`/`PRACTICE_PHONE` in `.env` with your real details — search engines and
-  patients both use these for trust and local relevance
-- Get listed on Irish health/business directories (these create the "backlinks" that build trust
-  with Google over time)
-- Keep adding real posts to the Health Info blog via the content editor — regularly updated,
-  genuinely useful content is one of the few SEO factors actually within your control
-- Once on a real domain, confirm HTTPS is working (Section 6) — Google treats non-HTTPS sites worse
-- Double check the `https://www.gp4u.ie/` URLs baked into the meta tags and `sitemap.xml` match
-  your actual final domain before going live
+| Page | Address | File |
+|---|---|---|
+| Home | `/` | index.html |
+| Online GP | `/online-gp/` | online.html |
+| Walk-in clinic (Google Business Profile landing page) | `/walk-in-gp-newbridge/` | walk-in.html |
+| Family GP / registration | `/family-gp/` | new-patients.html |
+| Services, Fees, About, FAQs, Contact | `/services/`, `/fees/`, `/about/`, `/faq/`, `/contact/` | services.html … |
+| Repeat prescriptions | `/online-gp/repeat-prescription/` | repeat-prescription.html |
+| Condition pages (13) | `/online-gp/acne/`, `/online-gp/uti/`, `/online-gp/erectile-dysfunction/` … | acne.html … |
+| Privacy | `/privacy/` | privacy.html |
+| Book a GP (chooser) — noindex | `/book/` | book-now.html |
+| Online booking wizard — noindex, address unchanged | `/book.html` | book.html |
+
+`gp4u.ie` redirects to `www.gp4u.ie`; `/online-gp` redirects to `/online-gp/`; unknown addresses show a proper 404 page.
+
+**Titles, descriptions, social tags, breadcrumbs:** set per page in `server/pages.js`, written into each page by
+`npm run pages` (between `<!-- @seo -->` and `<!-- @crumbs -->` markers). Social preview images are
+`public/img/social/` (1200×630, "One tap. Real care." and, for clinic pages, "GP care when you need it.").
+
+**Structured data (schema.org):**
+- Home, walk-in and contact pages: `MedicalOrganization` (GP4U) + `MedicalClinic` (GP4U Clinic, Newbridge). Built by the
+  server from the LIVE clinic settings (Admin → Website settings), so the opening hours, closures, email — and phone,
+  street address and Eircode once you enter them — always match what patients see. Nothing is added that isn't set there.
+- Home: `WebSite`. Online GP page: `Service` (online GP consultations, Ireland). Condition pages: `MedicalWebPage` + `FAQPage`.
+- FAQ page: `FAQPage` built from `server/faqDefaults.js`. Every inner page: `BreadcrumbList`.
+- No reviews, ratings or awards are marked up — add those only when they genuinely exist.
+
+**Content written into the HTML, not only by script:** condition-page text, safety lists and FAQs, the repeat-prescription
+list, all FAQ lists, and the clinic address/opening hours (the server fills these in). Prices still update live in the browser;
+`robots.txt` lets search engines load `/api/services` and `/api/site-settings.js` so they see them too.
+
+**Measuring calls to action (no analytics installed yet):** clicks on booking, walk-in, registration, phone, email and
+directions links are pushed to `window.dataLayer` *if* an analytics tool is added later — only the action name and page
+address, never form contents or health details. Adding an analytics tool needs a cookie-consent decision first (GDPR/ePrivacy).
+
+**Check it:** `npm run seo-check` (local) or `node scripts/seo-check.js https://www.gp4u.ie` (live, after deploying) —
+titles, descriptions, H1s, canonicals, noindex, social tags, structured data, image alt/sizes, every internal link,
+all redirects, the 404, robots.txt and the sitemap.
+
+**Still needed — outside the code:**
+- Google Search Console: submit `https://www.gp4u.ie/sitemap.xml` and request indexing of the new addresses (the site is
+  already verified with the meta tag on the homepage). Check "Pages" and "Enhancements" a week or two later.
+- Google Business Profile for GP4U Clinic, Newbridge: website link `https://www.gp4u.ie/walk-in-gp-newbridge/`, same name,
+  address, phone and hours as the website, category "Medical clinic" / "General practitioner", real photos, and replying to reviews.
+- Street address, Eircode and phone number (Admin → Website settings) — the single biggest local-search gap today.
+- Consistent listings (NAP) on Irish directories, and links from local organisations.
+- GP sign-off of the condition-page text (`public/js/condition-content.js` — written as a draft by a non-clinician) and a
+  named clinical reviewer for it; lead GP name, qualifications and Medical Council number (Admin → Fees & lead GP).
+- Real photos of the clinic and team to replace the stock photos.
 
 ## 9. Deploying to Hostinger (going live on gp4u.ie)
 
@@ -375,7 +399,7 @@ practice in Newbridge, Co. Kildare — with online consultations as one section 
 
 **Page map**
 - `index.html` — clinic homepage (open-now badge, hours, three ways to see a GP, services, how walk-in works)
-- `walk-in.html`, `services.html`, `new-patients.html`, `contact.html` — clinic pages
+- `walk-in.html` (/walk-in-gp-newbridge/), `services.html`, `new-patients.html` (/family-gp/), `contact.html` — clinic pages (addresses: Section 8)
 - `online.html` — everything telemedicine (previously the homepage). The "See a GP Online" button in the
   header on every page leads here. The booking flow, condition pages, patient portal and doctor dashboard are unchanged.
 
@@ -440,14 +464,14 @@ sticky **Online GP / Walk-in** bar stays at the bottom of the screen.
 
 and commit the changed HTML. Pages mark where a part goes with `<!-- @header --> … <!-- @/header -->` comments.
 
-**Generated pages.** `index`, `online`, `book-now`, `fees`, `about`, `faq`, `services` and `contact` are generated by `scripts/generate-pages.js`
-(edit the text there, then `npm run generate`). The FAQ answers are defined once and feed the FAQ page, its search-engine
-FAQ data, and the short FAQ lists on the homepage and Online GP page. **Do not hand-edit those eight HTML files.**
-`walk-in`, `new-patients` and the older pages (condition pages, booking, blog, privacy…) are plain HTML.
+**Pages are plain HTML.** Edit the `.html` files in `public/` directly (the old `scripts/generate-pages.js` generator was
+retired in September 2026 — the pages had moved on from it, and running it would have overwritten later work). Page
+titles/descriptions live in `server/pages.js`; FAQ answers live once in `server/faqDefaults.js` and `npm run pages` writes
+them into the FAQ page (with its structured data), the Online GP page and the walk-in page.
 
 **Prices** on the Fees, Online GP, homepage and Book Now pages come live from your service catalogue (edited in the admin
 content editor), so they can never disagree with what patients are charged. Clinic (walk-in / family practice) fees are
-not published yet — the Fees page says so; edit that box in `scripts/generate-pages.js` when fees are decided.
+not published yet — the Fees page says so; add them in Admin → Website settings → Fees when they are decided.
 
 **Design system:** `public/css/style.css` (base) + `public/css/clinic.css` (design tokens, components, and a compatibility
 skin so the older pages match). Colours/spacing are variables at the top of `clinic.css`.
@@ -457,7 +481,7 @@ sweep of every page, metadata/alt/label/landmark/link audit, colour-contrast che
 booking API, both clinic forms and the signed-in patient experience.
 
 **Still needs your input:** clinic fees, phone number, street address, company details, real clinic photos, lead-GP name/photo
-(see the TODO in `scripts/generate-pages.js` under "Medical leadership"), and confirmation of the FAQ answers marked
+(Admin → Website settings → Fees & lead GP), and confirmation of the FAQ answers marked
 in the summary as policy-dependent (children online, cancellations, test results).
 
 ### Automated end-to-end tests

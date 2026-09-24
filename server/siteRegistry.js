@@ -30,7 +30,7 @@ const TEXT = [
   T('home.hours.online.title', 'index.html', 'Home page', 'Online GP box: title', 'Online GP', { nth: 1 }),
   T('home.help.title', 'index.html', 'Home page', 'Three cards: heading', 'How can we help you today?'),
   T('home.card.online.title', 'index.html', 'Home page', 'Online card: title', 'I want to speak to a GP online'),
-  T('home.card.online.sub', 'index.html', 'Home page', 'Online card: line under title', 'Video or phone · anywhere in Ireland'),
+  T('home.card.online.sub', 'index.html', 'Home page', 'Online card: line under title', 'Video or phone · anywhere in Ireland · 7 days'),
   T('home.card.online.go', 'index.html', 'Home page', 'Online card: link text', 'Online GP', { nth: 2 }),
   T('home.card.walkin.title', 'index.html', 'Home page', 'Walk-in card: title', 'I need to see a GP today'),
   T('home.card.walkin.sub', 'index.html', 'Home page', 'Walk-in card: line under title', 'Walk-in clinic · Newbridge · No appointment needed'),
@@ -80,9 +80,9 @@ const TEXT = [
   T('home.cta.btn.register', 'index.html', 'Home page', 'Bottom band: button 2', 'Register with GP', { nth: 3 }),
 
   // ---------------------------------------------------------------- Walk-in clinic page
-  T('walkin.eyebrow', 'walk-in.html', 'Walk-in clinic page', 'Small heading', 'Walk-in clinic'),
-  T('walkin.title', 'walk-in.html', 'Walk-in clinic page', 'Headline', 'See a GP today. No appointment needed.'),
-  T('walkin.lead', 'walk-in.html', 'Walk-in clinic page', 'Sentence under the headline', "Come in any day of the week during opening hours — or check in online so we know you're on your way.", { long: true }),
+  T('walkin.eyebrow', 'walk-in.html', 'Walk-in clinic page', 'Small heading', 'Walk-in clinic · Newbridge, Co. Kildare'),
+  T('walkin.title', 'walk-in.html', 'Walk-in clinic page', 'Headline', 'Walk-in GP care in Newbridge'),
+  T('walkin.lead', 'walk-in.html', 'Walk-in clinic page', 'Sentence under the headline', "GP care when you need it. No appointment needed — come in any day of the week during opening hours, or check in online so we know you're on your way.", { long: true }),
   T('walkin.btn1', 'walk-in.html', 'Walk-in clinic page', 'Button 1', 'Check in online'),
   T('walkin.btn2', 'walk-in.html', 'Walk-in clinic page', 'Button 2', 'Opening hours'),
 
@@ -104,7 +104,7 @@ const TEXT = [
 
   // ---------------------------------------------------------------- Services page
   T('services.eyebrow', 'services.html', 'Services page', 'Small heading', 'Our services'),
-  T('services.title', 'services.html', 'Services page', 'Headline', 'How can we help?'),
+  T('services.title', 'services.html', 'Services page', 'Headline', 'GP services in Newbridge and online'),
   T('services.lead', 'services.html', 'Services page', 'Sentence under the headline', 'Everyday illness and the ongoing care your family needs — at our walk-in clinic in Newbridge, or online from home.', { long: true }),
   T('services.btn1', 'services.html', 'Services page', 'Button 1', 'Walk-In Clinic'),
   T('services.btn2', 'services.html', 'Services page', 'Button 2', 'See a GP Online'),
@@ -117,9 +117,9 @@ const TEXT = [
   T('about.btn2', 'about.html', 'About page', 'Button 2', 'See a GP Online'),
 
   // ---------------------------------------------------------------- Register page
-  T('register.eyebrow', 'new-patients.html', 'Register page', 'Small heading', 'Comprehensive family practice'),
-  T('register.title', 'new-patients.html', 'Register page', 'Headline', 'Join our comprehensive family practice'),
-  T('register.lead', 'new-patients.html', 'Register page', 'Sentence under the headline', 'Register with GP4U Clinic for continuing care for you and your whole family — from babies and children to older adults.', { long: true }),
+  T('register.eyebrow', 'new-patients.html', 'Register page', 'Small heading', 'Family GP · Newbridge, Co. Kildare'),
+  T('register.title', 'new-patients.html', 'Register page', 'Headline', 'Family GP care for you and your family'),
+  T('register.lead', 'new-patients.html', 'Register page', 'Sentence under the headline', 'Register with GP4U Clinic in Newbridge for continuing GP care for you and your whole family — from babies and children to older adults.', { long: true }),
   T('register.btn1', 'new-patients.html', 'Register page', 'Button 1', 'Start registration'),
   T('register.btn2', 'new-patients.html', 'Register page', 'Button 2', 'Need to be seen today?'),
 

@@ -14,6 +14,7 @@ const contentRoutes = require('./routes/content');
 const siteRoutes = require('./routes/site');
 const clinicRoutes = require('./routes/clinic');
 const { router: receptionRoutes } = require('./routes/reception');
+const seo = require('./seo');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -36,6 +37,11 @@ app.use((req, res, next) => {
   if (isHttps) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
   next();
 });
+
+// One address per page (www, clean URLs, 301s from the old .html addresses), then the public pages themselves
+// with the live clinic details written in — before the static files, so /walk-in.html never serves a duplicate.
+app.use(seo.redirects);
+app.use(seo.pages);
 
 app.use(express.json());
 // Sessions last until the user explicitly logs out, not on a timer — a long maxAge rather than
@@ -85,6 +91,7 @@ app.use('/api/patient', patientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', contentRoutes);
 app.use('/api', siteRoutes);
+app.use(seo.notFound);
 
 db.initSchema()
   .then(() => {

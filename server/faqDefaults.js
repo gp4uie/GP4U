@@ -12,7 +12,7 @@ const FAQ = [
         "A consultation with a GP by video or phone instead of at the clinic. You book a time online, pay securely, and join from your phone, tablet or computer."
       ],
       [
-        "Can I see a GP online?",
+        "Can I see a GP online in Ireland?",
         "Yes. You can book a video or phone consultation with one of our Irish-registered GPs from anywhere in Ireland. Choose <a href=\"/book.html\">Book Online</a>, pick a service and a time that suits you."
       ],
       [
@@ -30,6 +30,10 @@ const FAQ = [
       [
         "Is an online consultation right for every problem?",
         "No. Some problems need to be examined in person. If your GP thinks you need an in-person examination they will tell you, and you can be seen at our walk-in clinic."
+      ],
+      [
+        "Should I see a GP online or at the walk-in clinic?",
+        "Online consultations suit advice, repeat prescriptions, certificates and follow-ups, and you can have one from anywhere in Ireland. If your problem needs to be examined — a sore ear, a rash that needs a closer look, an injury — come to our <a href=\"/walk-in-gp-newbridge/\">walk-in clinic in Newbridge</a> instead. If you're unsure, the walk-in clinic is the safer choice."
       ]
     ]
   },
@@ -38,12 +42,16 @@ const FAQ = [
     "title": "Walk-in clinic",
     "items": [
       [
+        "Where is the GP4U walk-in clinic?",
+        "Our walk-in clinic is in Newbridge, Co. Kildare. Opening hours and how to reach us are on our <a href=\"/walk-in-gp-newbridge/\">walk-in clinic page</a> and <a href=\"/contact/\">contact page</a>."
+      ],
+      [
         "Do I need an appointment?",
-        "No appointment is required. You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time. You can <a href=\"/walk-in.html#book-in\">check in online</a> if you'd like to."
+        "No appointment is required. You can simply walk in during opening hours. Checking in online lets us know you're on your way and helps us prepare for your visit, but it does not reserve a specific appointment time. You can <a href=\"/walk-in-gp-newbridge/#book-in\">check in online</a> if you'd like to."
       ],
       [
         "How does the walk-in clinic work?",
-        "Walk in during opening hours, check in at reception, and see a GP. If you'd like, you can <a href=\"/walk-in.html#book-in\">check in online</a> first so we know you're on your way. Waiting times vary depending on how busy we are."
+        "Walk in during opening hours, check in at reception, and see a GP. If you'd like, you can <a href=\"/walk-in-gp-newbridge/#book-in\">check in online</a> first so we know you're on your way. Waiting times vary depending on how busy we are."
       ],
       [
         "When is the walk-in clinic open?",
@@ -65,11 +73,15 @@ const FAQ = [
     "items": [
       [
         "How do I register as a family practice patient?",
-        "Complete our short <a href=\"/new-patients.html\">registration form</a>. Our team will review your details and get in touch, and you'll receive a confirmation email with a reference number."
+        "Complete our short <a href=\"/family-gp/\">registration form</a>. Our team will review your details and get in touch, and you'll receive a confirmation email with a reference number."
       ],
       [
         "Can I register my family?",
         "Yes. The registration form lets you add your partner, children and other family members — up to eight people in one go."
+      ],
+      [
+        "Do I need to register to use the walk-in clinic?",
+        "No. Anyone can use the walk-in clinic without registering. Registering with our <a href=\"/family-gp/\">family practice</a> is for ongoing care — for you and your family, including reviews of long-term conditions and follow-up — rather than one-off visits."
       ]
     ]
   },
@@ -83,7 +95,7 @@ const FAQ = [
       ],
       [
         "How do repeat prescriptions work online?",
-        "Choose your condition on the <a href=\"/repeat-prescription.html\">repeat prescription page</a>, answer a few safety questions and pick a time. If your GP approves the request, they email the prescription directly to the pharmacy you name."
+        "Choose your condition on the <a href=\"/online-gp/repeat-prescription/\">repeat prescription page</a>, answer a few safety questions and pick a time. If your GP approves the request, they email the prescription directly to the pharmacy you name."
       ],
       [
         "Will I always be given a prescription?",
@@ -121,7 +133,7 @@ const FAQ = [
     "items": [
       [
         "How will I get my test results?",
-        "If your GP arranges tests, they will explain at your consultation how you'll receive the results. If you're unsure, please <a href=\"/contact.html\">contact us</a>."
+        "If your GP arranges tests, they will explain at your consultation how you'll receive the results. If you're unsure, please <a href=\"/contact/\">contact us</a>."
       ]
     ]
   },
@@ -131,7 +143,7 @@ const FAQ = [
     "items": [
       [
         "How much does a consultation cost?",
-        "Online consultation prices are shown on our <a href=\"/fees.html\">Fees page</a> and again before you pay. For walk-in and family practice fees, please <a href=\"/contact.html\">contact us</a> or ask at reception."
+        "Online consultation prices are shown on our <a href=\"/fees/\">Fees page</a> and again before you pay. For walk-in and family practice fees, please <a href=\"/contact/\">contact us</a> or ask at reception."
       ],
       [
         "How do I pay for an online consultation?",
@@ -145,7 +157,7 @@ const FAQ = [
     "items": [
       [
         "Do you see children?",
-        "Our family practice cares for children as well as adults, and children can be brought to the walk-in clinic. For an online consultation for a child, please <a href=\"/contact.html\">contact us</a> first."
+        "Our family practice cares for children as well as adults, and children can be brought to the walk-in clinic. For an online consultation for a child, please <a href=\"/contact/\">contact us</a> first."
       ]
     ]
   },
@@ -155,7 +167,7 @@ const FAQ = [
     "items": [
       [
         "Is my health information private?",
-        "Yes. Your health information is encrypted and handled in line with GDPR, and access is restricted to authorised staff. Read our <a href=\"/privacy.html\">Privacy &amp; GDPR Notice</a> for full details."
+        "Yes. Your health information is encrypted and handled in line with GDPR, and access is restricted to authorised staff. Read our <a href=\"/privacy/\">Privacy &amp; GDPR Notice</a> for full details."
       ]
     ]
   },
@@ -165,7 +177,7 @@ const FAQ = [
     "items": [
       [
         "What if I need to cancel or change my booking?",
-        "Please <a href=\"/contact.html\">contact us</a> as soon as you can and we'll help you."
+        "Please <a href=\"/contact/\">contact us</a> as soon as you can and we'll help you."
       ]
     ]
   },

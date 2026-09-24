@@ -1176,3 +1176,20 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .book-compact .progress-now { margin: 4px 0 8px; }
 .book-compact .slot-intro { margin: 0 0 4px; font-size: 0.95rem; }
 .book-compact .slot-day-label { margin-top: 8px; }
+
+/* ==========================================================================================================
+   Breadcrumbs, homepage intro line and "more" links (search-engine pass, Sept 2026) — existing palette only
+   ========================================================================================================== */
+.crumbs { font-size: .86rem; padding: 14px 0 0; }
+.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; padding: 0; }
+.crumbs li { display: inline-flex; align-items: center; color: var(--muted); }
+.crumbs li + li::before { content: "›"; margin: 0 8px; color: var(--muted); }
+.crumbs a { color: var(--teal); text-decoration: none; font-weight: 600; }
+.crumbs a:hover, .crumbs a:focus-visible { text-decoration: underline; }
+.crumbs [aria-current="page"] { color: var(--ink); font-weight: 600; }
+.crumbs + .phero, .crumbs + .hero { padding-top: clamp(18px, 3vw, 40px); }
+.hero3 .hero-intro { font-size: .98rem; color: var(--muted); max-width: 30em; margin: 12px 0 0; }
+.need-more { margin: 22px 0 0; font-size: .95rem; color: var(--muted); }
+.need-more a { font-weight: 700; white-space: nowrap; }
+.page-note { max-width: 760px; }
+.page-note p { font-size: 1.02rem; }

@@ -1,3 +1,6 @@
+# www.gp4u.ie — public pages, styles, scripts and images are all crawlable.
+# Private areas (staff, patient accounts, booking confirmations, video calls, printable documents) are kept out;
+# each of those pages is also marked noindex.
 User-agent: *
 Allow: /
 Disallow: /dashboard.html
@@ -11,7 +14,12 @@ Disallow: /print-rx.html
 Disallow: /print-doc.html
 Disallow: /admin-login.html
 Disallow: /admin-dashboard.html
+Disallow: /admin-site.html
 Disallow: /reset-password.html
+# The API is private, except the three read-only files pages need to show opening hours, prices and photos.
 Disallow: /api/
+Allow: /api/site-settings.js
+Allow: /api/services
+Allow: /api/site-image/
 
 Sitemap: https://www.gp4u.ie/sitemap.xml

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patient Login — GP4U</title>
-<meta name="robots" content="noindex, nofollow">
+<title>Page not found | GP4U</title>
+<meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="/img/gp4u-icon.svg">
 <!-- @head -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,8 +14,7 @@
 <link rel="stylesheet" href="/css/clinic.css?v=2cd24f66">
 <!-- @/head -->
 </head>
-<body class="clinic-page on-light" data-sticky="off">
-
+<body class="clinic-page on-light">
 <!-- @topbar -->
 <a class="skip-link" href="#main">Skip to main content</a>
 <div class="topbar"><div class="container">
@@ -47,22 +46,23 @@
 <!-- @/header -->
 <main id="main">
 
-<div class="page-shell" style="max-width:380px;">
-  <h1>Patient Login</h1>
-  <p style="color:var(--ink-500);">Log in to see all your bookings in one place. If you haven't set a
-  password yet, use the link from your booking confirmation email instead — it'll offer to set one up.</p>
-  <div class="form-row"><label for="emailInput">Email</label><input type="email" id="emailInput"></div>
-  <div class="form-row"><label for="passwordInput">Password</label><input type="password" id="passwordInput"></div>
-  <button class="btn btn-primary btn-block" onclick="login()">Log In</button>
-  <p id="loginError" role="alert" style="color:#c0392b;"></p>
-  <p><a href="#" id="forgotLink">Forgot your password?</a></p>
-
-  <div id="forgotBox" style="display:none;">
-    <div class="form-row"><label for="forgotEmailInput">Email</label><input type="email" id="forgotEmailInput"></div>
-    <button class="btn btn-secondary btn-block" onclick="submitForgot()">Send Reset Link</button>
-    <p id="forgotMsg"></p>
+<section class="phero">
+  <div class="container page-note">
+    <p class="eyebrow">Page not found</p>
+    <h1>Sorry, we can't find that page</h1>
+    <p class="lead">The page may have moved, or the address may be mistyped. These are the pages most people are looking for:</p>
+    <ul class="tick-list" style="grid-template-columns:1fr;margin-top:22px;">
+      <li><a href="/online-gp/">Online GP consultations</a> — see a GP by video or phone, anywhere in Ireland</li>
+      <li><a href="/walk-in-gp-newbridge/">Walk-in GP clinic in Newbridge</a> — no appointment needed</li>
+      <li><a href="/family-gp/">Register with our family GP practice</a></li>
+      <li><a href="/online-gp/repeat-prescription/">Repeat prescriptions online</a></li>
+      <li><a href="/fees/">Fees</a>, <a href="/faq/">FAQs</a> and <a href="/contact/">contact details</a></li>
+    </ul>
+    <p style="margin-top:26px;"><a href="/" class="btn btn-primary btn-lg">Go to the home page</a></p>
   </div>
-</div>
+</section>
+
+<section class="sec sec-tight"><div class="container"><div class="notice-strip"><strong>In an emergency, call 112 or 999</strong> or go to your nearest Emergency Department. GP4U is not an emergency service.</div></div></section>
 
 </main>
 
@@ -129,41 +129,6 @@
 </div>
 <!-- @/sticky -->
 
-<script>
-async function login() {
-  const email = document.getElementById('emailInput').value;
-  const password = document.getElementById('passwordInput').value;
-  const res = await fetch('/api/patient/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  if (res.ok) {
-    window.location.href = '/patient-portal.html';
-  } else {
-    document.getElementById('loginError').textContent = data.error;
-  }
-}
-
-document.getElementById('forgotLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  document.getElementById('forgotBox').style.display = 'block';
-  e.target.style.display = 'none';
-});
-
-async function submitForgot() {
-  const email = document.getElementById('forgotEmailInput').value;
-  const res = await fetch('/api/patient/forgot-password', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-  const data = await res.json();
-  document.getElementById('forgotMsg').style.color = 'var(--teal-700)';
-  document.getElementById('forgotMsg').textContent = data.message || data.error;
-}
-</script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=34e440f6"></script>
 <script src="/js/nav-toggle.js?v=b1c26f07"></script>

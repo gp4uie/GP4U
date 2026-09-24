@@ -13,6 +13,9 @@
  * old styling (which shows up as an unstyled "Skip to main content" link at the top left).
  * Re-run this after changing ANY css/js file, then commit and deploy.
  *
+ * It then writes the search-engine parts from server/pages.js (titles, descriptions, canonical and social tags,
+ * breadcrumbs, condition-page content, links to each page's current address) — see scripts/lib/seo-build.js.
+ *
  * Usage:  node scripts/build-pages.js      (or: npm run pages)
  * Edit a partial or a css/js file, run the script, commit the changed HTML. No dependencies.
  */
@@ -20,6 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { tagPage } = require('./lib/tag-cms');
+const seo = require('./lib/seo-build');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const PARTIALS = path.join(__dirname, 'partials');
@@ -48,11 +52,12 @@ let unknown = 0;
 for (const file of fs.readdirSync(PUBLIC).filter((f) => f.endsWith('.html'))) {
   const full = path.join(PUBLIC, file);
   const before = fs.readFileSync(full, 'utf8');
-  const stamped = before.replace(MARKER, (match, name) => {
+  const stamped = seo.apply(file, before).replace(MARKER, (match, name) => {
+    if (seo.OWN_NAMES.test(name)) return match; // search-engine parts, written above
     if (!parts[name]) { console.warn(`  ! ${file}: no partial named "${name}"`); unknown += 1; return match; }
     return `<!-- @${name} -->\n${parts[name]}\n<!-- @/${name} -->`;
   });
-  const tagged = tagPage(file, stamped);
+  const tagged = seo.rewriteLinks(tagPage(file, stamped));
   const after = tagged.replace(ASSET, (match, attr, url) => {
     const v = versionOf(url);
     return v ? `${attr}="${url}?v=${v}"` : match;

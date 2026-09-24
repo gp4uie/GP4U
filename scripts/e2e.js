@@ -177,7 +177,7 @@ async function main() {
       assert(await tab.ev(`getComputedStyle(document.querySelector('.header-book')).display === 'none'`), 'the phone-only Book a GP button is showing on desktop (duplicate)');
       assert(await tab.ev(`document.querySelector('.brand').textContent.replace(/\\s+/g, ' ').trim() === 'GP4U Clinic'`), 'logo text should read "GP4U Clinic" with a single space');
       await tab.clickNav(`[...document.querySelectorAll('nav.main-nav a.btn-primary')].find((a) => a.offsetParent !== null)`);
-      assert(await tab.ev('location.pathname') === '/book-now.html', 'Book a GP did not open /book-now.html');
+      assert(await tab.ev('location.pathname') === '/book/', 'Book a GP did not open /book/');
       const both = await tab.ev(`!!([...document.querySelectorAll('a')].find((a) => /Book an Online GP Consultation/.test(a.textContent))) && !!([...document.querySelectorAll('a')].find((a) => /Visit the Walk-In Clinic/i.test(a.textContent)))`);
       assert(both, 'both options (online + walk-in) should be offered');
       await tab.clickNav(`[...document.querySelectorAll('main a')].find((a) => /Book an Online GP Consultation/.test(a.textContent))`);
@@ -185,9 +185,9 @@ async function main() {
       assert(await tab.ev(`/not an appointment at the clinic/i.test(document.body.innerText)`), 'booking page should say it is an online booking');
     });
     await test('Book a GP → walk-in option → optional online check-in form', async () => {
-      await tab.goto('/book-now.html');
+      await tab.goto('/book/');
       await tab.clickNav(`[...document.querySelectorAll('main a')].find((a) => /Check in online/i.test(a.textContent))`);
-      assert((await tab.ev('location.pathname + location.hash')) === '/walk-in.html#book-in', 'wrong destination');
+      assert((await tab.ev('location.pathname + location.hash')) === '/walk-in-gp-newbridge/#book-in', 'wrong destination');
       assert(await tab.ev(`!!document.getElementById('bookInForm')`), 'walk-in form missing');
     });
     await test('homepage: hero with three equal buttons (Online, Walk-in, Register), three photo columns', async () => {
@@ -198,7 +198,7 @@ async function main() {
       assert(await tab.ev(`[...document.querySelectorAll('.hero2-actions a')].every((a) => a.className === 'btn btn-primary btn-lg')`), 'the three hero buttons should look identical (equal importance)');
       assert(/Open 7 days/.test(r.meta) && /No appointment needed/.test(r.meta) && /Irish-registered GPs/.test(r.meta), 'hero details line wrong: ' + r.meta);
       assert(r.heading === 'How can we help you today?', 'central section heading wrong');
-      assert(r.cards.length === 3 && r.cards[0].startsWith('I want to speak to a GP online | Online GP | /online.html') && r.cards[1].startsWith('I need to see a GP today | Visit the walk-in clinic | /walk-in.html') && r.cards[2].startsWith('I want to register with GP4U | Register with GP | /new-patients.html'), 'the three columns should be Online, Walk-in, Register (right): ' + r.cards.join(' || '));
+      assert(r.cards.length === 3 && r.cards[0].startsWith('I want to speak to a GP online | Online GP | /online-gp/') && r.cards[1].startsWith('I need to see a GP today | Visit the walk-in clinic | /walk-in-gp-newbridge/') && r.cards[2].startsWith('I want to register with GP4U | Register with GP | /family-gp/'), 'the three columns should be Online, Walk-in, Register (right): ' + r.cards.join(' || '));
       assert(await tab.ev(`[...document.querySelectorAll('.need-card')].every((c) => !!c.querySelector('img'))`), 'each column needs an image');
     });
     await test('homepage flow: trust bar, 01-02-03 steps, location — no services list, no FAQ', async () => {
@@ -228,39 +228,39 @@ async function main() {
       assert(await tab.ev(`!document.querySelector('a[href="/blog.html"]')`), 'Health Info should not be in the navigation or footer');
     });
     await test('current page is marked in the navigation', async () => {
-      await tab.goto('/fees.html');
+      await tab.goto('/fees/');
       assert(await tab.ev(`document.querySelector('nav.main-nav a[aria-current="page"]')?.textContent.trim()`) === 'Fees', 'Fees link not marked current');
     });
     await test('Fees page shows live prices in euro (skeleton replaced) and a clean walk-in fees section', async () => {
-      await tab.goto('/fees.html');
+      await tab.goto('/fees/');
       await tab.waitFor(`document.querySelectorAll('.price-list[data-services] .price-row').length >= 5 && document.querySelectorAll('.skeleton').length === 0`, 8000, 'price rows');
       assert(await tab.ev(`document.querySelector('[data-if-no-fees]') !== null && /contact us|reception/i.test(document.querySelector('[data-if-no-fees]').textContent)`), 'walk-in fees section should ask people to contact the clinic');
       assert(await tab.ev(`/€\\d/.test(document.querySelector('.price-list').innerText)`), 'no € prices shown');
     });
     await test('About page: headline, no invented founder, Medical Council statement', async () => {
-      await tab.goto('/about.html');
+      await tab.goto('/about/');
       const r = await tab.ev(`({ h1: document.querySelector('h1').textContent.trim(), founderHidden: document.querySelector('[data-founder]').hidden, text: document.body.innerText })`);
       assert(r.h1 === 'Built by a GP. Designed around patients.', 'about headline wrong: ' + r.h1);
       assert(r.founderHidden, 'founder card must stay hidden until real details are configured');
       assert(/registered with the Medical Council of Ireland/.test(r.text), 'medical leadership statement missing');
     });
     await test('Contact page: address status, hours, email, and "Need a GP?" choices', async () => {
-      await tab.goto('/contact.html');
+      await tab.goto('/contact/');
       const r = await tab.ev(`({ addr: document.querySelector('[data-clinic-address]').textContent, rows: document.querySelectorAll('.loc .hours-table tr').length, email: !!document.querySelector('.loc a[href^="mailto:"]'), ctas: [...document.querySelectorAll('.pcards a.btn')].map((a) => a.textContent.trim()), phoneHidden: document.querySelector('.loc .contact-item').hidden })`);
       assert(r.addr === 'Address coming soon' && r.rows === 7 && r.email, 'contact details incomplete: ' + JSON.stringify(r));
       assert(r.ctas.join(' | ') === 'Walk-In Clinic | See a GP Online', 'Need a GP? choices wrong');
       assert(r.phoneHidden, 'phone must stay hidden until configured (no invented number)');
     });
     await test('Privacy notice: no drafting language or unconfirmed retention figures', async () => {
-      await tab.goto('/privacy.html');
+      await tab.goto('/privacy/');
       const t = await tab.ev('document.body.innerText');
       assert(!/Update this section|once confirmed|8 years|Article 9/i.test(t), 'privacy page still contains drafting language or unconfirmed specifics');
       assert(/Cookies/.test(t) && /Who we share it with/.test(t), 'privacy sections missing');
     });
     await test('services page: 12 cards with anchors; walk-in explanation on walk-in page', async () => {
-      await tab.goto('/services.html');
+      await tab.goto('/services/');
       assert(await tab.ev(`document.querySelectorAll('.svc').length === 12 && !!document.getElementById('certificates')`), 'expected 12 service cards with anchors');
-      await tab.goto('/walk-in.html');
+      await tab.goto('/walk-in-gp-newbridge/');
       const t = await tab.ev('document.getElementById("book-in").innerText');
       assert(/Check in for your visit/.test(t) && /does not reserve a specific appointment time/.test(t), 'walk-in check-in wording wrong');
     });
@@ -271,8 +271,8 @@ async function main() {
       await tab.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
     });
     await test('FAQ page: 12 categories, accordions open, FAQ data present', async () => {
-      await tab.goto('/faq.html');
-      const r = await tab.ev(`({ groups: document.querySelectorAll('.faq-group').length, ld: !!document.querySelector('script[type="application/ld+json"]') && document.querySelector('script[type="application/ld+json"]').textContent.includes('FAQPage') })`);
+      await tab.goto('/faq/');
+      const r = await tab.ev(`({ groups: document.querySelectorAll('.faq-group').length, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].some((s) => s.textContent.includes('"FAQPage"')) })`);
       assert(r.groups === 12, 'expected 12 FAQ groups, got ' + r.groups);
       assert(r.ld, 'FAQPage structured data missing');
       await tab.ev(`document.querySelector('.faq details summary').click()`);
@@ -293,7 +293,7 @@ async function main() {
     // ---------------------------------------------------------------- 4. the two clinic forms
     heading('Clinic forms (walk-in booking + new-patient registration)');
     await test('walk-in form: availability follows opening hours, validation, emergency + consent checks', async () => {
-      await tab.goto('/walk-in.html');
+      await tab.goto('/walk-in-gp-newbridge/');
       const open = await tab.ev(`window.clinicStatus().open`);
       assert((await tab.ev(`document.getElementById('bookInFields').disabled`)) === !open, 'form availability does not match opening hours');
       await tab.ev(`document.getElementById('bookInFields').disabled = false`); // so this test also works when closed
@@ -304,7 +304,7 @@ async function main() {
       assert(/not an emergency/i.test(await tab.ev(`document.getElementById('bookInError').textContent`)), 'emergency confirmation not enforced');
     });
     await test('walk-in form: submits and shows a reference', async () => {
-      await tab.goto('/walk-in.html');
+      await tab.goto('/walk-in-gp-newbridge/');
       await tab.ev(`document.getElementById('bookInFields').disabled = false`);
       ctx.walkinName = `ZZ TEST Walkin ${STAMP}`;
       await tab.set('#wiName', ctx.walkinName); await tab.set('#wiDob', '1990-01-01'); await tab.set('#wiPhone', '0000000000');
@@ -319,9 +319,9 @@ async function main() {
     await test('homepage: short, nothing repeated, Register present in hero, right-hand column and menu', async () => {
       await tab.goto('/');
       const r = await tab.ev(`({
-        heroRegister: !!document.querySelector('.hero3 a[href="/new-patients.html"]'),
-        rightColumn: (() => { const cards = [...document.querySelectorAll('.need-grid .need-card')]; return cards.length === 3 && cards[2].getAttribute('href') === '/new-patients.html'; })(),
-        navRegister: !!document.querySelector('nav.main-nav a[href="/new-patients.html"]'),
+        heroRegister: !!document.querySelector('.hero3 a[href="/family-gp/"]'),
+        rightColumn: (() => { const cards = [...document.querySelectorAll('.need-grid .need-card')]; return cards.length === 3 && cards[2].getAttribute('href') === '/family-gp/'; })(),
+        navRegister: !!document.querySelector('nav.main-nav a[href="/family-gp/"]'),
         sections: document.querySelectorAll('main > section').length,
         removed: ['.why-grid', '.cta-band', '.online-sec', '.faq', '#services', '.family-feature'].filter((q) => document.querySelector(q)),
       })`);
@@ -340,12 +340,12 @@ async function main() {
     });
     await test('inner pages: the photo header is blended into the page (photo on the right, text clear of it) on every page', async () => {
       await tab.mobile(false);
-      for (const p of ['/walk-in.html', '/online.html', '/services.html', '/about.html', '/new-patients.html', '/fees.html', '/faq.html', '/contact.html', '/book-now.html']) {
+      for (const p of ['/walk-in-gp-newbridge/', '/online-gp/', '/services/', '/about/', '/family-gp/', '/fees/', '/faq/', '/contact/', '/book/']) {
         await tab.goto(p);
         const r = await tab.ev(`(() => { const m = document.querySelector('.phero .phero-media'); const img = m && m.querySelector('img'); const h1 = document.querySelector('.phero h1'); if (!m || !h1) return null; const mr = m.getBoundingClientRect(); return { pos: getComputedStyle(m).position, loaded: img.complete && img.naturalWidth > 0, h1Right: h1.getBoundingClientRect().right, mediaLeft: mr.left, mediaW: mr.width, vw: window.innerWidth }; })()`);
         assert(r && r.pos === 'absolute' && r.loaded, p + ': should have a blended photo header: ' + JSON.stringify(r));
         assert(r.h1Right <= r.mediaLeft + 40, p + ': the heading runs into the photo: ' + JSON.stringify(r));
-        if (process.env.E2E_SHOTS && ['/walk-in.html', '/contact.html', '/services.html'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.slice(1, -5) + '.png'), Buffer.from(c.data, 'base64')); }
+        if (process.env.E2E_SHOTS && ['/walk-in-gp-newbridge/', '/contact/', '/services/'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.replace(/W+/g, '') + '.png'), Buffer.from(c.data, 'base64')); }
       }
     });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
@@ -365,12 +365,12 @@ async function main() {
       assert(/^Walk-in clinic/.test(r.top), 'the top bar status should say it is the walk-in clinic: ' + r.top);
     });
     await test('registration form has no medical card / GP Visit Card question', async () => {
-      await tab.goto('/new-patients.html');
+      await tab.goto('/family-gp/');
       const r = await tab.ev(`({ field: !!document.getElementById('medicalCard'), text: /medical card|gp visit card/i.test(document.getElementById('registerForm').innerText + document.getElementById('registerForm').innerHTML) })`);
       assert(!r.field && !r.text, 'the card question is still on the registration form: ' + JSON.stringify(r));
     });
     await test('registration: 5 steps with progress, validation, family, review, submit → reference', async () => {
-      await tab.goto('/new-patients.html');
+      await tab.goto('/family-gp/');
       const step = () => tab.ev(`document.getElementById('rpStep').textContent + ' | ' + document.getElementById('rpName').textContent`);
       assert(await step() === 'Step 1 of 5 | About you', 'should start at step 1 of 5: ' + await step());
       await tab.ev(`document.getElementById('regNext').click()`);
@@ -471,9 +471,9 @@ async function main() {
       assert(wrong === 401, 'wrong password should be rejected (got ' + wrong + ')');
     });
     await test('repeat-prescription pages: categories render, condition page links into booking', async () => {
-      await tab.goto('/repeat-prescription.html');
+      await tab.goto('/online-gp/repeat-prescription/');
       await tab.waitFor(`document.querySelectorAll('#categoriesContainer .service-card, #categoriesContainer a').length >= 5`, 8000, 'condition categories');
-      await tab.goto('/uti.html');
+      await tab.goto('/online-gp/uti/');
       await tab.waitFor(`document.querySelectorAll('#contraindicationList li').length > 0`, 6000, 'safety list');
       await tab.goto('/book.html?service=uti');
       await tab.waitFor(`getComputedStyle(document.getElementById('step2')).display !== 'none'`, 8000, 'wizard step 2 for UTI');
@@ -510,7 +510,7 @@ async function main() {
       await tab.waitFor(`getComputedStyle(document.getElementById('dashboardBox')).display !== 'none'`, 10000, 'dashboard');
     });
     await test('doctor dashboard: staff header, left menu with separate Online / Walk-in clinics, Today overview', async () => {
-      const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), publicNav: !!document.querySelector('a[href="/walk-in.html"]'), todayVisible: getComputedStyle(document.getElementById('tab_today')).display !== 'none', onlineHidden: getComputedStyle(document.getElementById('tab_online')).display === 'none', menu: [...document.querySelectorAll('.dash-link')].map((b) => b.textContent.trim().replace(/\\s+\\d+$/, '')) })`);
+      const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), publicNav: !!document.querySelector('a[href="/walk-in-gp-newbridge/"]'), todayVisible: getComputedStyle(document.getElementById('tab_today')).display !== 'none', onlineHidden: getComputedStyle(document.getElementById('tab_online')).display === 'none', menu: [...document.querySelectorAll('.dash-link')].map((b) => b.textContent.trim().replace(/\\s+\\d+$/, '')) })`);
       assert(r.role === 'Doctor' && !r.publicNav, 'doctor header should be the staff header without the public menu: ' + JSON.stringify(r));
       assert(r.todayVisible && r.onlineHidden, 'the Today section should be the default');
       assert(r.menu.includes('Online clinic') && r.menu.includes('Walk-in clinic') && r.menu.includes('Find a patient') && r.menu.includes('Registrations'), 'menu should list the clinics separately: ' + r.menu.join(' | '));
@@ -653,7 +653,7 @@ async function main() {
         await tab.set('#passwordInput', RECEPTION_PASSWORD);
         await tab.ev(`document.querySelector('#loginForm button[type=submit]').click()`);
         await tab.waitFor(`!document.getElementById('deskBox').hidden`, 8000, 'front desk');
-        const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), who: document.getElementById('whoami').textContent, publicNav: !!document.querySelector('a[href="/walk-in.html"]'), stats: [...document.querySelectorAll('.stat-num')].map((e) => e.textContent) })`);
+        const r = await tab.ev(`({ role: document.querySelector('.staff-role').textContent.trim(), who: document.getElementById('whoami').textContent, publicNav: !!document.querySelector('a[href="/walk-in-gp-newbridge/"]'), stats: [...document.querySelectorAll('.stat-num')].map((e) => e.textContent) })`);
         assert(r.role === 'Front desk' && r.who.length > 0, 'staff header wrong: ' + JSON.stringify(r));
         assert(!r.publicNav, 'the staff header must not show the public website menu');
         await tab.waitFor(`[...document.querySelectorAll('.stat-num')].every((e) => /^\\d+$/.test(e.textContent))`, 6000, 'stat numbers');
@@ -910,7 +910,7 @@ async function main() {
         await tab.waitFor(`!!document.getElementById('tabBtn_reception')`, 6000, 'reception tab');
         await tab.ev(`showAdminTab('reception')`);
         await tab.waitFor(`document.getElementById('receptionBody').innerText.includes('ZZ E2E Desk')`, 6000, 'reception accounts listed');
-        assert(await tab.ev(`document.querySelector('.staff-role').textContent.trim() === 'Admin' && !document.querySelector('a[href="/walk-in.html"]')`), 'admin header should be the staff header');
+        assert(await tab.ev(`document.querySelector('.staff-role').textContent.trim() === 'Admin' && !document.querySelector('a[href="/walk-in-gp-newbridge/"]')`), 'admin header should be the staff header');
         await tab.waitFor(`document.getElementById('receptionLogBody').innerText.includes('Added walk-in patient')`, 6000, 'front-desk activity log');
         assert(await tab.ev(`document.getElementById('receptionLogBody').innerText.includes('Registered a new patient at the desk')`), 'desk registration should be in the log');
         await tab.shot('admin-reception');
@@ -979,13 +979,13 @@ async function main() {
         const r = await sendJson('PUT', '/api/admin/site/clinic', { streetAddress: 'ZZ Test Street', eircode: 'r56 ab12', phone: '045 123 456', email: 'zz-clinic@example.invalid', showMap: true, fees: { walkIn: [{ label: 'ZZ GP consultation', price: '€60' }] }, founder: { name: 'Dr ZZ Test', role: 'GP and founder', bio: 'ZZ bio', qualifications: ['MB BCh BAO'], medicalCouncilNumber: '123456' } });
         assert(r.status === 200, 'saving clinic details failed: ' + JSON.stringify(r));
         await tab.send('Network.clearBrowserCookies');
-        await tab.goto('/contact.html');
+        await tab.goto('/contact/');
         await tab.waitFor(`document.querySelector('[data-clinic-address]').innerText.includes('ZZ Test Street')`, 6000, 'address on contact page');
         const c = await tab.ev(`({ addr: document.querySelector('.loc [data-clinic-address]').innerText, phone: !!document.querySelector('.loc a[href="tel:045123456"]'), mail: !!document.querySelector('a[href="mailto:zz-clinic@example.invalid"]'), directions: !document.querySelector('.loc [data-clinic-directions]').hidden, map: !!document.querySelector('.loc [data-clinic-map] iframe'), comingSoon: /coming soon/i.test(document.querySelector('main').innerText), footerAddr: document.querySelector('footer [data-clinic-address]').innerText })`);
         assert(/ZZ Test Street/.test(c.addr) && /R56 AB12/.test(c.addr) && c.phone && c.mail && c.directions && c.map && !c.comingSoon && /ZZ Test Street/.test(c.footerAddr), 'clinic details missing from the public page: ' + JSON.stringify(c));
-        await tab.goto('/fees.html');
+        await tab.goto('/fees/');
         assert(await tab.ev(`document.body.innerText.includes('ZZ GP consultation') && document.body.innerText.includes('€60')`), 'walk-in fee should appear on the Fees page');
-        await tab.goto('/about.html');
+        await tab.goto('/about/');
         assert(await tab.ev(`document.body.innerText.includes('Dr ZZ Test') && document.body.innerText.includes('123456')`), 'lead GP should appear on the About page');
       });
       await test('opening hours, online GP hours and closed days update the whole site', async () => {
@@ -1013,9 +1013,9 @@ async function main() {
         const t = await tab.ev(`({ h1: document.querySelector('h1').innerText, chip: document.querySelector('[data-cms="home.chip.2"]').innerText, svg: !!document.querySelector('[data-cms="home.chip.2"] svg'), bold: !!document.querySelector('h1 b') })`);
         assert(t.h1 === 'ZZ New headline <b>bold</b>' && !t.bold, 'wording must be shown as plain text: ' + JSON.stringify(t));
         assert(t.chip.trim() === 'Open all week' && t.svg, 'icon lines should keep their icon: ' + JSON.stringify(t));
-        await tab.goto('/walk-in.html');
+        await tab.goto('/walk-in-gp-newbridge/');
         assert(await tab.ev(`document.querySelector('h1').innerText === 'ZZ Walk in headline'`), 'walk-in page headline not updated');
-        await tab.goto('/online.html');
+        await tab.goto('/online-gp/');
         assert(await tab.ev(`document.querySelector('[data-cms="online.how.1.title"]').innerText === 'ZZ Step one'`), 'online step title not updated');
         // restore the original wording through the editor's own screen
         await asAdmin();
@@ -1060,14 +1060,14 @@ async function main() {
         const saved = (await sendJson('GET', '/api/admin/site')).json.faq;
         assert(saved.length === 1 && saved[0].items.length === 1 && !/<script|javascript:|onerror|<img/i.test(saved[0].items[0].a), 'unsafe markup should be stripped: ' + JSON.stringify(saved));
         await tab.send('Network.clearBrowserCookies');
-        await tab.goto('/faq.html');
+        await tab.goto('/faq/');
         await tab.waitFor(`!!document.querySelector('.faq-group h2') && document.querySelector('.faq-group h2').innerText === 'ZZ Test section'`, 6000, 'custom FAQ');
         const f = await tab.ev(`({ groups: document.querySelectorAll('.faq-group').length, xss: window.__xss === undefined, bold: !!document.querySelector('.faq-group strong'), link: !!document.querySelector('.faq-group a[href="/contact.html"]'), hours: /Mon|10am|9pm/.test(document.querySelector('.faq-group [data-clinic-hours-text]').innerText), cats: document.querySelector('.faq-cats').innerText })`);
         assert(f.groups === 1 && f.xss && f.bold && f.link && /ZZ Test section/.test(f.cats), 'FAQ page should show only the edited version, safely: ' + JSON.stringify(f));
         await asAdmin();
         assert((await sendJson('PUT', '/api/admin/site/faq', { groups: null })).status === 200, 'restoring the built-in FAQs failed');
         await tab.send('Network.clearBrowserCookies');
-        await tab.goto('/faq.html');
+        await tab.goto('/faq/');
         assert(await tab.ev(`document.querySelectorAll('.faq-group').length`) === before.json.registry.faqDefaults.length, 'the built-in FAQs should be back');
       });
       await test('announcement bar: shows on every page in the chosen style, unsafe links refused, can be turned off', async () => {
@@ -1075,7 +1075,7 @@ async function main() {
         assert((await sendJson('PUT', '/api/admin/site/banner', { enabled: true, text: 'x', linkText: 'go', linkUrl: 'javascript:alert(1)' })).status === 400, 'a javascript: link should be refused');
         assert((await sendJson('PUT', '/api/admin/site/banner', { enabled: true, text: 'ZZ Closed on Monday <b>x</b>', tone: 'warning', linkText: 'See hours', linkUrl: '/contact.html' })).status === 200, 'saving the banner failed');
         await tab.send('Network.clearBrowserCookies');
-        for (const p of ['/', '/walk-in.html', '/fees.html']) {
+        for (const p of ['/', '/walk-in-gp-newbridge/', '/fees/']) {
           await tab.goto(p);
           const b = await tab.ev(`(() => { const e = document.querySelector('.site-banner'); return e ? { text: e.innerText, warn: e.classList.contains('is-warning'), link: !!e.querySelector('a[href="/contact.html"]'), bold: !!e.querySelector('b') } : null; })()`);
           assert(b && /ZZ Closed on Monday <b>x<\/b>/.test(b.text) && b.warn && b.link && !b.bold, p + ': the banner is missing or unsafe: ' + JSON.stringify(b));
@@ -1285,7 +1285,7 @@ async function main() {
         const cur = (await sendJson('GET', '/api/admin/site')).json;
         assert(Object.keys(cur.clinic).length === 0 && Object.keys(cur.text).length === 0 && cur.faq === null && cur.banner === null && Object.keys(cur.images).length === 0, 'settings should be back to the originals: ' + JSON.stringify(cur).slice(0, 200));
         await tab.send('Network.clearBrowserCookies');
-        await tab.goto('/contact.html');
+        await tab.goto('/contact/');
         await sleep(400);
         assert(await tab.ev(`document.querySelector('.loc [data-clinic-address]').innerText.trim() === 'Address coming soon'`), 'the address should be hidden again');
       });

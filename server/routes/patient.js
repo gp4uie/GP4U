@@ -200,7 +200,7 @@ router.get('/export-data', requirePatient, async (req, res) => {
 
 // GDPR Article 17 (right to erasure). This does not delete anything automatically: clinical
 // records must legally be retained for a minimum period (Medical Council of Ireland guidance —
-// see /privacy.html), so what can actually be deleted vs. must be kept depends on this patient's
+// see /privacy/), so what can actually be deleted vs. must be kept depends on this patient's
 // specific history and needs a human decision, not an automatic bulk delete. This just puts the
 // request in front of every admin so it gets picked up and actioned/responded to.
 router.post('/request-deletion', requirePatient, async (req, res) => {

@@ -18,7 +18,7 @@
   const euro = (cents) => `€${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
   const isRx = (key) => typeof PRESCRIPTION_SERVICE_KEYS !== 'undefined' && PRESCRIPTION_SERVICE_KEYS.includes(key);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
-  const bookHref = (key) => (key === 'repeat_rx' ? '/repeat-prescription.html' : `/book.html?service=${encodeURIComponent(key)}`);
+  const bookHref = (key) => (key === 'repeat_rx' ? '/online-gp/repeat-prescription/' : `/book.html?service=${encodeURIComponent(key)}`);
 
   function renderCards(host, entries) {
     host.replaceChildren(...entries.map(([key, s]) => {
@@ -46,7 +46,7 @@
       const min = Math.min(...rxEntries.map(([, s]) => s.priceCents));
       const row = el('div', 'price-row');
       const left = el('div'); left.append(el('h3', '', 'Condition-specific prescription treatments'), el('div', 'meta', `Online · ${rxEntries.length} conditions, e.g. contraception, asthma, migraine, UTI`));
-      const a = el('a', 'btn btn-secondary', 'See conditions'); a.href = '/repeat-prescription.html';
+      const a = el('a', 'btn btn-secondary', 'See conditions'); a.href = '/online-gp/repeat-prescription/';
       row.append(left, el('div', 'amount', `from ${euro(min)}`), a);
       rows.push(row);
     }

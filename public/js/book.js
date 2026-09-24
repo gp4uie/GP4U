@@ -583,6 +583,6 @@ fetch('/api/services').then((r) => { if (!r.ok) throw new Error('services'); ret
   const grid = document.getElementById('serviceChoices');
   if (grid) {
     grid.removeAttribute('aria-busy');
-    grid.innerHTML = '<div class="notice" style="grid-column:1/-1;"><strong>We couldn\'t load our services just now.</strong>Please refresh the page, or <a href="/contact.html">contact us</a> and we\'ll help you book.</div>';
+    grid.innerHTML = '<div class="notice" style="grid-column:1/-1;"><strong>We couldn\'t load our services just now.</strong>Please refresh the page, or <a href="/contact/">contact us</a> and we\'ll help you book.</div>';
   }
 });
