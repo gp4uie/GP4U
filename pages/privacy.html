@@ -49,7 +49,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=42b37bab">
+<link rel="stylesheet" href="/css/clinic.css?v=5f2e2fa5">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light">
@@ -134,7 +134,9 @@
 
   <h2 class="pv-h" id="cookies">Cookies</h2>
   <p>This website uses <strong>one strictly necessary cookie</strong> (a session cookie) to keep you signed in when you log in as a patient or member of staff. It is deleted when you log out or it expires, and it is not used for tracking or advertising.</p>
-  <p>We do not use advertising or analytics cookies. Two third parties are involved when you use the site: fonts are loaded from Google Fonts (which receives your IP address to deliver them), and if you pay for an online consultation you are taken to Stripe's secure payment page, which sets its own cookies to process your payment.</p>
+  <p data-if-no-analytics>We do not use advertising or analytics cookies.</p>
+  <p data-if-analytics hidden><strong>Only if you agree</strong> (in the cookie banner, or <a href="#cookies" data-cookie-settings>Cookie settings</a> at any time), we also use: <strong>Google Analytics</strong>, to see how people find and use our information pages and booking steps — with Google signals and ad personalisation switched off and page addresses stripped of any personal link; and, on general pages only (never pages about a specific condition, your booking or your account), the <strong>Meta and TikTok pixels</strong>, to measure whether our adverts work. None of these receive your name, contact details, health information or anything you type into a form.</p>
+  <p>Two third parties are involved when you use the site: fonts are loaded from Google Fonts (which receives your IP address to deliver them), and if you pay for an online consultation you are taken to Stripe's secure payment page, which sets its own cookies to process your payment.</p>
 
   <h2 class="pv-h" id="terms">Terms of Use</h2>
   <p>GP4U is intended for non-emergency GP consultations. If you are experiencing a medical emergency, call 112 or 999, or go to your nearest Emergency Department immediately. Consultations are provided by GPs registered with the Medical Council of Ireland. In some cases your GP may advise that an in-person examination is needed and decline to treat you remotely — this is for your safety.</p>
@@ -186,6 +188,7 @@
           <li><a href="/privacy/">Privacy &amp; GDPR Notice</a></li>
           <li><a href="/privacy/#terms">Terms of Use</a></li>
           <li><a href="/privacy/#cookies">Cookies</a></li>
+          <li><a href="/privacy/#cookies" data-cookie-settings>Cookie settings</a></li>
           <li><a href="/patient-login.html">Patient login</a></li>
         </ul>
       </div>
@@ -206,6 +209,7 @@
 <!-- @/sticky -->
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=dd645959"></script>
-<script src="/js/nav-toggle.js?v=b1c26f07"></script>
+<script src="/js/consent.js?v=c0bcdc2c"></script>
+<script src="/js/nav-toggle.js?v=727b2c08"></script>
 </body>
 </html>

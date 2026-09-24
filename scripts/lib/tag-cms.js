@@ -48,6 +48,10 @@ function tagPage(file, htmlIn) {
   if (/<script src="\/js\/clinic\.js/.test(html) && !html.includes('/api/site-settings.js')) {
     html = html.replace(/<script src="\/js\/clinic\.js/, SETTINGS_TAG + '<script src="/js/clinic.js');
   }
+  // cookie consent + measurement (does nothing until IDs are configured and the visitor agrees)
+  if (/<script src="\/js\/clinic\.js/.test(html) && !html.includes('/js/consent.js')) {
+    html = html.replace(/(<script src="\/js\/clinic\.js[^"]*"><\/script>\n)/, '$1<script src="/js/consent.js"></script>\n');
+  }
   return html;
 }
 

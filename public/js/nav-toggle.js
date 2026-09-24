@@ -21,12 +21,12 @@
 
   if (!document.body.classList.contains('clinic-page')) return;
 
-  // Measurable calls to action, for when an analytics tool is added (none is installed today). Each click is pushed to
-  // window.dataLayer ONLY if that already exists, and carries just the action name and the page address — never
-  // anything typed into a form, no names, no health details, no booking references.
+  // Measurable calls to action. Reported through window.gp4uTrack (public/js/consent.js), which only sends anything
+  // once measurement IDs are configured AND the visitor has agreed — and then only the action name, never anything
+  // typed into a form, no names, no health details, no booking references.
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[href]');
-    if (!a || !Array.isArray(window.dataLayer)) return;
+    if (!a || typeof window.gp4uTrack !== 'function') return;
     const href = a.getAttribute('href') || '';
     const action = a.dataset.track
       || (href.startsWith('tel:') ? 'phone_click'
@@ -35,7 +35,7 @@
             : /^\/book(\.html|\/)/.test(href) ? 'online_booking_click'
               : href.startsWith('/walk-in-gp-newbridge/') ? 'walk_in_click'
                 : href.startsWith('/family-gp/') ? 'registration_click' : '');
-    if (action) window.dataLayer.push({ event: 'gp4u_cta', action, page: location.pathname });
+    if (action) window.gp4uTrack(action);
   });
 
   if (document.body.classList.contains('staff-page')) return; // staff tools: no public-site behaviour (login swap, reveal)

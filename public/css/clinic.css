@@ -1208,3 +1208,14 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .signup [data-signup-msg] { margin: 10px 0 0; font-weight: 600; color: #b3261e; min-height: 1em; }
 .signup [data-signup-msg].is-ok { color: var(--teal-deep); }
 .signup .fine { font-size: .82rem; margin: 10px 0 0; }
+
+/* ---------- cookie consent banner (only appears once measurement IDs are configured) ---------- */
+.consent { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 1000; display: flex; justify-content: center; }
+.consent-inner { background: #fff; border: 1px solid var(--line-warm); border-radius: 18px; box-shadow: 0 24px 60px -24px rgba(18, 48, 58, .45); padding: 18px 22px; max-width: 760px; width: 100%; }
+.consent-inner p { margin: 0 0 12px; font-size: .92rem; color: var(--ink); }
+.consent-choices { display: flex; gap: 18px; flex-wrap: wrap; margin: 0 0 12px; }
+.consent-choices .check-line { display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: .9rem; }
+.consent-choices input { width: auto; min-height: 0; }
+.consent-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.consent-actions .btn { width: auto; padding: 10px 16px; }
+@media (max-width: 640px) { .consent { bottom: 84px; } .consent-actions .btn { flex: 1 1 auto; } }

@@ -22,7 +22,7 @@
         if (!r.ok) throw new Error(d.error || 'Something went wrong — please try again.');
         form.querySelectorAll('input, button').forEach((el) => { el.disabled = true; });
         say(form.dataset.signup === 'clinic_opening' ? "Thanks — we'll email you when the Newbridge clinic opens." : "Thanks — you're signed up.", true);
-        if (Array.isArray(window.dataLayer)) window.dataLayer.push({ event: 'gp4u_cta', action: 'email_signup', page: location.pathname });
+        if (typeof window.gp4uTrack === 'function') window.gp4uTrack('email_signup');
       } catch (err) {
         say(err.message);
         btn.disabled = false;

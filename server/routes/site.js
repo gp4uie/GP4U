@@ -14,6 +14,13 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 4 *
 router.get('/site-settings.js', async (req, res) => {
   let settings = { clinic: {}, text: {}, faq: null, banner: null, images: {} };
   try { settings = await S.getPublic(); } catch (err) { console.error('site settings unavailable:', err.message); }
+  // Measurement IDs for public/js/consent.js (nothing loads until a visitor consents). Only well-formed IDs pass.
+  const id = (v, re) => (re.test(v || '') ? v : '');
+  settings = { ...settings, analytics: {
+    ga4: id(process.env.GA4_MEASUREMENT_ID, /^G-[A-Z0-9]{4,20}$/),
+    meta: id(process.env.META_PIXEL_ID, /^\d{6,20}$/),
+    tiktok: id(process.env.TIKTOK_PIXEL_ID, /^[A-Z0-9]{10,30}$/),
+  } };
   // keep the script safe to embed: no raw < and no line-separator characters
   const LS = String.fromCharCode(0x2028); const PS = String.fromCharCode(0x2029);
   const json = JSON.stringify(settings).split("<").join("\\u003c").split(LS).join("\\u2028").split(PS).join("\\u2029");

@@ -545,6 +545,7 @@ async function submitBooking() {
       });
     }
 
+    if (typeof window.gp4uTrack === 'function') window.gp4uTrack('online_booking_checkout'); // no service or price sent
     window.location.href = data.checkoutUrl;
   } catch (err) {
     // Server messages are already patient-friendly; anything else (offline, timeout) gets a plain one.
