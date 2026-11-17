@@ -7,12 +7,11 @@ const { getServices, getService } = require('../services');
 const { getAvailableSlots } = require('../slots');
 const { upsertPatient } = require('../patients');
 const mailer = require('../mailer');
-const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
+const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking } = require('../practice');
 const { notifyDoctorsOfBooking } = require('../claims');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
 
 // Photos are kept in memory only long enough to write them into the database as a BLOB —
 // never written to the app server's own disk, which some hosts wipe on every redeploy.
@@ -62,7 +61,7 @@ async function notifyBookingPaid(booking) {
     VALUES ('new_booking', ?, ?)
   `, [booking.id, `New booking: ${booking.patient_name} — ${serviceLabel}`]);
 
-  const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+  const link = `${siteUrl()}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
   try {
     const practice = await getPractice();
     await mailer.sendMail({
@@ -72,10 +71,14 @@ async function notifyBookingPaid(booking) {
         ${emailHeader(practice)}
         <p>Hi ${esc(booking.patient_name)},</p>
         <p>Your <strong>${esc(serviceLabel)}</strong> booking is confirmed for
-        ${esc(new Date(booking.slot_start).toLocaleString('en-IE', { timeZone: 'Europe/Dublin', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }))}.</p>
-        <p>Use this link any time to view your booking, join your video call, message your GP, or
-        download anything they issue you: <a href="${link}">${link}</a></p>
-        <p>Keep this email safe — this link is how you access your booking.</p>
+        <strong>${esc(new Date(booking.slot_start).toLocaleString('en-IE', { timeZone: 'Europe/Dublin', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }))}</strong> (Irish time).<br>
+        Booking reference: <strong>${esc(booking.id)}</strong></p>
+        <p>Use the link below any time to view your booking, message your GP, join your call when your GP starts it,
+        and download anything they issue you:</p>
+        ${emailButton(link, 'View my booking')}
+        <p>At your appointment time, open this link and keep the page open. We'll also email you when your GP starts the call.</p>
+        <p>Keep this email safe — this link is your private access to your booking. Please don't forward it.</p>
+        ${emailFooter(practice)}
       `,
     });
   } catch (err) {
@@ -177,8 +180,8 @@ router.post('/bookings', async (req, res) => {
         quantity: 1,
       }],
       customer_email: patientEmail,
-      success_url: `${BASE_URL}/confirmation.html?id=${id}&token=${patientToken}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${BASE_URL}/book.html?cancelled=1`,
+      success_url: `${siteUrl()}/confirmation.html?id=${id}&token=${patientToken}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl()}/book.html?cancelled=1`,
       metadata: { bookingId: id },
     });
 
@@ -204,15 +207,16 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
 
     if (!stripe || !booking.stripe_session_id) {
       // Demo mode without Stripe configured: mark as paid so the flow can be tried end to end.
-      await db.run("UPDATE bookings SET status = 'paid' WHERE id = ?", [booking.id]);
-      await notifyBookingPaid(booking);
+      // Only the request that actually flips the status sends the emails (two page loads at once must not double-send).
+      const r = await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status = 'pending_payment'", [booking.id]);
+      if (r.changes) await notifyBookingPaid(booking);
       return res.json({ status: 'paid', demo: true });
     }
 
     const session = await stripe.checkout.sessions.retrieve(booking.stripe_session_id);
     if (session.payment_status === 'paid') {
-      await db.run("UPDATE bookings SET status = 'paid' WHERE id = ?", [booking.id]);
-      await notifyBookingPaid(booking);
+      const r = await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status = 'pending_payment'", [booking.id]);
+      if (r.changes) await notifyBookingPaid(booking);
       return res.json({ status: 'paid' });
     }
     res.json({ status: session.payment_status });
@@ -274,16 +278,33 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
     VALUES ('new_message', ?, ?)
   `, [req.params.id, `New message from ${req.booking.patient_name}`]);
 
-  if (process.env.DOCTOR_EMAIL) {
-    try {
-      await mailer.sendMail({
-        to: process.env.DOCTOR_EMAIL,
-        subject: `New message from ${req.booking.patient_name}`,
-        html: `<p>${esc(body.trim()).replace(/\n/g, '<br>')}</p>`,
-      });
-    } catch (err) {
-      console.log('Doctor message notification email not sent:', err.message);
+  // Tell the doctor who has the case (or the practice's notification address if nobody has claimed it yet).
+  // The message itself is NOT put in the email — health details stay inside the secure dashboard.
+  try {
+    const recipients = new Set();
+    if (req.booking.claimed_by) {
+      const doc = await db.get('SELECT email FROM doctors WHERE id = ? AND active = 1', [req.booking.claimed_by]);
+      if (doc && doc.email) recipients.add(doc.email.toLowerCase());
     }
+    if (!recipients.size && process.env.DOCTOR_EMAIL) recipients.add(process.env.DOCTOR_EMAIL.toLowerCase());
+    if (recipients.size) {
+      const practice = await getPractice();
+      const link = `${siteUrl()}/dashboard.html?open=${encodeURIComponent(req.booking.id)}&tab=messages`;
+      for (const to of recipients) {
+        await mailer.sendMail({
+          to,
+          subject: `New patient message — ${req.booking.patient_name} (${req.booking.id})`,
+          html: `
+            ${emailHeader(practice)}
+            <p><strong>${esc(req.booking.patient_name)}</strong> has sent a new message about booking ${esc(req.booking.id)}.</p>
+            <p>For privacy the message is not included in this email. Sign in to read and reply:</p>
+            ${emailButton(link, 'Open the consultation')}
+          `,
+        });
+      }
+    }
+  } catch (err) {
+    console.log('Doctor message notification email not sent:', err.message);
   }
   res.json({ ok: true });
 });

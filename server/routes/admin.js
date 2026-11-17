@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
-const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
+const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking } = require('../practice');
 
 const router = express.Router();
 
@@ -67,9 +67,12 @@ router.post('/forgot-password', async (req, res) => {
     try {
       await mailer.sendMail({
         to: admin.email,
-        subject: `Reset your ${process.env.PRACTICE_NAME || 'GP4U'} admin login`,
-        html: `<p>Click below to set a new password. This link expires in 1 hour.</p>
-          <p><a href="${process.env.BASE_URL}/reset-password.html?type=admin&token=${token}">Reset password</a></p>`,
+        subject: `Reset your ${(await getPractice()).name} admin login`,
+        html: `${emailHeader(await getPractice())}
+          <p>We received a request to reset the password for this email address.</p>
+          ${emailButton(`${siteUrl()}/reset-password.html?type=admin&token=${token}`, 'Choose a new password')}
+          <p>This link works once and expires in 1 hour. If you didn't ask for this, you can ignore this email — your password stays the same.</p>
+          ${emailFooter(await getPractice())}`,
       });
     } catch (err) {
       // Mailer not configured — nothing more we can do automatically.

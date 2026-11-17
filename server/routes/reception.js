@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
-const { getPractice, escapeHtml: esc, emailHeader } = require('../practice');
+const { getPractice, escapeHtml: esc, emailHeader, emailFooter } = require('../practice');
 const loginLimiter = require('../loginLimiter');
 const { getServices } = require('../services');
 const { ensureWalkInBooking, applyWalkInStatus } = require('../walkins');
@@ -222,7 +222,7 @@ router.post('/registrations', requireReceptionist, async (req, res) => {
       getPractice().then((practice) => mailer.sendMail({
         to: email,
         subject: `Welcome to ${practice.name} — your registration`,
-        html: `${emailHeader(practice)}<p>Hi ${esc(fullName)},</p><p>Thank you for registering with ${esc(practice.name)}. Your reference is <strong>${id}</strong>.</p>`,
+        html: `${emailHeader(practice)}<p>Hi ${esc(fullName)},</p><p>Thank you for registering with ${esc(practice.name)}. Your reference is <strong>${id}</strong>.</p>${emailFooter(practice)}`,
       })).catch(() => {});
     }
     logAccess(req, 'Registered a new patient at the desk', `${fullName} (${id})`);

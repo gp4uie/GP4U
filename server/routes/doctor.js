@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
 const { generateSickCertPdf, generateReferralPdf, generatePrescriptionPdf } = require('../pdf');
-const { getPractice, escapeHtml: esc, emailHeader, enrichBooking, fileSafe } = require('../practice');
+const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking, fileSafe } = require('../practice');
 const claims = require('../claims');
 const { DOCUMENT_TYPES, certLabelFor } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
@@ -13,7 +13,6 @@ const loginLimiter = require('../loginLimiter');
 const totp = require('../totp');
 
 const router = express.Router();
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
 
 // Shared "recently active" presence window — used for both doctors and admins so the two sides
 // of the Team Messages contact list agree on what "online" means. Kept in sync with the copy in
@@ -202,9 +201,12 @@ router.post('/forgot-password', async (req, res) => {
     try {
       await mailer.sendMail({
         to: doctor.email,
-        subject: `Reset your ${process.env.PRACTICE_NAME || 'GP4U'} doctor login`,
-        html: `<p>Click below to set a new password. This link expires in 1 hour.</p>
-          <p><a href="${process.env.BASE_URL}/reset-password.html?type=doctor&token=${token}">Reset password</a></p>`,
+        subject: `Reset your ${(await getPractice()).name} doctor login`,
+        html: `${emailHeader(await getPractice())}
+          <p>We received a request to reset the password for this email address.</p>
+          ${emailButton(`${siteUrl()}/reset-password.html?type=doctor&token=${token}`, 'Choose a new password')}
+          <p>This link works once and expires in 1 hour. If you didn't ask for this, you can ignore this email — your password stays the same.</p>
+          ${emailFooter(await getPractice())}`,
       });
     } catch (err) {
       // Mailer not configured — nothing more we can do automatically; an admin will need to
@@ -427,16 +429,16 @@ router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
     const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
     if (booking && booking.patient_email) {
       const practice = await getPractice();
-      const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+      const link = `${siteUrl()}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
       await mailer.sendMail({
         to: booking.patient_email,
         subject: `New message about your consultation — ${practice.name}`,
         html: `
           ${emailHeader(practice)}
           <p>Hi ${esc(booking.patient_name)},</p>
-          <p>Your GP has sent you a message about your consultation. Read it and reply here:</p>
-          <p><a href="${link}">${link}</a></p>
-          <p>Questions? ${esc([practice.phone, practice.email].filter(Boolean).join(' · '))}</p>
+          <p>Your GP has sent you a message about your consultation. For your privacy it isn't included in this email. Read it and reply here:</p>
+          ${emailButton(link, 'Read my message')}
+          ${emailFooter(practice)}
         `,
       });
     }
@@ -508,13 +510,17 @@ router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
 
   // Best-effort — reaches the patient even if they don't have the confirmation page open.
   try {
-    const link = `${BASE_URL}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+    const link = `${siteUrl()}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
     await mailer.sendMail({
       to: booking.patient_email,
       subject: `${(await getPractice()).name}: your GP is ready — join your call now`,
       html: `
+        ${emailHeader(await getPractice())}
         <p>Hi ${esc(booking.patient_name)},</p>
-        <p>Your GP has started your ${mode} consultation. Join now: <a href="${link}">${link}</a></p>
+        <p>Your GP has started your ${mode === 'audio' ? 'phone (audio)' : 'video'} consultation and is waiting for you now.</p>
+        ${emailButton(link, 'Join my consultation')}
+        <p>Open the link on a phone, tablet or computer${mode === 'audio' ? ' with a microphone' : ' with a camera and microphone'}, and allow access when your browser asks.</p>
+        ${emailFooter(await getPractice())}
       `,
     });
   } catch (err) {

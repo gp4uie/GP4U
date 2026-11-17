@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const mailer = require('../mailer');
-const { getPractice, escapeHtml: esc, emailHeader, enrichBooking } = require('../practice');
+const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking } = require('../practice');
 const formLimiter = require('../formLimiter');
 const { requireDoctor } = require('./doctor');
 const { applyWalkInStatus, ensureWalkInBooking } = require('../walkins');
@@ -97,7 +97,7 @@ router.post('/register-patient', formLimiter.limit('register'), async (req, res)
         subject: `We've received your registration — ${practice}`,
         html: `${emailHeader(practiceInfo)}<p>Hi ${esc(fullName)},</p>
           <p>Thank you for registering with ${esc(practice)}. We've received your details${familyMembers.length ? ' (including your family members)' : ''} and our team will review them and be in touch.</p>
-          <p>Your reference is <strong>${id}</strong>.</p>`,
+          <p>Your reference is <strong>${id}</strong>.</p>${emailFooter(practiceInfo)}`,
       });
     } catch (err) {
       console.log('Registration confirmation email not sent:', err.message);
@@ -107,7 +107,7 @@ router.post('/register-patient', formLimiter.limit('register'), async (req, res)
         await mailer.sendMail({
           to: process.env.DOCTOR_EMAIL,
           subject: 'New patient registration',
-          html: `<p>A new patient registration (${id}) has been submitted. Log in to the dashboard, Clinic tab, to review it.</p>`,
+          html: `${emailHeader(practiceInfo)}<p>A new patient registration (${id}) has been submitted. For privacy no details are included here.</p>${emailButton(`${siteUrl()}/dashboard.html`, 'Review it in the dashboard')}<p>Open the Registrations section once signed in.</p>`,
         });
       } catch (err) {
         console.log('Registration notification email not sent:', err.message);

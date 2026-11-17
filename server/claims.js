@@ -11,9 +11,8 @@
 const crypto = require('crypto');
 const db = require('./db');
 const mailer = require('./mailer');
-const { getPractice, escapeHtml: esc, emailHeader } = require('./practice');
+const { getPractice, escapeHtml: esc, emailHeader, emailButton, siteUrl } = require('./practice');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
 
 // Day of week (0 = Sunday) and minutes since midnight, in Irish time.
 function dublinParts(date) {
@@ -54,7 +53,7 @@ async function notifyDoctorsOfBooking(booking, serviceLabel) {
     await db.run('INSERT INTO booking_claim_links (booking_id, doctor_id, token) VALUES (?, ?, ?)', [booking.id, d.id, token]);
     if (!d.email) continue;
     notified.add(d.email.toLowerCase());
-    const link = `${BASE_URL}/dashboard.html?claim=${token}`;
+    const link = `${siteUrl()}/dashboard.html?claim=${token}`;
     try {
       await mailer.sendMail({
         to: d.email,

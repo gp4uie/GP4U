@@ -85,6 +85,7 @@ async function checkSession() {
     document.getElementById('notifWrap').style.display = 'block';
     doctorTotpEnabled = !!data.totpEnabled;
     handleClaimParam();
+    handleOpenParam();
     loadServiceLabels();
     loadNotifications();
     loadMedications();
@@ -133,6 +134,15 @@ async function handleClaimParam() {
       if (data.state === 'claimed' && data.bookingId) { /* not theirs any more — just tell them */ }
     }
   } catch (err) { showClaimBanner('error', 'Something went wrong with that link. Please try again.'); }
+}
+// ---- "open this consultation" links from staff emails (e.g. a patient sent a message): /dashboard.html?open=<bookingId>
+const openParam = new URLSearchParams(location.search).get('open');
+const openTabParam = new URLSearchParams(location.search).get('tab');
+async function handleOpenParam() {
+  if (!openParam || !/^[A-Z0-9-]{4,40}$/i.test(openParam)) return;
+  try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* not important */ }
+  await openBooking(openParam, 'online');
+  if (openTabParam === 'messages' && document.getElementById('chartTabBtn_messages')) showChartTab('messages');
 }
 // Before signing in, a link that has already been taken says so straight away.
 async function explainClaimLinkBeforeLogin() {

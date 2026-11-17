@@ -26,6 +26,8 @@ const isHttps = (process.env.BASE_URL || '').startsWith('https');
 // which silently prevents the session cookie's `secure` flag from ever being set — logins would
 // appear to succeed but the session cookie never actually reaches the browser.
 app.set('trust proxy', 1);
+// Remembers the public address visitors arrive on, as a safety net for links in emails (see siteUrl in practice.js).
+app.use(require('./practice').noteRequestHost);
 
 // Baseline security headers (GDPR Article 32 "appropriate technical measures"). No
 // Content-Security-Policy here deliberately — this app relies on inline <script> blocks

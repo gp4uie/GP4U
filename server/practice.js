@@ -10,6 +10,27 @@ const db = require('./db');
 
 // clinic.js is a browser script that starts with `const CLINIC = { ... };` — read the defaults straight from it so there is
 // only one list of defaults in the whole project.
+// The public web address used in every link the site emails out (booking links, claim links, password resets).
+// BASE_URL in the hosting settings wins. Two safety nets so a patient is never emailed a dead link:
+//   - BASE_URL missing or malformed → https://www.gp4u.ie
+//   - BASE_URL still says "localhost" (copied from a dev .env) while real visitors are arriving on a public
+//     address → use that public address instead (noted from incoming requests by noteRequestHost below).
+const DEFAULT_SITE = 'https://www.gp4u.ie';
+let seenPublicSite = null;
+function siteUrl() {
+  let u = String(process.env.BASE_URL || '').trim().replace(/\/+$/, '');
+  if (!/^https?:\/\/[^/\s]+$/i.test(u)) u = DEFAULT_SITE;
+  if (/\/\/(localhost|127\.0\.0\.1)(:|$)/i.test(u) && seenPublicSite) u = seenPublicSite;
+  return u;
+}
+function noteRequestHost(req, res, next) {
+  const host = String(req.get('host') || '').toLowerCase();
+  if (!seenPublicSite && /^[a-z0-9.-]+\.[a-z]{2,}$/.test(host) && !/^(localhost|127\.)/.test(host)) {
+    seenPublicSite = `https://${host}`;
+  }
+  next();
+}
+
 let defaults = null;
 function loadDefaults() {
   if (defaults) return defaults;
@@ -28,7 +49,7 @@ async function getPractice() {
     if (row) overrides = JSON.parse(row.data) || {};
   } catch (err) { /* fall back to the defaults */ }
   const c = { ...loadDefaults(), ...overrides };
-  const website = (process.env.BASE_URL || 'https://www.gp4u.ie').replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const website = siteUrl().replace(/^https?:\/\//, '');
   // Until a street address has been entered only the town and county are shown (same rule as the website).
   const addressLines = c.streetAddress ? [c.streetAddress, c.town, c.county, c.eircode].filter(Boolean) : [c.town, c.county].filter(Boolean);
   const company = [
@@ -44,6 +65,16 @@ const escapeHtml = (v) => String(v === null || v === undefined ? '' : v)
 
 // The line at the top of every email the clinic sends.
 const emailHeader = (p) => `<p><strong>${escapeHtml(p.name)}</strong> — ${escapeHtml(p.tagline)} — ${escapeHtml(p.website)}</p>`;
+
+// The line at the bottom of patient-facing emails: how to reach the clinic, and that this is an automated message.
+const emailFooter = (p) => {
+  const contact = [p.phone, p.email].filter(Boolean).join(' · ');
+  return `<p style="color:#555;font-size:13px;margin-top:24px;">${contact ? `Questions? ${escapeHtml(contact)}<br>` : ''}This is an automated message from ${escapeHtml(p.name)} (${escapeHtml(p.website)}). In an emergency call 112 or 999.</p>`;
+};
+
+// A link written out both as a button and as plain text, so it still works in mail apps that strip buttons.
+const emailButton = (href, label) => `<p><a href="${escapeHtml(href)}" style="display:inline-block;background:#0a4d4d;color:#ffffff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold;">${escapeHtml(label)}</a></p>
+  <p data-html-only style="color:#555;font-size:13px;">If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(href)}">${escapeHtml(href)}</a></p>`;
 
 // Fill in what a walk-in (or anyone) did not type on the booking itself, from their clinic registration or portal profile:
 // address, allergies and current medicines. Never overwrites something that is already there.
@@ -70,4 +101,4 @@ async function enrichBooking(booking) {
 // A file name that is safe in an HTTP header and on any computer: accents removed, everything else that is not a letter or digit becomes "-".
 const fileSafe = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'document';
 
-module.exports = { getPractice, escapeHtml, emailHeader, enrichBooking, fileSafe };
+module.exports = { getPractice, escapeHtml, emailHeader, emailFooter, emailButton, siteUrl, noteRequestHost, enrichBooking, fileSafe };

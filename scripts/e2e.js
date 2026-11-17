@@ -315,7 +315,7 @@ async function main() {
       await tab.ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
       assert(await tab.ev(`document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'false'`), 'Escape did not close menu');
       assert(await tab.ev(`getComputedStyle(document.querySelector('.sticky-cta')).display === 'flex'`), 'sticky booking bar missing');
-      assert(await tab.ev(`(() => { const b = document.querySelector('.header-book'); const t = document.querySelector('.nav-toggle'); return getComputedStyle(b).display !== 'none' && b.textContent.trim() === 'Book a GP' && getComputedStyle(t).display !== 'none'; })()`), 'phone header should show the logo, a Book a GP button and the menu button');
+      assert(await tab.ev(`(() => { const b = document.querySelector('.header-book:not([hidden])'); const t = document.querySelector('.nav-toggle'); return getComputedStyle(b).display !== 'none' && b.textContent.trim() === 'Book a GP' && getComputedStyle(t).display !== 'none'; })()`), 'phone header should show the logo, a Book a GP button and the menu button');
       await tab.mobile(false);
     });
 
@@ -389,7 +389,7 @@ async function main() {
         const r = await tab.ev(`(() => { const m = document.querySelector('.phero .phero-media'); const img = m && m.querySelector('img'); const h1 = document.querySelector('.phero h1'); if (!m || !h1) return null; const mr = m.getBoundingClientRect(); return { pos: getComputedStyle(m).position, loaded: img.complete && img.naturalWidth > 0, h1Right: h1.getBoundingClientRect().right, mediaLeft: mr.left, mediaW: mr.width, vw: window.innerWidth }; })()`);
         assert(r && r.pos === 'absolute' && r.loaded, p + ': should have a blended photo header: ' + JSON.stringify(r));
         assert(r.h1Right <= r.mediaLeft + 40, p + ': the heading runs into the photo: ' + JSON.stringify(r));
-        if (process.env.E2E_SHOTS && ['/walk-in-gp-newbridge/', '/contact/', '/services/'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.replace(/W+/g, '') + '.png'), Buffer.from(c.data, 'base64')); }
+        if (process.env.E2E_SHOTS && ['/walk-in-gp-newbridge/', '/contact/', '/services/'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.replace(/\W+/g, '') + '.png'), Buffer.from(c.data, 'base64')); }
       }
     });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
@@ -404,7 +404,7 @@ async function main() {
       await tab.waitFor(`document.querySelectorAll('.hs-card [data-open-status]').length > 0 && !!document.querySelector('.hs-card .hs-row')`, 6000, 'hours strip');
       const r = await tab.ev(`({
         overlay: !!document.querySelector('.hero2-media .hero2-card'),
-        cards: [...document.querySelectorAll('.hs-card')].map((c) => c.querySelector('.hs-title').textContent.trim() + ' :: ' + c.innerText.replace(/\\s+/g, ' ')),
+        cards: [...document.querySelectorAll('.hs-card')].filter((e) => !e.closest('[hidden]')).map((c) => c.querySelector('.hs-title').textContent.trim() + ' :: ' + c.innerText.replace(/\\s+/g, ' ')),
         footerHours: [...document.querySelectorAll('.site-footer h4')].map((h) => h.textContent).join('|'),
         footerOnline: (document.querySelector('.footer-online') || {}).textContent,
         top: document.querySelector('.topbar [data-open-status]').textContent,
