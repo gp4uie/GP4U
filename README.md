@@ -252,10 +252,19 @@ some cases a signature with a third party) before real patients use it.
   which some hosts wipe on every redeploy) and aren't scanned for malware or size-limited beyond
   8MB/5 photos per booking — fine for a small trial, but a real launch with a lot of photo volume
   should add malware scanning and consider moving large files to dedicated object storage instead.
-- **Patient accounts have no "forgot password" flow yet** — if a patient forgets their password,
-  they'd need a new booking confirmation email to set a new one (there's also no email verification
-  step: whoever clicks the booking confirmation link can set the password, same trust level as a
-  typical "magic link"). Fine for testing; worth hardening before wide real-world use.
+- **Patient passwords**: patients reset a forgotten password from "Forgot your password?" on the
+  patient login page, and change it while signed in under **My Medical Profile → Change password**
+  (needs the current password; they get a "your password was changed" email). Patient logins lock for
+  15 minutes after 5 wrong tries, like staff logins. There's still no email verification step at sign-up:
+  whoever clicks the booking confirmation link can set the first password (same trust level as a
+  typical "magic link").
+- **Document emails to patients**: when a doctor issues a prescription, sick/fit-to-work certificate or
+  referral, the patient is emailed that it's ready (the email never contains the diagnosis or medication,
+  only a link to their consultation page). When a document is sent on to a pharmacy or hospital, the
+  patient is told where it went.
+- **Deleting test consultations**: Admin → My account → **Delete test consultations** lists every
+  consultation; tick the ones you made while testing, type DELETE and confirm. Only for pre-launch
+  clean-up — never delete a real patient's record.
 - **Notifications are in-app only** — the bell updates while the dashboard is open (checking every
   15 seconds) and can email you too if `SMTP_*`/`DOCTOR_EMAIL` are set, but there's no phone push
   notification; that would need a proper mobile app or PWA setup later.

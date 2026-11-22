@@ -51,9 +51,11 @@
   <h1>Patient Login</h1>
   <p style="color:var(--ink-500);">Log in to see all your bookings in one place. If you haven't set a
   password yet, use the link from your booking confirmation email instead — it'll offer to set one up.</p>
-  <div class="form-row"><label for="emailInput">Email</label><input type="email" id="emailInput"></div>
-  <div class="form-row"><label for="passwordInput">Password</label><input type="password" id="passwordInput"></div>
-  <button class="btn btn-primary btn-block" onclick="login()">Log In</button>
+  <form id="loginForm" onsubmit="event.preventDefault(); login();" novalidate>
+  <div class="form-row"><label for="emailInput">Email</label><input type="email" id="emailInput" name="username" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+  <div class="form-row"><label for="passwordInput">Password</label><input type="password" id="passwordInput" name="password" autocomplete="current-password" autocapitalize="none"></div>
+  <button type="submit" id="loginBtn" class="btn btn-primary btn-block">Log In</button>
+  </form>
   <p id="loginError" role="alert" style="color:#c0392b;"></p>
   <p><a href="#" id="forgotLink">Forgot your password?</a></p>
 
@@ -131,19 +133,32 @@
 <!-- @/sticky -->
 
 <script>
+let loginInFlight = false;
 async function login() {
-  const email = document.getElementById('emailInput').value;
+  if (loginInFlight) return;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  const email = document.getElementById('emailInput').value.trim();
   const password = document.getElementById('passwordInput').value;
-  const res = await fetch('/api/patient/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  if (res.ok) {
-    window.location.href = '/patient-portal.html';
-  } else {
-    document.getElementById('loginError').textContent = data.error;
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
+  loginInFlight = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  let ok = false;
+  try {
+    const res = await fetch('/api/patient/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) { ok = true; window.location.href = '/patient-portal.html'; return; }
+    errEl.textContent = data.error || `Sign-in failed (error ${res.status}). Please try again.`;
+  } catch (err) {
+    errEl.textContent = 'Could not reach the server. Check your internet connection and try again.';
+  } finally {
+    loginInFlight = false;
+    if (btn && !ok) { btn.disabled = false; btn.textContent = 'Log In'; }
   }
 }
 

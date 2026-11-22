@@ -57,6 +57,42 @@ async function getCurrentDoctor(req) {
   return db.get('SELECT * FROM doctors WHERE id = ?', [req.session.doctorId]);
 }
 
+// Patient-facing notices about documents. Same privacy rule as message notices: the email names
+// the kind of document but never its contents (no diagnosis, no medication) and links to the
+// patient's own consultation page, where it can be viewed and printed. Best-effort and skipped
+// for patients with no email on file (common for walk-ins).
+async function sendPatientNotice(booking, subject, paragraphs, buttonText) {
+  if (!booking || !booking.patient_email) return;
+  try {
+    const practice = await getPractice();
+    const link = `${siteUrl()}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+    await mailer.sendMail({
+      to: booking.patient_email,
+      subject: `${subject} — ${practice.name}`,
+      html: `
+        ${emailHeader(practice)}
+        <p>Hi ${esc(booking.patient_name)},</p>
+        ${paragraphs.map((p) => `<p>${p}</p>`).join('')}
+        ${emailButton(link, buttonText)}
+        ${emailFooter(practice)}
+      `,
+    });
+  } catch (err) { console.log('Patient document notice not sent:', err.message); }
+}
+// Plain-English name for patient emails ("your specialist referral letter", not "Referral Letter — Specialist").
+const PATIENT_DOC_NAMES = { referral_ae: 'emergency department referral letter', referral_specialist: 'specialist referral letter' };
+function patientDocName(doc) { return PATIENT_DOC_NAMES[doc.doc_type] || certLabelFor(doc); }
+function notifyPatientDocumentReady(booking, label) {
+  return sendPatientNotice(booking, `Your ${label.toLowerCase()} is ready`,
+    [`Your GP has issued a <strong>${esc(label.toLowerCase())}</strong> for you. For your privacy the details aren't in this email. You can view, download and print it here:`],
+    'View my document');
+}
+function notifyPatientSentOn(booking, label, toEmail) {
+  return sendPatientNotice(booking, `Your ${label.toLowerCase()} has been sent`,
+    [`Your GP has sent your <strong>${esc(label.toLowerCase())}</strong> to <strong>${esc(toEmail)}</strong>.`, 'You can see a copy here:'],
+    'View my documents');
+}
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const accountKey = (email || '').toLowerCase().trim();
@@ -652,6 +688,7 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
   }
   const doctor = await getCurrentDoctor(req);
   let booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Consultation not found' });
   // Walk-in patients never named a pharmacy when booking, so the doctor can record it here.
   if (typeof pharmacyName === 'string' && pharmacyName.trim() && pharmacyName.trim() !== booking.pharmacy_name) {
     await db.run('UPDATE bookings SET pharmacy_name = ? WHERE id = ?', [pharmacyName.trim().slice(0, 255), req.params.id]);
@@ -694,6 +731,7 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
     console.log('Prescription copy to admin not sent:', err.message);
   }
 
+  notifyPatientDocumentReady(booking, 'Prescription');
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -740,6 +778,9 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
       attachments: [{ filename: `Prescription-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE prescriptions SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.rxId]);
+    if (String(toEmail).toLowerCase().trim() !== String(booking.patient_email || '').toLowerCase().trim()) {
+      notifyPatientSentOn(booking, 'Prescription', toEmail);
+    }
     // Sending it counts as the associated task being done, whether or not the doctor also
     // ticks it off manually.
     await db.run(
@@ -757,11 +798,14 @@ router.post('/bookings/:id/documents', requireDoctor, async (req, res) => {
   const { docType, fields } = req.body;
   if (!DOCUMENT_TYPES[docType]) return res.status(400).json({ error: 'Unknown document type' });
   if (!fields || typeof fields !== 'object') return res.status(400).json({ error: 'Missing document fields' });
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Consultation not found' });
   const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
     INSERT INTO documents (booking_id, doc_type, fields, doctor_name, doctor_reg_number)
     VALUES (?,?,?,?,?)
   `, [req.params.id, docType, db.encrypt(JSON.stringify(fields)), doctor.name, doctor.reg_number]);
+  notifyPatientDocumentReady(booking, patientDocName({ doc_type: docType, fields }));
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -822,6 +866,9 @@ router.post('/documents/:docId/send', requireDoctor, async (req, res) => {
       attachments: [{ filename: `${fileSafe(label)}-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE documents SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.docId]);
+    if (String(toEmail).toLowerCase().trim() !== String(booking.patient_email || '').toLowerCase().trim()) {
+      notifyPatientSentOn(booking, patientDocName(doc), toEmail);
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(err.code === 'MAILER_NOT_CONFIGURED' ? 400 : 500).json({ error: err.message });

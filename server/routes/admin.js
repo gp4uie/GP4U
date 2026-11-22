@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking } = require('../practice');
+const { deleteBookingCascade } = require('../bookingDelete');
 
 const router = express.Router();
 
@@ -601,18 +602,47 @@ router.post('/remove-test-records', requireAdmin, async (req, res) => {
   const like = TEST_PREFIX + '%';
   const counts = {};
   const bookings = await db.all('SELECT id FROM bookings WHERE patient_name LIKE ?', [like]);
-  for (const b of bookings) {
-    for (const t of ['messages', 'prescriptions', 'clinical_notes', 'documents', 'attachments', 'notifications', 'chart_access_log', 'consultation_summary_log', 'tasks', 'booking_claim_links']) {
-      try { await db.run(`DELETE FROM ${t} WHERE booking_id = ?`, [b.id]); } catch (err) { /* table without that link */ }
-    }
-    await db.run('UPDATE walkin_checkins SET booking_id = NULL WHERE booking_id = ?', [b.id]);
-  }
-  counts.bookings = (await db.run('DELETE FROM bookings WHERE patient_name LIKE ?', [like])).changes;
-  counts.walkIns = (await db.run('DELETE FROM walkin_checkins WHERE full_name LIKE ?', [like])).changes;
+  counts.bookings = 0; counts.walkIns = 0;
+  for (const b of bookings) { const r = await deleteBookingCascade(b.id); counts.bookings += r.bookings; counts.walkIns += r.walkIns; }
+  counts.walkIns += (await db.run('DELETE FROM walkin_checkins WHERE full_name LIKE ?', [like])).changes;
   counts.registrations = (await db.run('DELETE FROM patient_registrations WHERE full_name LIKE ?', [like])).changes;
   counts.patients = (await db.run('DELETE FROM patients WHERE name LIKE ? OR email LIKE ?', [like, 'zz-live-test%'])).changes;
   const me = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
   try { await db.run('INSERT INTO site_change_log (admin_name, action, detail) VALUES (?, ?, ?)', [me.name, 'Removed test records', JSON.stringify(counts)]); } catch (err) { /* logging is best-effort */ }
+  res.json({ ok: true, counts });
+});
+
+// --- Pre-launch clean-up: every consultation (any status), so an admin can pick out the ones they made while
+// trying the site and delete them. Only what's needed to recognise a test booking is returned — no health details.
+router.get('/consultations', requireAdmin, async (req, res) => {
+  const rows = await db.all(`
+    SELECT id, created_at, slot_start, service_type, status, patient_name, patient_email
+    FROM bookings ORDER BY created_at DESC LIMIT 1000`);
+  res.json({ consultations: rows });
+});
+
+router.post('/consultations/delete', requireAdmin, async (req, res) => {
+  const { ids, confirm, alsoPatients } = req.body || {};
+  if (confirm !== 'DELETE') return res.status(400).json({ error: 'Please type DELETE to confirm' });
+  if (!Array.isArray(ids) || !ids.length || ids.length > 500 || !ids.every((i) => typeof i === 'string' && /^[A-Z0-9-]{1,32}$/i.test(i))) {
+    return res.status(400).json({ error: 'Choose at least one consultation' });
+  }
+  const unique = [...new Set(ids)];
+  const found = await db.all(`SELECT id, patient_name, patient_email FROM bookings WHERE id IN (${unique.map(() => '?').join(',')})`, unique);
+  const counts = { bookings: 0, patients: 0 };
+  for (const b of found) counts.bookings += (await deleteBookingCascade(b.id)).bookings;
+  if (alsoPatients === true) {
+    const emails = [...new Set(found.map((b) => String(b.patient_email || '').toLowerCase()).filter(Boolean))];
+    for (const email of emails) {
+      const left = await db.get('SELECT COUNT(*) AS n FROM bookings WHERE LOWER(patient_email) = ?', [email]);
+      if (!left || Number(left.n) === 0) counts.patients += (await db.run('DELETE FROM patients WHERE LOWER(email) = ?', [email])).changes || 0;
+    }
+  }
+  const me = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
+  try {
+    await db.run('INSERT INTO site_change_log (admin_name, action, detail) VALUES (?, ?, ?)',
+      [me.name, 'Deleted test consultations', JSON.stringify({ ...counts, ids: found.map((b) => b.id) })]);
+  } catch (err) { /* logging is best-effort */ }
   res.json({ ok: true, counts });
 });
 

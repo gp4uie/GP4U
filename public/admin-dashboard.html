@@ -189,6 +189,24 @@
       <button class="btn btn-secondary" type="button" id="removeTestBtn">Remove test records</button>
       <p id="removeTestMsg" role="status" class="staff-ok"></p>
     </div>
+
+    <div class="card" style="max-width:980px;margin-top:18px;" id="deleteConsultsCard">
+      <h3 style="margin-top:0;">Delete test consultations</h3>
+      <p class="ed-hint">For clearing out consultations you made yourself while trying the site, before launch. Tick the ones to delete. Each one is removed <strong>permanently</strong> with its messages, notes, prescriptions, documents and uploads. <strong>Never use this for a real patient</strong> — medical records must be kept.</p>
+      <button class="btn btn-secondary" type="button" id="loadConsultsBtn">Show all consultations</button>
+      <div id="consultsWrap" hidden>
+        <div class="table-scroll" style="margin-top:12px;">
+          <table class="bookings-table">
+            <thead><tr><th><input type="checkbox" id="consultsAll" aria-label="Select all"></th><th>Booked</th><th>Reference</th><th>Type</th><th>Status</th><th>Patient</th><th>Email</th></tr></thead>
+            <tbody id="consultsBody"></tbody>
+          </table>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin:12px 0;font-weight:400;"><input type="checkbox" id="consultsAlsoPatients"> Also delete patient logins that are left with no consultations</label>
+        <div class="form-row" style="max-width:360px;"><label for="consultsConfirm">Type DELETE to confirm</label><input id="consultsConfirm" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+        <button class="btn btn-primary" type="button" id="deleteConsultsBtn" disabled>Delete selected</button>
+      </div>
+      <p id="deleteConsultsMsg" role="status" class="staff-ok"></p>
+    </div>
   </div>
 
   <div id="tab_patients" style="display:none;">
@@ -267,7 +285,7 @@
 </main>
 
 <script src="/js/availability-editor.js?v=9f9178f4"></script>
-<script src="/js/admin-dashboard.js?v=610c25e9"></script>
+<script src="/js/admin-dashboard.js?v=df4b6f99"></script>
 <script src="/js/nav-toggle.js?v=727b2c08"></script>
 </body>
 </html>

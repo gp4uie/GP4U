@@ -87,6 +87,18 @@
         <div class="form-row"><label>Current medications</label><textarea id="profileMedications" placeholder="List what you currently take, or 'None'"></textarea></div>
         <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
         <p id="profileMsg" style="color:var(--teal-700);"></p>
+
+        <div class="card" id="changePasswordCard" style="margin-top:28px;max-width:460px;">
+          <h2 style="margin-top:0;font-size:1.2rem;">Change password</h2>
+          <form id="changePasswordForm" novalidate>
+            <input type="email" autocomplete="username" id="cpUsername" hidden>
+            <div class="form-row"><label for="cpCurrent">Current password</label><input id="cpCurrent" type="password" autocomplete="current-password"></div>
+            <div class="form-row"><label for="cpNew">New password <span style="font-weight:400;color:var(--ink-500);">(at least 8 characters)</span></label><input id="cpNew" type="password" autocomplete="new-password"></div>
+            <div class="form-row"><label for="cpConfirm">Type the new password again</label><input id="cpConfirm" type="password" autocomplete="new-password"></div>
+            <button class="btn btn-primary" type="submit" id="cpBtn">Change password</button>
+            <p id="cpMsg" role="alert" style="margin-top:10px;"></p>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -153,6 +165,7 @@
 <!-- @/footer -->
 
 <script>
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const docTypeLabels = { sick_cert: 'Sick Certificate', referral_ae: 'Referral Letter — A&E', referral_specialist: 'Referral Letter — Specialist' };
 
 const BOOK_SERVICE_ICONS = {
@@ -199,6 +212,7 @@ async function load() {
   const me = await meRes.json();
   if (!me.loggedIn) { window.location.href = '/patient-login.html'; return; }
   document.getElementById('whoami').textContent = me.email;
+  document.getElementById('cpUsername').value = me.email;
   document.getElementById('profileAddress').value = me.address || '';
   document.getElementById('profileConditions').value = me.knownConditions || '';
   document.getElementById('profileAllergies').value = me.allergies || '';
@@ -226,7 +240,7 @@ async function load() {
   document.getElementById('documentsList').innerHTML = docsData.documents.length
     ? docsData.documents.map(d => `
         <div class="card" style="margin-bottom:10px;">
-          <p><strong>${docTypeLabels[d.doc_type] || d.doc_type}</strong></p>
+          <p><strong>${esc(docTypeLabels[d.doc_type] || d.doc_type)}</strong></p>
           <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')} • ${d.service_type === 'walk_in' ? 'walk-in' : d.service_type.replace('_', ' ')} consultation</p>
           <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}&bookingId=${d.booking_id}&token=${d.token}">View / Print</a>
         </div>
@@ -236,7 +250,7 @@ async function load() {
   document.getElementById('prescriptionsList').innerHTML = docsData.prescriptions.length
     ? docsData.prescriptions.map(p => `
         <div class="card" style="margin-bottom:10px;">
-          <p><strong>${p.medication}</strong></p>
+          <p><strong>${esc(p.medication)}</strong></p>
           <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(p.created_at).toLocaleString('en-IE')} • ${p.service_type === 'walk_in' ? 'walk-in' : p.service_type.replace('_', ' ')} consultation</p>
           <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${p.booking_id}&token=${p.token}">View / Print</a>
         </div>
@@ -259,6 +273,35 @@ async function saveProfile() {
   msg.textContent = res.ok ? 'Saved.' : 'Something went wrong — please try again.';
   setTimeout(() => { msg.textContent = ''; }, 2500);
 }
+
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('cpMsg');
+  const btn = document.getElementById('cpBtn');
+  const currentPassword = document.getElementById('cpCurrent').value;
+  const newPassword = document.getElementById('cpNew').value;
+  const confirmPw = document.getElementById('cpConfirm').value;
+  const fail = (t) => { msg.style.color = '#c0392b'; msg.textContent = t; };
+  if (!currentPassword || !newPassword) return fail('Please fill in your current and new password.');
+  if (newPassword.length < 8) return fail('The new password must be at least 8 characters.');
+  if (newPassword !== confirmPw) return fail('The two new passwords do not match.');
+  btn.disabled = true; msg.style.color = ''; msg.textContent = 'Saving…';
+  try {
+    const res = await fetch('/api/patient/change-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && data.error === 'Not logged in') { window.location.href = '/patient-login.html'; return; }
+    if (!res.ok) return fail(data.error || 'Could not change your password. Please try again.');
+    ['cpCurrent', 'cpNew', 'cpConfirm'].forEach((id) => { document.getElementById(id).value = ''; });
+    msg.style.color = 'var(--teal-700)'; msg.textContent = 'Your password has been changed. Use the new one next time you log in.';
+  } catch (err) {
+    fail('Could not reach the server. Check your internet connection and try again.');
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 document.getElementById('logoutLink').addEventListener('click', async (e) => {
   e.preventDefault();

@@ -564,6 +564,56 @@ document.getElementById('addAdminForm').addEventListener('submit', async (e) => 
   msg.textContent = res.ok ? 'Admin added.' : (data.error || 'Could not add');
   if (res.ok) { ['newAdminName', 'newAdminEmail', 'newAdminPw'].forEach((id) => { document.getElementById(id).value = ''; }); loadAdmins(); }
 });
+// --- Delete test consultations (pre-launch clean-up) ---
+const consultEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function consultSelected() { return [...document.querySelectorAll('#consultsBody input[type=checkbox]:checked')].map((c) => c.value); }
+function consultRefreshBtn() {
+  const n = consultSelected().length;
+  const btn = document.getElementById('deleteConsultsBtn');
+  btn.disabled = n === 0; btn.textContent = n ? `Delete selected (${n})` : 'Delete selected';
+}
+async function loadConsultations() {
+  const msg = document.getElementById('deleteConsultsMsg'); msg.className = 'staff-ok'; msg.textContent = 'Loading…';
+  const res = await fetch('/api/admin/consultations');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { msg.className = 'staff-error'; msg.textContent = data.error || 'Could not load consultations'; return; }
+  msg.textContent = data.consultations.length ? '' : 'There are no consultations.';
+  document.getElementById('consultsBody').innerHTML = data.consultations.map((c) => `
+    <tr>
+      <td><input type="checkbox" value="${consultEsc(c.id)}" aria-label="Select ${consultEsc(c.id)}"></td>
+      <td>${consultEsc(new Date(c.created_at).toLocaleDateString('en-IE'))}</td>
+      <td>${consultEsc(c.id)}</td>
+      <td>${consultEsc(String(c.service_type).replace(/_/g, ' '))}</td>
+      <td>${consultEsc(c.status)}</td>
+      <td>${consultEsc(c.patient_name)}</td>
+      <td>${consultEsc(c.patient_email || '—')}</td>
+    </tr>`).join('');
+  document.getElementById('consultsAll').checked = false;
+  document.getElementById('consultsWrap').hidden = !data.consultations.length;
+  consultRefreshBtn();
+}
+document.getElementById('loadConsultsBtn').addEventListener('click', loadConsultations);
+document.getElementById('consultsBody').addEventListener('change', consultRefreshBtn);
+document.getElementById('consultsAll').addEventListener('change', (e) => {
+  document.querySelectorAll('#consultsBody input[type=checkbox]').forEach((c) => { c.checked = e.target.checked; });
+  consultRefreshBtn();
+});
+document.getElementById('deleteConsultsBtn').addEventListener('click', async () => {
+  const ids = consultSelected();
+  if (!ids.length) return;
+  const msg = document.getElementById('deleteConsultsMsg');
+  const confirmEl = document.getElementById('consultsConfirm');
+  if (confirmEl.value.trim() !== 'DELETE') { msg.className = 'staff-error'; msg.textContent = `Type DELETE in the box to permanently delete ${ids.length} consultation(s). This cannot be undone.`; confirmEl.focus(); return; }
+  confirmEl.value = '';
+  msg.className = 'staff-ok'; msg.textContent = 'Deleting…';
+  const res = await fetch('/api/admin/consultations/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, confirm: 'DELETE', alsoPatients: document.getElementById('consultsAlsoPatients').checked }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { msg.className = 'staff-error'; msg.textContent = data.error || 'Could not delete'; return; }
+  await loadConsultations();
+  msg.className = 'staff-ok';
+  msg.textContent = `Deleted ${data.counts.bookings} consultation(s)${data.counts.patients ? ` and ${data.counts.patients} patient login(s)` : ''}.`;
+});
+
 document.getElementById('removeTestBtn').addEventListener('click', async () => {
   if (!window.confirm('Remove all test records (patient names starting "ZZ LIVE TEST")?')) return;
   const msg = document.getElementById('removeTestMsg'); msg.className = 'staff-ok'; msg.textContent = 'Removing…';

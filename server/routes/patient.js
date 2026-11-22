@@ -5,6 +5,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl } = require('../practice');
 const { getPatient } = require('../patients');
+const loginLimiter = require('../loginLimiter');
 
 const router = express.Router();
 
@@ -41,13 +42,67 @@ router.put('/profile', requirePatient, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Same brute-force protection as the staff logins (server/loginLimiter.js). Keys are prefixed so a
+// patient's failed attempts never count against a doctor's account or the staff per-IP budget.
+const tooMany = (limit) => {
+  const minutes = Math.ceil(limit.retryAfterMs / 60000);
+  return limit.reason === 'account'
+    ? `Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}, or use "Forgot your password?".`
+    : `Too many login attempts from this network. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`;
+};
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  const accountKey = 'patient:' + String(email || '').toLowerCase().trim();
+  const ipKey = 'patient:' + req.ip;
+  const limit = loginLimiter.checkLimit(accountKey, ipKey);
+  if (limit.blocked) return res.status(429).json({ error: tooMany(limit) });
   const patient = email && await getPatient(email.toLowerCase().trim());
   if (!patient || !patient.password_hash || !bcrypt.compareSync(password || '', patient.password_hash)) {
+    loginLimiter.recordFailure(accountKey, ipKey);
     return res.status(401).json({ error: 'Incorrect email or password' });
   }
+  loginLimiter.recordSuccess(accountKey);
   req.session.patientEmail = patient.email;
+  res.json({ ok: true });
+});
+
+// Change password while signed in (Medical Profile page). Needs the current password, so a
+// session left open on a shared computer can't be used to take the account over.
+router.post('/change-password', requirePatient, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    return res.status(400).json({ error: 'The new password must be at least 8 characters.' });
+  }
+  if (newPassword.length > 200) return res.status(400).json({ error: 'That password is too long.' });
+  const accountKey = 'patient-change:' + req.session.patientEmail;
+  const ipKey = 'patient:' + req.ip;
+  const limit = loginLimiter.checkLimit(accountKey, ipKey);
+  if (limit.blocked) return res.status(429).json({ error: tooMany(limit).replace(', or use "Forgot your password?"', '') });
+  const patient = await getPatient(req.session.patientEmail);
+  if (!patient || !patient.password_hash || !bcrypt.compareSync(String(currentPassword || ''), patient.password_hash)) {
+    loginLimiter.recordFailure(accountKey, ipKey);
+    return res.status(400).json({ error: 'Your current password is not correct.' });
+  }
+  if (bcrypt.compareSync(newPassword, patient.password_hash)) {
+    return res.status(400).json({ error: 'The new password is the same as your current one.' });
+  }
+  loginLimiter.recordSuccess(accountKey);
+  await db.run('UPDATE patients SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?',
+    [bcrypt.hashSync(newPassword, 10), patient.email]);
+  // Security notice, standard practice: if the patient didn't do this, they find out straight away.
+  try {
+    const practice = await getPractice();
+    await mailer.sendMail({
+      to: patient.email,
+      subject: `Your ${practice.name} password was changed`,
+      html: `${emailHeader(practice)}
+        <p>The password for your ${esc(practice.name)} account was just changed.</p>
+        <p>If this was you, there's nothing more to do. If it wasn't, reset your password now and contact us:</p>
+        ${emailButton(`${siteUrl()}/patient-login.html`, 'Reset my password')}
+        ${emailFooter(practice)}`,
+    });
+  } catch (err) { console.log('Password-changed notice not sent:', err.message); }
   res.json({ ok: true });
 });
 
@@ -97,8 +152,8 @@ router.get('/documents', requirePatient, async (req, res) => {
 });
 
 // Lets a patient set a password using their booking link as proof of email ownership —
-// only works while no password is set yet (first time). To change an existing password,
-// a proper "forgot password" email flow would need to be added later.
+// only works while no password is set yet (first time). Existing passwords are changed with
+// POST /change-password (signed in) or the forgot/reset-password email flow.
 router.post('/set-password', async (req, res) => {
   const { bookingId, token, password } = req.body;
   if (!password || password.length < 8) {
