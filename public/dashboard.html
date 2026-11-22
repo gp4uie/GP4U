@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=0cd2916f">
+<link rel="stylesheet" href="/css/clinic.css?v=b9e9db12">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -132,7 +132,10 @@
       </div>
     </div>
     <div id="onlineDay"></div>
-    <div id="onlineCalendar" style="display:none;"><div class="schedule-grid" id="scheduleGrid"></div></div>
+    <div id="onlineCalendar" style="display:none;">
+      <div class="week-strip" id="weekStrip" role="tablist" aria-label="Choose a day this week"></div>
+      <div class="day-timeline" id="scheduleGrid" aria-live="polite"></div>
+    </div>
     <div id="onlineRecent" style="display:none;">
       <div class="table-scroll">
         <table class="bookings-table">
@@ -425,7 +428,7 @@
 
 </main>
 
-<script src="/js/dashboard.js?v=c3a0e3da"></script>
+<script src="/js/dashboard.js?v=688e4616"></script>
 <script src="/js/dashboard-clinic.js?v=ecd12251"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=dd645959"></script>

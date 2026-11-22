@@ -479,7 +479,7 @@ async function loadOnline() {
   const res = await doctorFetch('/api/doctor/schedule?type=online&date=' + isoDate(scheduleDate));
   const data = await res.json();
   caseLists.online = data.bookings.map((b) => b.id);
-  if (onlineView === 'calendar') renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins);
+  if (onlineView === 'calendar') { renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins); renderWeekStrip(); }
   else renderOnlineDay(data.bookings);
 }
 
@@ -498,63 +498,109 @@ function renderOnlineDay(bookings) {
     </article>`).join('');
 }
 
-// Calendar view: 15-minute rows across the day's working hours.
-const SCHEDULE_ROW_PX = 34;
+// Calendar view: the working day as one row per hour. Appointments sit in their hour as cards; runs of empty hours fold
+// into a single thin "Free" line, so a normal day fits on one screen without scrolling. A week strip above it shows how
+// many appointments each day has and jumps straight to a day.
+function calTime(d) { return d.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }); }
+function calHourLabel(h) { return `${String(h).padStart(2, '0')}:00`; }
 
 function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
-  const stepMin = 15;
-  const totalSlots = Math.max(1, Math.ceil((dayEndMins - dayStartMins) / stepMin));
-  const pad = (n) => String(n).padStart(2, '0');
-  let html = '';
-  for (let i = 0; i < totalSlots; i++) {
-    const minutes = dayStartMins + i * stepMin;
-    const hh = Math.floor(minutes / 60);
-    const mm = minutes % 60;
-    const isHour = mm === 0;
-    html += `<div class="slot-time-label${isHour ? ' hour' : ''}" style="grid-row:${i + 1};">${isHour ? `${pad(hh)}:${pad(mm)}` : ''}</div>`;
-    html += `<div class="schedule-row-line${isHour ? ' hour' : ''}" style="grid-row:${i + 1};"></div>`;
-  }
-  if (bookings.length === 0) {
-    html += `<div class="schedule-empty" style="grid-row: 1 / span ${totalSlots};">No online appointments on this day.</div>`;
-  }
-  bookings.forEach((b) => {
-    const start = new Date(b.slot_start), end = new Date(b.slot_end);
-    const startMinFromDayStart = (start.getHours() * 60 + start.getMinutes()) - dayStartMins;
-    const durMin = (end - start) / 60000;
-    const rowStart = Math.max(1, Math.floor(startMinFromDayStart / stepMin) + 1);
-    const rowSpan = Math.max(1, Math.round(durMin / stepMin));
-    const timeLabel = start.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
-    const reasonPreview = b.reason ? b.reason.slice(0, 40) + (b.reason.length > 40 ? '…' : '') : '';
-    html += `<div class="schedule-booking ${b.status === 'completed' ? 'completed' : ''}" style="grid-row:${rowStart} / span ${rowSpan};" onclick="openBooking('${esc(b.id)}', 'online')" title="${esc(reasonPreview)}">${timeLabel} <strong>${esc(b.patient_name)}</strong> — ${esc(reasonPreview || svcLabel(b.service_type))}</div>`;
-  });
-
-  // Current-time line, only when this is actually today.
+  const grid = document.getElementById('scheduleGrid');
+  const firstHour = Math.floor(dayStartMins / 60);
+  const lastHour = Math.max(firstHour, Math.ceil(dayEndMins / 60) - 1);
   const now = new Date();
   const isToday = isoDate(scheduleDate) === isoDate(now);
-  let nowRowFraction = null;
-  if (isToday) {
-    const nowMinsFromDayStart = (now.getHours() * 60 + now.getMinutes()) - dayStartMins;
-    if (nowMinsFromDayStart >= 0 && nowMinsFromDayStart <= (dayEndMins - dayStartMins)) {
-      nowRowFraction = nowMinsFromDayStart / stepMin;
-      html += `<div class="schedule-now-line" style="top:${nowRowFraction * SCHEDULE_ROW_PX}px;"></div>`;
+  const nowHour = isToday ? now.getHours() : -1;
+
+  // Bookings by hour (a booking outside the working hours still gets shown, in its own hour).
+  const byHour = new Map();
+  bookings.forEach((b) => {
+    const h = new Date(b.slot_start).getHours();
+    if (!byHour.has(h)) byHour.set(h, []);
+    byHour.get(h).push(b);
+  });
+  const hours = new Set();
+  for (let h = firstHour; h <= lastHour; h++) hours.add(h);
+  byHour.forEach((_, h) => hours.add(h));
+  const ordered = [...hours].sort((a, b) => a - b);
+
+  const card = (b) => {
+    const start = new Date(b.slot_start), end = new Date(b.slot_end);
+    const done = b.status === 'completed';
+    const mine = b.claimed_by && b.claimed_by === myStaffId;
+    const detail = [svcLabel(b.service_type), b.patient_dob ? clinicAge(b.patient_dob) : '', b.reason || ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="tl-card ${done ? 'is-done' : ''} ${mine ? 'is-mine' : ''}" onclick="openBooking('${esc(b.id)}', 'online')" title="${esc(calTime(start) + '–' + calTime(end) + ' · ' + b.patient_name + ' · ' + detail)}">
+      <span class="tl-line1"><span class="tl-time">${esc(calTime(start))}</span><strong class="tl-name">${esc(b.patient_name)}</strong><span class="tl-badges">${done ? statusBadge(b) : ''}${mine ? '' : claimBadge(b)}</span></span>
+      <span class="tl-line2">${esc(detail)}</span>
+    </button>`;
+  };
+
+  let html = '';
+  if (!bookings.length) {
+    html += `<div class="tl-empty"><strong>No online appointments on this day.</strong><span>Working hours ${esc(calHourLabel(firstHour))} – ${esc(calHourLabel(lastHour + 1))}. Use the days above to look at another day.</span></div>`;
+  } else {
+    let i = 0;
+    while (i < ordered.length) {
+      const h = ordered[i];
+      const list = byHour.get(h);
+      if (list) {
+        html += `<div class="tl-row ${h === nowHour ? 'is-now' : ''}"><div class="tl-hour">${esc(calHourLabel(h))}${h === nowHour ? '<span class="tl-now">Now</span>' : ''}</div><div class="tl-cards">${list.map(card).join('')}</div></div>`;
+        i++;
+      } else {
+        // fold a run of empty hours into one line
+        let j = i;
+        while (j + 1 < ordered.length && !byHour.get(ordered[j + 1]) && ordered[j + 1] === ordered[j] + 1) j++;
+        const from = ordered[i], to = ordered[j] + 1;
+        const holdsNow = nowHour >= from && nowHour < to;
+        html += `<div class="tl-free ${holdsNow ? 'is-now' : ''}"><div class="tl-hour">${esc(calHourLabel(from))}${holdsNow ? '<span class="tl-now">Now</span>' : ''}</div><div class="tl-free-text">Free · ${esc(calHourLabel(from))} – ${esc(calHourLabel(to))}</div></div>`;
+        i = j + 1;
+      }
     }
   }
-
-  const grid = document.getElementById('scheduleGrid');
   grid.innerHTML = html;
-
-  // Land the view somewhere useful instead of always at 00:00 — on "now" if it's today, on the
-  // first booking of the day otherwise, so a doctor isn't blind-scrolling a mostly-empty grid to
-  // find the one or two real appointments.
-  let scrollToPx = null;
-  if (nowRowFraction !== null) {
-    scrollToPx = Math.max(0, (nowRowFraction - 3) * SCHEDULE_ROW_PX);
-  } else if (bookings.length) {
-    const first = new Date(bookings[0].slot_start);
-    const firstRowFraction = ((first.getHours() * 60 + first.getMinutes()) - dayStartMins) / stepMin;
-    scrollToPx = Math.max(0, (firstRowFraction - 2) * SCHEDULE_ROW_PX);
+  // On today, bring the current hour into view (the page scrolls, not a box inside it).
+  const nowRow = grid.querySelector('.is-now');
+  if (nowRow && isToday) {
+    const r = nowRow.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) nowRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
-  if (scrollToPx !== null) grid.scrollTop = scrollToPx;
+}
+
+// Week strip: Monday–Sunday of the week being viewed, each with its number of online appointments.
+let weekStripKey = '';
+async function renderWeekStrip() {
+  const strip = document.getElementById('weekStrip');
+  const monday = new Date(scheduleDate);
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const days = [...Array(7)].map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+  const todayIso = isoDate(new Date());
+  const selIso = isoDate(scheduleDate);
+  const key = isoDate(monday);
+  const draw = (counts) => {
+    strip.innerHTML = days.map((d, i) => {
+      const iso = isoDate(d);
+      const n = counts ? counts[i] : null;
+      return `<button type="button" role="tab" aria-selected="${iso === selIso}" class="ws-day ${iso === selIso ? 'is-selected' : ''} ${iso === todayIso ? 'is-today' : ''}" onclick="goToDate('${iso}')">
+        <span class="ws-dow">${esc(d.toLocaleDateString('en-IE', { weekday: 'short' }))}</span>
+        <span class="ws-date">${esc(String(d.getDate()))}</span>
+        <span class="ws-count ${n ? 'has' : ''}">${n === null ? '·' : n ? `${n} appt${n === 1 ? '' : 's'}` : 'none'}</span>
+      </button>`;
+    }).join('');
+  };
+  if (key !== weekStripKey) draw(null); // show the days at once, counts follow
+  weekStripKey = key;
+  try {
+    const counts = await Promise.all(days.map((d) => doctorFetch('/api/doctor/schedule?type=online&date=' + isoDate(d))
+      .then((r) => r.json()).then((j) => (j.bookings || []).length).catch(() => null)));
+    if (weekStripKey === key) draw(counts);
+  } catch (err) { /* counts are a convenience; the day view still works */ }
+}
+
+function goToDate(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  scheduleDate = new Date(y, m - 1, d, 12);
+  loadOnline();
 }
 
 // --- Find a patient: results are grouped per person, walk-in and online visits together ---
