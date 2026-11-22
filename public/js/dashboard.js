@@ -173,11 +173,17 @@ async function login() {
   loginInFlight = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
   try {
-    const res = await fetch('/api/doctor/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    let res;
+    try {
+      res = await fetch('/api/doctor/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch (netErr) {
+      errEl.textContent = 'Could not reach the server. Check your internet connection, turn off any ad/privacy blocker for gp4u.ie, and try again.';
+      return;
+    }
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.requiresTotp) {
       document.getElementById('loginBox').style.display = 'none';
@@ -194,7 +200,8 @@ async function login() {
       errEl.textContent = data.error || `Sign-in failed (error ${res.status}). Please try again.`;
     }
   } catch (err) {
-    errEl.textContent = 'Could not reach the server. Check your internet connection, turn off any ad/privacy blocker for gp4u.ie, and try again.';
+    // Signed in, but the dashboard failed to open — reloading re-runs checkSession with the session already set.
+    errEl.textContent = 'Signed in, but the dashboard did not open (' + (err && err.message ? err.message : 'unknown error') + '). Please reload the page.';
   } finally {
     loginInFlight = false;
     if (btn) { btn.disabled = false; btn.textContent = 'Log In'; }
