@@ -6,17 +6,34 @@ const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl } = require('../practice');
 const { getPatient } = require('../patients');
 const loginLimiter = require('../loginLimiter');
+const formLimiter = require('../formLimiter');
+const sessionStamp = require('../sessionStamp');
+
+function signIn(req, patient) {
+  req.session.patientEmail = patient.email;
+  req.session.patientPw = sessionStamp.stamp(patient.password_hash);
+}
 
 const router = express.Router();
 
-function requirePatient(req, res, next) {
+// Also signs the patient out if their password was changed or reset since this session began (server/sessionStamp.js).
+async function requirePatient(req, res, next) {
   if (!req.session || !req.session.patientEmail) return res.status(401).json({ error: 'Not logged in' });
+  const p = await db.get('SELECT password_hash FROM patients WHERE email = ?', [req.session.patientEmail]);
+  if (!p || !sessionStamp.matches(req.session.patientPw, p.password_hash)) {
+    req.session.patientEmail = null; req.session.patientPw = null;
+    return res.status(401).json({ error: 'Not logged in' });
+  }
   next();
 }
 
 router.get('/me', async (req, res) => {
   if (!req.session || !req.session.patientEmail) return res.json({ loggedIn: false });
   const patient = await getPatient(req.session.patientEmail);
+  if (!patient || !sessionStamp.matches(req.session.patientPw, patient.password_hash)) {
+    req.session.patientEmail = null; req.session.patientPw = null;
+    return res.json({ loggedIn: false });
+  }
   res.json({
     loggedIn: true,
     email: req.session.patientEmail,
@@ -63,7 +80,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Incorrect email or password' });
   }
   loginLimiter.recordSuccess(accountKey);
-  req.session.patientEmail = patient.email;
+  signIn(req, patient);
   res.json({ ok: true });
 });
 
@@ -88,8 +105,10 @@ router.post('/change-password', requirePatient, async (req, res) => {
     return res.status(400).json({ error: 'The new password is the same as your current one.' });
   }
   loginLimiter.recordSuccess(accountKey);
+  const newHash = bcrypt.hashSync(newPassword, 10);
   await db.run('UPDATE patients SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?',
-    [bcrypt.hashSync(newPassword, 10), patient.email]);
+    [newHash, patient.email]);
+  signIn(req, { email: patient.email, password_hash: newHash }); // keep this session; every other one is signed out
   // Security notice, standard practice: if the patient didn't do this, they find out straight away.
   try {
     const practice = await getPractice();
@@ -174,13 +193,13 @@ router.post('/set-password', async (req, res) => {
   if (result.changes === 0) {
     return res.status(500).json({ error: 'No patient record found for this email — please make a new booking first.' });
   }
-  req.session.patientEmail = booking.patient_email;
+  signIn(req, { email: booking.patient_email, password_hash: hash });
   res.json({ ok: true });
 });
 
 // "Forgot password" for patients who don't have their booking confirmation link handy — an
 // alternative entry point to /set-password above, which is tied to a specific booking's token.
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', formLimiter.limit('forgot-patient'), async (req, res) => {
   const { email } = req.body;
   const patient = email && await getPatient(email.toLowerCase().trim());
   // Always respond the same way whether or not the email matches, so this can't be used to
@@ -220,7 +239,7 @@ router.post('/reset-password', async (req, res) => {
   if (!patient) return res.status(400).json({ error: 'This reset link is invalid or has expired' });
   const hash = bcrypt.hashSync(password, 10);
   await db.run('UPDATE patients SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?', [hash, patient.email]);
-  req.session.patientEmail = patient.email;
+  signIn(req, { email: patient.email, password_hash: hash });
   res.json({ ok: true });
 });
 

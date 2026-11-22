@@ -10,7 +10,8 @@ const seo = require('../seo');
 
 const router = express.Router();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No spaces, quotes, angle brackets or other characters that could turn an address into HTML or script.
+const EMAIL_RE = /^[^\s@<>"`()\\,;:]+@[^\s@<>"'`()\\,;:]+\.[^\s@<>"'`()\\,;:]+$/;
 const ARRIVAL_MINUTES = [0, 15, 30, 60];
 const WALKIN_STATUSES = ['expected', 'arrived', 'seen', 'cancelled'];
 const MAX_FAMILY_MEMBERS = 8;

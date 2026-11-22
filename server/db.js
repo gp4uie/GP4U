@@ -162,6 +162,9 @@ async function initSchema() {
   // both poll for this instead of connecting on their own.
   await ensureColumn('bookings', 'call_started_at', 'DATETIME NULL');
   await ensureColumn('bookings', 'call_mode', "VARCHAR(16) NULL");
+  // Secret per-booking video room name: the public PeerJS broker matches participants by ID, so the
+  // ID must be unguessable (the booking reference appears in emails and links). See routes/doctor.js start-call.
+  await ensureColumn('bookings', 'call_room', 'VARCHAR(64) NULL');
   // Which doctor has taken an online booking ("claimed" it from the notification email or the dashboard).
   await ensureColumn('bookings', 'claimed_by', 'INT NULL');
   await ensureColumn('bookings', 'claimed_at', 'DATETIME NULL');

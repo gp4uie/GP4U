@@ -1,4 +1,6 @@
-const nodemailer = require('nodemailer');
+// Loaded on first use rather than at start-up: if the email library ever failed to load on the host (e.g. an
+// older Node.js version), only email would stop working — the website itself would still start.
+let nodemailer = null;
 
 // Reads SMTP settings from .env. Point these at a real Healthmail account (or any
 // mailbox) to send for real — see README "Sending prescriptions and letters by email".
@@ -9,6 +11,7 @@ function isConfigured() {
 let transport = null;
 function getTransport() {
   if (!transport) {
+    if (!nodemailer) nodemailer = require('nodemailer');
     transport = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),

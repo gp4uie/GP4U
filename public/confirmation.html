@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=5f2e2fa5">
+<link rel="stylesheet" href="/css/clinic.css?v=0cd2916f">
 <!-- @/head -->
 </head>
 <body class="clinic-page on-light" data-sticky="off">
@@ -178,6 +178,7 @@
 <!-- @/footer -->
 
 <script>
+const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const params = new URLSearchParams(location.search);
 const bookingId = params.get('id');
 const token = params.get('token');
@@ -232,16 +233,16 @@ async function loadBooking() {
   const res = await fetch(`/api/bookings/${bookingId}?token=${token}`);
   const data = await res.json();
   if (!res.ok) {
-    document.getElementById('loading').innerHTML = `<p style="color:#c0392b;">${data.error}</p>`;
+    document.getElementById('loading').innerHTML = `<p style="color:#c0392b;">${esc(data.error)}</p>`;
     return;
   }
   const b = data.booking;
   const start = new Date(b.slot_start);
   document.getElementById('bookingDetails').innerHTML = `
-    <p><strong>Reference:</strong> ${b.id}</p>
-    <p><strong>Service:</strong> ${b.service_type === 'walk_in' ? 'Walk-in visit' : b.service_type.replace('_',' ')}</p>
+    <p><strong>Reference:</strong> ${esc(b.id)}</p>
+    <p><strong>Service:</strong> ${esc(b.service_type === 'walk_in' ? 'Walk-in visit' : b.service_type.replace('_',' '))}</p>
     <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}</p>
-    <p><strong>Status:</strong> ${b.status}</p>
+    <p><strong>Status:</strong> ${esc(b.status)}</p>
   `;
   const joinLink = document.getElementById('joinLink');
   const callUrl = `/consult.html?id=${bookingId}&token=${token}&role=patient`;
@@ -286,16 +287,16 @@ async function loadBooking() {
   if (data.attachments.length) {
     document.getElementById('attachmentList').innerHTML = data.attachments.map(a => `
       <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;margin:0 8px 8px 0;display:inline-block;" target="_blank"
-         href="/api/bookings/${bookingId}/attachments/${a.id}?token=${token}">${a.original_name}</a>
+         href="/api/bookings/${bookingId}/attachments/${a.id}?token=${token}">${esc(a.original_name)}</a>
     `).join('');
   }
 
   if (data.prescriptions.length) {
     document.getElementById('prescriptionList').innerHTML = data.prescriptions.map(p => `
       <div class="card" style="margin-bottom:10px;">
-        <p><strong>${p.medication}</strong> — ${p.dose}</p>
-        <p>${p.instructions}</p>
-        <p style="color:var(--ink-500);font-size:0.85rem;">Quantity: ${p.quantity} • Issued ${new Date(p.issued_at).toLocaleString('en-IE')}</p>
+        <p><strong>${esc(p.medication)}</strong> — ${esc(p.dose)}</p>
+        <p>${esc(p.instructions)}</p>
+        <p style="color:var(--ink-500);font-size:0.85rem;">Quantity: ${esc(p.quantity)} • Issued ${new Date(p.issued_at).toLocaleString('en-IE')}</p>
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${bookingId}&token=${token}">View / Print</a>
       </div>
     `).join('');
@@ -304,7 +305,7 @@ async function loadBooking() {
   if (data.documents.length) {
     document.getElementById('documentList').innerHTML = data.documents.map(d => `
       <div class="card" style="margin-bottom:10px;">
-        <p><strong>${docTypeLabels[d.doc_type] || d.doc_type}</strong></p>
+        <p><strong>${esc(docTypeLabels[d.doc_type] || d.doc_type)}</strong></p>
         <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')}</p>
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}&bookingId=${bookingId}&token=${token}">View / Print</a>
       </div>
@@ -319,7 +320,7 @@ async function loadBooking() {
 function renderMessages(messages) {
   const thread = document.getElementById('messageThread');
   thread.innerHTML = messages.length
-    ? messages.map(m => `<div class="msg ${m.sender}">${m.body}<small>${m.sender === 'doctor' ? 'GP' : 'You'} • ${new Date(m.created_at).toLocaleString('en-IE')}</small></div>`).join('')
+    ? messages.map(m => `<div class="msg ${m.sender === 'doctor' ? 'doctor' : 'patient'}">${esc(m.body)}<small>${m.sender === 'doctor' ? 'GP' : 'You'} • ${new Date(m.created_at).toLocaleString('en-IE')}</small></div>`).join('')
     : '<p style="color:var(--ink-500);">No messages yet.</p>';
 }
 

@@ -753,7 +753,11 @@ body.staff-page { background: var(--cream); }
 /* doctor "Today" overview + notification bell */
 .desk-stats.four { grid-template-columns: repeat(4, 1fr); }
 .today-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-.today-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.today-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; margin-bottom: 12px; }
+/* Grid columns may shrink below their content's natural width, so queue cards and long names wrap instead of pushing the page sideways on a phone. */
+.today-cols > * { min-width: 0; }
+.queue-card > * { min-width: 0; }
+.qc-name, .qc-reason, .qc-meta, .appt-who { overflow-wrap: anywhere; }
 .today-head h2 { margin: 0; font-size: 1.35rem; }
 .today-head a { font-weight: 700; font-size: 0.93rem; }
 .staff-page .notif-bell { background: none; border: 0; color: var(--ink); cursor: pointer; padding: 8px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; position: relative; }

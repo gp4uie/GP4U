@@ -8,9 +8,11 @@ const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, sit
 const claims = require('../claims');
 const { DOCUMENT_TYPES, certLabelFor } = require('../documentTypes');
 const { MEDICATIONS } = require('../medications');
+const { sendUpload } = require('../imageCheck');
 const { getDayHoursRange } = require('../slots');
 const loginLimiter = require('../loginLimiter');
 const totp = require('../totp');
+const sessionStamp = require('../sessionStamp');
 
 const router = express.Router();
 
@@ -38,8 +40,9 @@ async function requireDoctor(req, res, next) {
     req.session = null;
     return res.status(401).json({ error: 'Session expired due to inactivity' });
   }
-  const doctor = await db.get('SELECT id, active FROM doctors WHERE id = ?', [req.session.doctorId]);
-  if (!doctor || doctor.active === 0) {
+  const doctor = await db.get('SELECT id, active, password_hash FROM doctors WHERE id = ?', [req.session.doctorId]);
+  // A password change or reset signs out every session made with the old password (see server/sessionStamp.js).
+  if (!doctor || doctor.active === 0 || !sessionStamp.matches(req.session.doctorPw, doctor.password_hash)) {
     req.session = null;
     return res.status(401).json({ error: 'Not logged in' });
   }
@@ -127,6 +130,7 @@ router.post('/login', async (req, res) => {
     return res.json({ ok: true, requiresTotp: true });
   }
   req.session.doctorId = doctor.id;
+  req.session.doctorPw = sessionStamp.stamp(doctor.password_hash);
   req.session.lastActivityAt = Date.now();
   await db.run('UPDATE doctors SET last_login_at = NOW() WHERE id = ?', [doctor.id]);
   res.json({ ok: true });
@@ -154,6 +158,7 @@ router.post('/login/verify-totp', async (req, res) => {
   }
   loginLimiter.recordSuccess(limitKey);
   req.session.doctorId = doctor.id;
+  req.session.doctorPw = sessionStamp.stamp(doctor.password_hash);
   req.session.pendingDoctorId = null;
   req.session.lastActivityAt = Date.now();
   await db.run('UPDATE doctors SET last_login_at = NOW() WHERE id = ?', [doctor.id]);
@@ -172,7 +177,7 @@ router.get('/me', async (req, res) => {
     return res.json({ loggedIn: false });
   }
   const doctor = await getCurrentDoctor(req);
-  if (!doctor || doctor.active === 0) {
+  if (!doctor || doctor.active === 0 || !sessionStamp.matches(req.session.doctorPw, doctor.password_hash)) {
     req.session = null;
     return res.json({ loggedIn: false });
   }
@@ -223,7 +228,7 @@ router.post('/totp/disable', requireDoctor, async (req, res) => {
 });
 
 // --- Forgot / reset password ---
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', require('../formLimiter').limit('forgot-doctor'), async (req, res) => {
   const { email } = req.body;
   const doctor = email && await db.get('SELECT * FROM doctors WHERE email = ?', [email.toLowerCase().trim()]);
   // Always respond the same way whether or not the email matches, so this can't be used to
@@ -448,8 +453,7 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
 router.get('/attachments/:attId', requireDoctor, async (req, res) => {
   const att = await db.get('SELECT * FROM attachments WHERE id = ?', [req.params.attId]);
   if (!att) return res.status(404).json({ error: 'Not found' });
-  res.setHeader('Content-Type', att.mime_type);
-  res.send(att.data);
+  sendUpload(res, att);
 });
 
 router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
@@ -536,13 +540,26 @@ router.post('/internal-messages', requireDoctor, async (req, res) => {
 // for call_started_at rather than connecting on their own (see public/js/consult.js,
 // public/confirmation.html). Called when the doctor clicks "Join Video/Audio Consultation" in
 // the dashboard, before their own call window opens.
+// The doctor's consult page asks for the secret room name (created on first use, kept for the booking).
+router.get('/bookings/:id/call-room', requireDoctor, async (req, res) => {
+  const booking = await db.get('SELECT id, call_room FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  let room = booking.call_room;
+  if (!room) {
+    await db.run('UPDATE bookings SET call_room = COALESCE(call_room, ?) WHERE id = ?', [crypto.randomBytes(24).toString('hex'), booking.id]);
+    room = (await db.get('SELECT call_room FROM bookings WHERE id = ?', [booking.id])).call_room;
+  }
+  res.json({ room });
+});
+
 router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
   const mode = req.body.mode === 'audio' ? 'audio' : 'video';
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
   const taken = await claims.claimBooking(req.params.id, req.session.doctorId);
   if (!taken.ok) return res.status(409).json({ error: `${taken.claimedByName || 'Another doctor'} has claimed this case. Ask them to release it if you need to take over.` });
-  await db.run("UPDATE bookings SET call_started_at = NOW(), call_mode = ? WHERE id = ?", [mode, req.params.id]);
+  await db.run("UPDATE bookings SET call_started_at = NOW(), call_mode = ?, call_room = COALESCE(call_room, ?) WHERE id = ?",
+    [mode, crypto.randomBytes(24).toString('hex'), req.params.id]);
 
   // Best-effort — reaches the patient even if they don't have the confirmation page open.
   try {

@@ -5,17 +5,28 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking } = require('../practice');
 const { deleteBookingCascade } = require('../bookingDelete');
+const loginLimiter = require('../loginLimiter');
+const formLimiter = require('../formLimiter');
+const sessionStamp = require('../sessionStamp');
+// Same idle rule as the doctor and reception areas: an admin session left open on a shared machine closes after 30 minutes.
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
 const router = express.Router();
 
 // Also guards against a session referencing an admin account that's since been removed.
 async function requireAdmin(req, res, next) {
   if (!req.session || !req.session.adminId) return res.status(401).json({ error: 'Not logged in' });
-  const admin = await db.get('SELECT id FROM admins WHERE id = ?', [req.session.adminId]);
-  if (!admin) {
+  const now = Date.now();
+  if (req.session.adminActivityAt && now - req.session.adminActivityAt > IDLE_TIMEOUT_MS) {
+    req.session = null;
+    return res.status(401).json({ error: 'Session expired due to inactivity' });
+  }
+  const admin = await db.get('SELECT id, password_hash FROM admins WHERE id = ?', [req.session.adminId]);
+  if (!admin || !sessionStamp.matches(req.session.adminPw, admin.password_hash)) {
     req.session = null;
     return res.status(401).json({ error: 'Not logged in' });
   }
+  req.session.adminActivityAt = now;
   // Fire-and-forget heartbeat for the "who's online" view on the doctor side's Team Messages tab.
   db.run('UPDATE admins SET last_active_at = NOW() WHERE id = ?', [req.session.adminId]).catch(() => {});
   next();
@@ -29,12 +40,26 @@ function isOnline(lastActiveAt) {
 }
 
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const admin = email && await db.get('SELECT * FROM admins WHERE email = ?', [email.toLowerCase().trim()]);
-  if (!admin || !bcrypt.compareSync(password || '', admin.password_hash)) {
+  const { email, password } = req.body || {};
+  // Brute-force protection (server/loginLimiter.js): the admin area sees every patient, so it must not allow
+  // unlimited password guesses. Keys are prefixed so admin attempts never lock a doctor account with the same email.
+  const accountKey = 'admin:' + String(email || '').toLowerCase().trim();
+  const limit = loginLimiter.checkLimit(accountKey, req.ip);
+  if (limit.blocked) {
+    const minutes = Math.ceil(limit.retryAfterMs / 60000);
+    return res.status(429).json({ error: limit.reason === 'account'
+      ? `Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}, or use "Forgot your password?".`
+      : `Too many login attempts from this network. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.` });
+  }
+  const admin = email && await db.get('SELECT * FROM admins WHERE email = ?', [String(email).toLowerCase().trim()]);
+  if (!admin || !bcrypt.compareSync(String(password || ''), admin.password_hash)) {
+    loginLimiter.recordFailure(accountKey, req.ip);
     return res.status(401).json({ error: 'Incorrect email or password' });
   }
+  loginLimiter.recordSuccess(accountKey);
   req.session.adminId = admin.id;
+  req.session.adminPw = sessionStamp.stamp(admin.password_hash);
+  req.session.adminActivityAt = Date.now();
   res.json({ ok: true });
 });
 
@@ -46,15 +71,17 @@ router.post('/logout', (req, res) => {
 router.get('/me', async (req, res) => {
   if (!req.session || !req.session.adminId) return res.json({ loggedIn: false });
   const admin = await db.get('SELECT * FROM admins WHERE id = ?', [req.session.adminId]);
-  if (!admin) {
+  if (!admin || !sessionStamp.matches(req.session.adminPw, admin.password_hash)
+    || (req.session.adminActivityAt && Date.now() - req.session.adminActivityAt > IDLE_TIMEOUT_MS)) {
     req.session = null;
     return res.json({ loggedIn: false });
   }
+  req.session.adminActivityAt = Date.now();
   res.json({ loggedIn: true, adminId: admin.id, adminName: admin.name, adminEmail: admin.email, practiceName: process.env.PRACTICE_NAME });
 });
 
 // --- Forgot / reset password ---
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', formLimiter.limit('forgot-admin'), async (req, res) => {
   const { email } = req.body;
   const admin = email && await db.get('SELECT * FROM admins WHERE email = ?', [email.toLowerCase().trim()]);
   // Always respond the same way whether or not the email matches, so this can't be used to
@@ -95,6 +122,8 @@ router.post('/reset-password', async (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   await db.run('UPDATE admins SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?', [hash, admin.id]);
   req.session.adminId = admin.id;
+  req.session.adminPw = sessionStamp.stamp(hash);
+  req.session.adminActivityAt = Date.now();
   res.json({ ok: true });
 });
 
@@ -665,7 +694,8 @@ router.post('/test-email', requireAdmin, async (req, res) => {
 });
 
 // --- Edit people: an admin can correct a doctor's or receptionist's details, reset a password, or remove a receptionist ---
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No spaces, quotes, angle brackets or other characters that could turn an address into HTML or script.
+const EMAIL_RE = /^[^\s@<>"`()\\,;:]+@[^\s@<>"'`()\\,;:]+\.[^\s@<>"'`()\\,;:]+$/;
 const cleanStr = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 router.put('/doctors/:id', requireAdmin, async (req, res) => {
@@ -720,7 +750,9 @@ router.post('/me/password', requireAdmin, async (req, res) => {
   if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'The new password must be at least 8 characters' });
   const me = await db.get('SELECT password_hash FROM admins WHERE id = ?', [req.session.adminId]);
   if (!me || !bcrypt.compareSync(currentPassword || '', me.password_hash)) return res.status(403).json({ error: 'Your current password is not correct' });
-  await db.run('UPDATE admins SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(newPassword, 10), req.session.adminId]);
+  const newHash = bcrypt.hashSync(newPassword, 10);
+  await db.run('UPDATE admins SET password_hash = ? WHERE id = ?', [newHash, req.session.adminId]);
+  req.session.adminPw = sessionStamp.stamp(newHash); // keep this session; every other one is signed out
   res.json({ ok: true });
 });
 

@@ -9,6 +9,8 @@ const { upsertPatient } = require('../patients');
 const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, siteUrl, enrichBooking } = require('../practice');
 const { notifyDoctorsOfBooking } = require('../claims');
+const { detectImage, sendUpload } = require('../imageCheck');
+const formLimiter = require('../formLimiter');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -21,7 +23,8 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
 });
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No spaces, quotes, angle brackets or other characters that could turn an address into HTML or script.
+const EMAIL_RE = /^[^\s@<>"`()\\,;:]+@[^\s@<>"'`()\\,;:]+\.[^\s@<>"'`()\\,;:]+$/;
 
 // Mirrors PRESCRIPTION_SERVICE_KEYS in public/js/questionnaires.js — kept as a separate list here
 // since that file is browser-only. Update both if a condition-specific prescription page is
@@ -104,7 +107,7 @@ router.get('/slots', async (req, res) => {
 });
 
 // Create a pending booking + a Stripe Checkout session for it.
-router.post('/bookings', async (req, res) => {
+router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
   try {
     const {
       serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress, pharmacyName,
@@ -205,7 +208,12 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
     // reset a 'completed' consultation back to 'paid' (reopening messaging and re-notifying the doctor).
     if (booking.status !== 'pending_payment') return res.json({ status: booking.status });
 
-    if (!stripe || !booking.stripe_session_id) {
+    if (stripe && !booking.stripe_session_id) {
+      // Payments are switched on but this booking never reached the card page (e.g. Stripe was briefly
+      // unreachable when it was made). It must never be confirmed without payment.
+      return res.json({ status: 'pending_payment' });
+    }
+    if (!stripe) {
       // Demo mode without Stripe configured: mark as paid so the flow can be tried end to end.
       // Only the request that actually flips the status sends the emails (two page loads at once must not double-send).
       const r = await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status = 'pending_payment'", [booking.id]);
@@ -229,8 +237,11 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
 async function requirePatientToken(req, res, next) {
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
-  const token = req.query.token || req.body.token;
-  if (!token || token !== booking.patient_token) return res.status(403).json({ error: 'Invalid access token' });
+  const token = String(req.query.token || (req.body && req.body.token) || '');
+  const expected = String(booking.patient_token || '');
+  if (!token || token.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected))) {
+    return res.status(403).json({ error: 'Invalid access token' });
+  }
   req.booking = booking;
   next();
 }
@@ -250,20 +261,26 @@ router.get('/bookings/:id', requirePatientToken, async (req, res) => {
 // Photo attachments — uploaded right after the booking is created, before payment.
 // Stored as a BLOB directly in the database (see note on `upload` above).
 router.post('/bookings/:id/attachments', requirePatientToken, upload.array('photos', 5), async (req, res) => {
-  for (const f of req.files || []) {
+  const files = req.files || [];
+  const existing = await db.get('SELECT COUNT(*) AS n FROM attachments WHERE booking_id = ?', [req.params.id]);
+  if (Number(existing.n) + files.length > 5) return res.status(400).json({ error: 'You can add up to 5 photos to a booking.' });
+  // Every file must really be a photo (checked from its contents, not its name or claimed type).
+  const checked = files.map((f) => ({ f, kind: detectImage(f.buffer) }));
+  if (checked.some((c) => !c.kind)) return res.status(400).json({ error: 'Please upload photos only (JPG, PNG, WebP, GIF or iPhone HEIC).' });
+  for (const { f, kind } of checked) {
+    const name = String(f.originalname || 'photo').replace(/[\u0000-\u001f<>"'`\\/]/g, '_').slice(0, 120) || 'photo';
     await db.run(
       'INSERT INTO attachments (booking_id, original_name, mime_type, data) VALUES (?,?,?,?)',
-      [req.params.id, f.originalname, f.mimetype, f.buffer]
+      [req.params.id, name, kind.mime, f.buffer]
     );
   }
-  res.json({ ok: true, count: (req.files || []).length });
+  res.json({ ok: true, count: files.length });
 });
 
 router.get('/bookings/:id/attachments/:attId', requirePatientToken, async (req, res) => {
   const att = await db.get('SELECT * FROM attachments WHERE id = ? AND booking_id = ?', [req.params.attId, req.params.id]);
   if (!att) return res.status(404).json({ error: 'Not found' });
-  res.setHeader('Content-Type', att.mime_type);
-  res.send(att.data);
+  sendUpload(res, att);
 });
 
 router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
@@ -271,7 +288,8 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
     return res.status(403).json({ error: 'This consultation is now closed, so messages can no longer be sent for it. Please book a new consultation if you need further care.' });
   }
   const { body } = req.body;
-  if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+  if (typeof body !== 'string' || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+  if (body.length > 5000) return res.status(400).json({ error: 'That message is too long (5,000 characters at most).' });
   await db.run("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'patient', ?)", [req.params.id, body.trim()]);
   await db.run(`
     INSERT INTO notifications (type, booking_id, message)
@@ -315,6 +333,8 @@ router.get('/bookings/:id/call-status', requirePatientToken, async (req, res) =>
   res.json({
     started: !!req.booking.call_started_at,
     mode: req.booking.call_mode || 'video',
+    // Only handed out once the doctor has started the call, and only to the holder of the patient token.
+    room: req.booking.call_started_at ? (req.booking.call_room || null) : null,
   });
 });
 

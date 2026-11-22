@@ -5,7 +5,7 @@ const WINDOW_MS = 60 * 60 * 1000;
 const MAX_PER_WINDOW = 10;
 const hits = new Map(); // "<bucket>:<ip>" -> { count, windowStart }
 
-function limit(bucket) {
+function limit(bucket, max = MAX_PER_WINDOW) {
   return (req, res, next) => {
     const now = Date.now();
     for (const [key, entry] of hits) {
@@ -17,7 +17,7 @@ function limit(bucket) {
       hits.set(key, { count: 1, windowStart: now });
       return next();
     }
-    if (entry.count >= MAX_PER_WINDOW) {
+    if (entry.count >= max) {
       return res.status(429).json({ error: 'Too many submissions from this network. Please try again later.' });
     }
     entry.count += 1;

@@ -5,6 +5,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { getPractice, escapeHtml: esc, emailHeader, emailFooter } = require('../practice');
 const loginLimiter = require('../loginLimiter');
+const sessionStamp = require('../sessionStamp');
 const { getServices } = require('../services');
 const { ensureWalkInBooking, applyWalkInStatus } = require('../walkins');
 
@@ -23,7 +24,8 @@ const router = express.Router();
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const WALKIN_STATUSES = ['expected', 'arrived', 'seen', 'cancelled'];
 const MAX_FAMILY_MEMBERS = 8;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No spaces, quotes, angle brackets or other characters that could turn an address into HTML or script.
+const EMAIL_RE = /^[^\s@<>"`()\\,;:]+@[^\s@<>"'`()\\,;:]+\.[^\s@<>"'`()\\,;:]+$/;
 
 const clean = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 function isPlausibleDob(dob) {
@@ -41,11 +43,12 @@ async function requireReceptionist(req, res, next) {
     req.session.receptionistId = null;
     return res.status(401).json({ error: 'Session expired due to inactivity' });
   }
-  const rec = await db.get('SELECT id, name, active FROM receptionists WHERE id = ?', [req.session.receptionistId]);
-  if (!rec || rec.active === 0) {
+  const rec = await db.get('SELECT id, name, active, password_hash FROM receptionists WHERE id = ?', [req.session.receptionistId]);
+  if (!rec || rec.active === 0 || !sessionStamp.matches(req.session.receptionPw, rec.password_hash)) {
     req.session.receptionistId = null;
     return res.status(401).json({ error: 'Not logged in' });
   }
+  delete rec.password_hash;
   req.receptionist = rec;
   req.session.receptionActivityAt = now;
   db.run('UPDATE receptionists SET last_active_at = NOW() WHERE id = ?', [rec.id]).catch(() => {});
@@ -82,6 +85,7 @@ router.post('/login', async (req, res) => {
   if (rec.active === 0) return res.status(403).json({ error: 'This account has been deactivated. Please contact your practice administrator.' });
   loginLimiter.recordSuccess(accountKey);
   req.session.receptionistId = rec.id;
+  req.session.receptionPw = sessionStamp.stamp(rec.password_hash);
   req.session.receptionActivityAt = Date.now();
   await db.run('UPDATE receptionists SET last_login_at = NOW() WHERE id = ?', [rec.id]);
   db.run('INSERT INTO reception_access_log (receptionist_id, action) VALUES (?, ?)', [rec.id, 'Signed in']).catch(() => {});
@@ -95,8 +99,8 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', async (req, res) => {
   if (!req.session || !req.session.receptionistId) return res.json({ loggedIn: false });
-  const rec = await db.get('SELECT id, name, active FROM receptionists WHERE id = ?', [req.session.receptionistId]);
-  if (!rec || rec.active === 0) { req.session.receptionistId = null; return res.json({ loggedIn: false }); }
+  const rec = await db.get('SELECT id, name, active, password_hash FROM receptionists WHERE id = ?', [req.session.receptionistId]);
+  if (!rec || rec.active === 0 || !sessionStamp.matches(req.session.receptionPw, rec.password_hash)) { req.session.receptionistId = null; return res.json({ loggedIn: false }); }
   res.json({ loggedIn: true, name: rec.name, practiceName: (await getPractice()).name });
 });
 

@@ -15,7 +15,8 @@ const formLimiter = require('../formLimiter');
 const { requireAdmin } = require('./admin');
 
 const router = express.Router();
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No spaces, quotes, angle brackets or other characters that could turn an address into HTML or script.
+const EMAIL_RE = /^[^\s@<>"`()\\,;:]+@[^\s@<>"'`()\\,;:]+\.[^\s@<>"'`()\\,;:]+$/;
 
 // What people can sign up for, and the consent sentence shown next to the tick box (stored with each sign-up).
 const TOPICS = {
@@ -61,7 +62,8 @@ router.get('/unsubscribe', async (req, res) => {
 router.get('/admin/signups', requireAdmin, async (req, res) => {
   const rows = await db.all('SELECT email, topic, source, consent_text, unsubscribe_token, created_at FROM marketing_signups WHERE unsubscribed_at IS NULL ORDER BY created_at');
   if (req.query.format === 'csv') {
-    const q = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+    // A cell starting with = + - @ would run as a formula in Excel/Sheets ("CSV injection"), so it gets a leading apostrophe.
+    const q = (v) => { let t = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return `"${t.replace(/"/g, '""')}"`; };
     const base = process.env.BASE_URL || 'https://www.gp4u.ie';
     const csv = ['email,topic,source,signed_up,consent_text,unsubscribe_link']
       .concat(rows.map((r) => [r.email, r.topic, r.source, new Date(r.created_at).toISOString(), r.consent_text, `${base}/api/unsubscribe?token=${r.unsubscribe_token}`].map(q).join(',')))

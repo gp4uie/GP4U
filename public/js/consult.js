@@ -40,14 +40,19 @@ async function verifyAccess() {
 // Only the doctor can start a call (see the dashboard's startCall()) — the patient's side never
 // requests camera/microphone or connects on its own. It waits here, polling, until the doctor
 // has actually started this booking's call.
+let callRoom = null;
 async function waitForDoctorToStartCall() {
-  if (role !== 'patient') return;
+  if (role !== 'patient') {
+    const res = await fetch(`/api/doctor/bookings/${encodeURIComponent(bookingId)}/call-room`);
+    if (res.ok) callRoom = (await res.json()).room;
+    return;
+  }
   while (true) {
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/call-status?token=${token}`);
+      const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/call-status?token=${encodeURIComponent(token)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.started) return;
+        if (data.started && data.room) { callRoom = data.room; return; }
       }
     } catch (err) { /* transient network issue — just keep polling */ }
     setStatus('Waiting for your GP to start the call. This page updates automatically — no need to refresh.');
@@ -85,9 +90,11 @@ async function start() {
     setupSelfView();
   }
 
-  // Sanitised, deterministic peer IDs so the two participants can find each other for this booking only.
-  const myId = `gp4u-${bookingId}-${role}`;
-  const theirId = `gp4u-${bookingId}-${otherRole}`;
+  // Peer IDs come from a secret room name the server gives only to the signed-in doctor and the patient-token
+  // holder, so nobody who merely knows the booking reference can take a participant's place or call in.
+  if (!callRoom) { setStatus('Could not set up the call. Please reload this page.'); return; }
+  const myId = `gp4u-${callRoom}-${role}`;
+  const theirId = `gp4u-${callRoom}-${otherRole}`;
 
   peer = new Peer(myId);
 
@@ -97,6 +104,8 @@ async function start() {
   });
 
   peer.on('call', (call) => {
+    // Only ever answer the other participant of this consultation.
+    if (call.peer !== theirId) { call.close(); return; }
     call.answer(localStream);
     wireCall(call);
   });

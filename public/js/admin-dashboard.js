@@ -1,3 +1,8 @@
+// Every value from the server is escaped before it goes into the page: patient names, reasons and emails are typed
+// by members of the public, and must never be able to run as code in the admin's session.
+const pEsc = (v) => String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+// For a value placed inside a quoted JavaScript string in an onclick="..." attribute.
+const jsAttr = (v) => pEsc(String(v === null || v === undefined ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
 // Readable name for a booking's service key (walk-in bookings are created by the front desk / check-in).
 function svcLabel(t) { return t === 'walk_in' ? 'Walk-in visit' : String(t || '').replace(/_/g, ' '); }
 let activeAdminTab = 'analytics';
@@ -50,8 +55,8 @@ async function loadAccessLog() {
   document.getElementById('accessLogBody').innerHTML = log.length ? log.map((r) => `
     <tr>
       <td>${new Date(r.viewed_at).toLocaleString('en-IE')}</td>
-      <td>${r.doctor_name}</td>
-      <td>${r.patient_name}</td>
+      <td>${pEsc(r.doctor_name)}</td>
+      <td>${pEsc(r.patient_name)}</td>
       <td>${svcLabel(r.service_type)}</td>
     </tr>
   `).join('') : '<tr><td colspan="4" style="color:var(--ink-500);">No access recorded yet.</td></tr>';
@@ -63,11 +68,11 @@ async function loadAdminPrescriptions() {
   document.getElementById('adminRxBody').innerHTML = prescriptions.length ? prescriptions.map((p) => `
     <tr>
       <td>${new Date(p.issued_at).toLocaleString('en-IE')}</td>
-      <td>${p.patient_name}</td>
-      <td>${p.medication} — ${p.dose}</td>
-      <td>${p.pharmacy_name || '—'}</td>
-      <td>${p.doctor_name}</td>
-      <td>${p.sent_to_email ? `Sent to ${p.sent_to_email}` : 'Not sent yet'}</td>
+      <td>${pEsc(p.patient_name)}</td>
+      <td>${pEsc(p.medication)} — ${pEsc(p.dose)}</td>
+      <td>${pEsc(p.pharmacy_name || '—')}</td>
+      <td>${pEsc(p.doctor_name)}</td>
+      <td>${p.sent_to_email ? `Sent to ${pEsc(p.sent_to_email)}` : 'Not sent yet'}</td>
     </tr>
   `).join('') : '<tr><td colspan="6" style="color:var(--ink-500);">No prescriptions issued yet.</td></tr>';
 }
@@ -77,11 +82,11 @@ async function loadAdminSummaries() {
   const summaries = await res.json();
   document.getElementById('adminSummariesList').innerHTML = summaries.length ? summaries.map((s) => `
     <div class="card" style="margin-bottom:12px;">
-      <p><strong>${s.patientName}</strong> — ${svcLabel(s.serviceType)} — ${new Date(s.slotStart).toLocaleString('en-IE')}</p>
-      <p><strong>Presentation:</strong> ${s.reason || 'N/A'}</p>
-      ${s.notes.length ? `<p><strong>Notes:</strong> ${s.notes.map((n) => n.note_text).join('; ')}</p>` : ''}
-      ${s.prescriptions.length ? `<p><strong>Medication issued:</strong> ${s.prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`).join('; ')}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
-      ${s.sickCerts.length ? `<p><strong>Sick cert:</strong> ${s.sickCerts.map((c) => `${c.days} day(s) (${new Date(c.dateFrom).toLocaleDateString('en-IE')}–${new Date(c.dateTo).toLocaleDateString('en-IE')}), ${c.fitForWork}, diagnosis: ${c.diagnosis}`).join('; ')}</p>` : ''}
+      <p><strong>${pEsc(s.patientName)}</strong> — ${pEsc(svcLabel(s.serviceType))} — ${new Date(s.slotStart).toLocaleString('en-IE')}</p>
+      <p><strong>Presentation:</strong> ${pEsc(s.reason || 'N/A')}</p>
+      ${s.notes.length ? `<p><strong>Notes:</strong> ${pEsc(s.notes.map((n) => n.note_text).join('; '))}</p>` : ''}
+      ${s.prescriptions.length ? `<p><strong>Medication issued:</strong> ${pEsc(s.prescriptions.map((p) => `${p.medication} ${p.dose}, ${p.frequency}, ${p.duration}`).join('; '))}</p>` : '<p><strong>Medication issued:</strong> None</p>'}
+      ${s.sickCerts.length ? `<p><strong>Sick cert:</strong> ${pEsc(s.sickCerts.map((c) => `${c.days} day(s) (${new Date(c.dateFrom).toLocaleDateString('en-IE')}–${new Date(c.dateTo).toLocaleDateString('en-IE')}), ${c.fitForWork}, diagnosis: ${c.diagnosis}`).join('; '))}</p>` : ''}
     </div>
   `).join('') : '<p style="color:var(--ink-500);">No completed consultations yet.</p>';
 }
@@ -137,11 +142,11 @@ async function loadAnalytics() {
     `${data.newVsReturning.newThisMonth} new / ${data.newVsReturning.returningThisMonth} returning`;
 
   document.getElementById('perDoctorBody').innerHTML = data.perDoctor.map((d) => `
-    <tr><td>${d.doctorName}</td><td>${d.seenThisMonth}</td><td>${d.totalSeen}</td></tr>
+    <tr><td>${pEsc(d.doctorName)}</td><td>${d.seenThisMonth}</td><td>${d.totalSeen}</td></tr>
   `).join('') || '<tr><td colspan="3">No consultations recorded yet.</td></tr>';
 
   document.getElementById('serviceBreakdownBody').innerHTML = data.serviceBreakdown.map((s) => `
-    <tr><td>${svcLabel(s.service_type)}</td><td>${s.n}</td><td>${euro(s.cents)}</td></tr>
+    <tr><td>${pEsc(svcLabel(s.service_type))}</td><td>${s.n}</td><td>${euro(s.cents)}</td></tr>
   `).join('') || '<tr><td colspan="3">No bookings yet.</td></tr>';
 }
 
@@ -151,16 +156,16 @@ async function loadDoctors() {
   const doctors = await res.json();
   document.getElementById('doctorsBody').innerHTML = doctors.map((d) => `
     <tr>
-      <td>${d.name}</td>
-      <td>${d.reg_number}</td>
-      <td>${d.email}</td>
+      <td>${pEsc(d.name)}</td>
+      <td>${pEsc(d.reg_number)}</td>
+      <td>${pEsc(d.email)}</td>
       <td><span class="badge ${d.active ? 'badge-green' : 'badge-amber'}">${d.active ? 'Active' : 'Deactivated'}</span></td>
       <td><span class="online-dot ${d.online ? 'online' : ''}"></span>${d.online ? 'Online' : 'Offline'}</td>
       <td>${d.last_login_at ? new Date(d.last_login_at).toLocaleString('en-IE') : 'Never'}</td>
       <td>${d.totp_enabled ? '<span class="badge badge-green">On</span>' : '—'}
         ${d.totp_enabled ? `<button class="btn btn-secondary" style="padding:4px 10px;font-size:0.78rem;margin-left:6px;" onclick="disableDoctorTotp(${d.id})">Reset</button>` : ''}
       </td>
-      <td><button class="btn btn-secondary" onclick="openScheduleEditor(${d.id}, '${d.name.replace(/'/g, "\\'")}')">Edit Schedule</button>
+      <td><button class="btn btn-secondary" onclick="openScheduleEditor(${Number(d.id)}, '${jsAttr(d.name)}')">Edit Schedule</button>
         <button class="btn btn-secondary" style="margin-top:6px;" onclick="editPerson('doctor', ${d.id})">Edit details</button></td>
       <td>
         ${d.active
@@ -267,11 +272,11 @@ async function loadPatients() {
   const res = await fetch('/api/admin/patients' + (q ? '?q=' + encodeURIComponent(q) : ''));
   const patients = await res.json();
   document.getElementById('patientsBody').innerHTML = patients.map((p) => `
-    <tr onclick="openPatientSummary('${p.email.replace(/'/g, "\\'")}')">
-      <td>${p.name || '—'}</td>
-      <td>${p.email}</td>
-      <td>${p.phone || '—'}</td>
-      <td>${p.dob || '—'}</td>
+    <tr onclick="openPatientSummary('${jsAttr(p.email)}')">
+      <td>${pEsc(p.name || '—')}</td>
+      <td>${pEsc(p.email)}</td>
+      <td>${pEsc(p.phone || '—')}</td>
+      <td>${pEsc(p.dob || '—')}</td>
     </tr>
   `).join('') || '<tr><td colspan="4">No patients found.</td></tr>';
 }
@@ -290,10 +295,10 @@ async function openPatientSummary(email) {
   document.getElementById('patientConsultations').innerHTML = data.consultations.map((c) => `
     <div class="card" style="margin-bottom:12px;">
       <strong>${new Date(c.slot_start).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })} — ${svcLabel(c.service_type)}</strong>
-      <p style="color:var(--ink-500); margin:4px 0;">Reason: ${c.reason || 'N/A'}</p>
-      ${c.notes.length ? `<p><strong>Notes:</strong> ${c.notes.map((n) => n.note_text).join('; ')}</p>` : ''}
-      ${c.prescriptions.length ? `<p><strong>Prescriptions:</strong> ${c.prescriptions.map((p) => `${p.medication} ${p.dose}`).join(', ')}</p>` : ''}
-      ${c.documents.length ? `<p><strong>Documents:</strong> ${c.documents.map((d) => d.doc_type).join(', ')}</p>` : ''}
+      <p style="color:var(--ink-500); margin:4px 0;">Reason: ${pEsc(c.reason || 'N/A')}</p>
+      ${c.notes.length ? `<p><strong>Notes:</strong> ${pEsc(c.notes.map((n) => n.note_text).join('; '))}</p>` : ''}
+      ${c.prescriptions.length ? `<p><strong>Prescriptions:</strong> ${pEsc(c.prescriptions.map((p) => `${p.medication} ${p.dose}`).join(', '))}</p>` : ''}
+      ${c.documents.length ? `<p><strong>Documents:</strong> ${pEsc(c.documents.map((d) => d.doc_type).join(', '))}</p>` : ''}
     </div>
   `).join('') || '<p style="color:var(--ink-500);">No consultation history yet.</p>';
 
@@ -342,8 +347,8 @@ function renderStaffContactList() {
   list.innerHTML = `
     <button class="${staffConversation === 'everyone' ? 'active' : ''}" onclick="selectStaffConversation('everyone')">Everyone (Team Board)</button>
     ${others.map((p) => `
-      <button class="${staffConversation === `${p.type}:${p.id}` ? 'active' : ''}" onclick="selectStaffConversation('${p.type}:${p.id}')">
-        <span><span class="online-dot ${p.online ? 'online' : ''}"></span>${p.name}${p.type === 'admin' ? ' (Admin)' : ''}</span>
+      <button class="${staffConversation === `${p.type}:${p.id}` ? 'active' : ''}" onclick="selectStaffConversation('${jsAttr(p.type + ':' + p.id)}')">
+        <span><span class="online-dot ${p.online ? 'online' : ''}"></span>${pEsc(p.name)}${p.type === 'admin' ? ' (Admin)' : ''}</span>
       </button>
     `).join('')}
   `;
@@ -372,7 +377,7 @@ async function loadStaffMessages() {
   thread.innerHTML = messages.length
     ? messages.map((m) => `
         <div class="msg ${m.sender_type === 'admin' && m.sender_id === myStaffId ? 'staff-mine' : 'staff-other'}">
-          ${m.body}<small>${m.sender_name} (${m.sender_type === 'admin' ? 'Admin' : 'Doctor'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
+          ${pEsc(m.body)}<small>${pEsc(m.sender_name)} (${m.sender_type === 'admin' ? 'Admin' : 'Doctor'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
         </div>
       `).join('')
     : '<p style="color:var(--ink-500);">No messages yet.</p>';
@@ -466,7 +471,6 @@ async function setReceptionPassword(id) {
 }
 
 // ---------------------------------------------------------------- Edit a doctor's or receptionist's details
-const pEsc = (v) => String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 async function editPerson(kind, id) {
   const isDoctor = kind === 'doctor';

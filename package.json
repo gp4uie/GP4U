@@ -11,6 +11,9 @@
     "e2e": "node scripts/e2e.js",
     "seo-check": "node scripts/seo-check.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-session": "^2.1.1",
@@ -18,7 +21,7 @@
     "express": "^5.2.1",
     "multer": "^2.2.0",
     "mysql2": "^3.23.2",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.6.1",
     "pdfkit": "^0.19.1",
     "peerjs": "^1.5.5",
     "stripe": "^22.4.0",

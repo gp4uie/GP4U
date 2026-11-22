@@ -307,7 +307,7 @@ function renderStaffContactList() {
     <button class="${staffConversation === 'everyone' ? 'active' : ''}" onclick="selectStaffConversation('everyone')">Everyone (Team Board)</button>
     ${others.map((p) => `
       <button class="${staffConversation === `${p.type}:${p.id}` ? 'active' : ''}" onclick="selectStaffConversation('${p.type}:${p.id}')">
-        <span><span class="online-dot ${p.online ? 'online' : ''}"></span>${p.name}${p.type === 'admin' ? ' (Admin)' : ''}</span>
+        <span><span class="online-dot ${p.online ? 'online' : ''}"></span>${esc(p.name)}${p.type === 'admin' ? ' (Admin)' : ''}</span>
       </button>
     `).join('')}
   `;
@@ -336,7 +336,7 @@ async function loadStaffMessages() {
   thread.innerHTML = messages.length
     ? messages.map((m) => `
         <div class="msg ${m.sender_type === 'doctor' && m.sender_id === myStaffId ? 'staff-mine' : 'staff-other'}">
-          ${m.body}<small>${m.sender_name} (${m.sender_type === 'doctor' ? 'Doctor' : 'Admin'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
+          ${esc(m.body)}<small>${esc(m.sender_name)} (${m.sender_type === 'doctor' ? 'Doctor' : 'Admin'}) • ${new Date(m.created_at).toLocaleString('en-IE')}</small>
         </div>
       `).join('')
     : '<p style="color:var(--ink-500);">No messages yet.</p>';
@@ -1062,14 +1062,14 @@ function renderAllDocuments(prescriptions, documents) {
   const rxCards = prescriptions.map(p => `
     <div class="card" style="margin-bottom:8px;">
       <p><strong>Prescription</strong> — ${esc(p.medication)} (${esc(p.dose)})</p>
-      <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${p.sent_to_email}` : ''}</p>
+      <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(p.issued_at).toLocaleString('en-IE')}${p.sent_to_email ? ` • Sent to ${esc(p.sent_to_email)}` : ''}</p>
       <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}">Print</a>
     </div>
   `);
   const docCards = documents.map(d => `
     <div class="card" style="margin-bottom:8px;">
       <p><strong>${esc(certLabelFor(d))}</strong></p>
-      <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
+      <p style="color:var(--ink-500);font-size:0.8rem;">Issued ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${esc(d.sent_to_email)}` : ''}</p>
       <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
     </div>
   `);
@@ -1096,7 +1096,7 @@ function docCard(d) {
   return `
     <div class="card" style="margin-bottom:8px;">
       ${fieldsHtml}
-      <p style="color:var(--ink-500);font-size:0.8rem;">Created ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${d.sent_to_email}` : ''}</p>
+      <p style="color:var(--ink-500);font-size:0.8rem;">Created ${new Date(d.created_at).toLocaleString('en-IE')}${d.sent_to_email ? ` • Sent to ${esc(d.sent_to_email)}` : ''}</p>
       <div style="display:flex; gap:10px;">
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-doc.html?docId=${d.id}">Print</a>
         <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" href="/api/doctor/documents/${d.id}/pdf">Download PDF</a>
