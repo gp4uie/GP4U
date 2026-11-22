@@ -36,16 +36,18 @@
 <div id="loginBox" class="page-shell" style="max-width:380px;">
   <h1>Doctor Login</h1>
   <p id="claimNotice" class="claim-notice" role="status" hidden></p>
-  <div class="form-row">
-    <label>Email</label>
-    <input type="email" id="emailInput">
-  </div>
-  <div class="form-row">
-    <label>Password</label>
-    <input type="password" id="passwordInput">
-  </div>
-  <button class="btn btn-primary btn-block" onclick="login()">Log In</button>
-  <p id="loginError" style="color:#c0392b;"></p>
+  <form id="loginForm" onsubmit="event.preventDefault(); login();" novalidate>
+    <div class="form-row">
+      <label for="emailInput">Email</label>
+      <input type="email" id="emailInput" name="username" autocomplete="username" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="form-row">
+      <label for="passwordInput">Password</label>
+      <input type="password" id="passwordInput" name="password" autocomplete="current-password" autocapitalize="none">
+    </div>
+    <button type="submit" id="loginBtn" class="btn btn-primary btn-block">Log In</button>
+  </form>
+  <p id="loginError" role="alert" style="color:#c0392b;"></p>
   <p><a href="#" id="forgotLink">Forgot your password?</a></p>
 
   <div id="forgotBox" style="display:none;">
@@ -423,7 +425,7 @@
 
 </main>
 
-<script src="/js/dashboard.js?v=1ac2d071"></script>
+<script src="/js/dashboard.js?v=d02734c8"></script>
 <script src="/js/dashboard-clinic.js?v=ecd12251"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=dd645959"></script>

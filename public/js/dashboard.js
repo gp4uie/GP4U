@@ -159,25 +159,45 @@ async function explainClaimLinkBeforeLogin() {
   } catch (err) { /* the normal login still works */ }
 }
 
+// Every outcome shows something on screen: a doctor clicking "Log In" and seeing nothing happen
+// (network blocked, non-JSON error page, cookie refused by the browser) was a real support case.
+let loginInFlight = false;
 async function login() {
-  const email = document.getElementById('emailInput').value;
+  if (loginInFlight) return;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  const email = document.getElementById('emailInput').value.trim();
   const password = document.getElementById('passwordInput').value;
-  const res = await fetch('/api/doctor/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  if (res.ok && data.requiresTotp) {
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('totpBox').style.display = 'block';
-    document.getElementById('totpError').textContent = '';
-    document.getElementById('totpCodeInput').value = '';
-    document.getElementById('totpCodeInput').focus();
-  } else if (res.ok) {
-    checkSession();
-  } else {
-    document.getElementById('loginError').textContent = data.error || 'Incorrect email or password.';
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
+  loginInFlight = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  try {
+    const res = await fetch('/api/doctor/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.requiresTotp) {
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('totpBox').style.display = 'block';
+      document.getElementById('totpError').textContent = '';
+      document.getElementById('totpCodeInput').value = '';
+      document.getElementById('totpCodeInput').focus();
+    } else if (res.ok) {
+      await checkSession();
+      if (document.getElementById('loginBox').style.display !== 'none') {
+        errEl.textContent = 'Your password was accepted, but your browser did not keep you signed in. Allow cookies for gp4u.ie (or try a private window) and try again.';
+      }
+    } else {
+      errEl.textContent = data.error || `Sign-in failed (error ${res.status}). Please try again.`;
+    }
+  } catch (err) {
+    errEl.textContent = 'Could not reach the server. Check your internet connection, turn off any ad/privacy blocker for gp4u.ie, and try again.';
+  } finally {
+    loginInFlight = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Log In'; }
   }
 }
 
