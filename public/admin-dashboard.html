@@ -207,6 +207,23 @@
       </div>
       <p id="deleteConsultsMsg" role="status" class="staff-ok"></p>
     </div>
+
+    <div class="card" style="max-width:980px;margin-top:18px;" id="deleteRegsCard">
+      <h3 style="margin-top:0;">Delete test registrations</h3>
+      <p class="ed-hint">For clearing out new-patient registrations made while testing, before launch. Each one is removed <strong>permanently</strong>. <strong>Never use this for a real patient's registration.</strong></p>
+      <button class="btn btn-secondary" type="button" id="loadRegsBtn">Show all registrations</button>
+      <div id="regsWrap" hidden>
+        <div class="table-scroll" style="margin-top:12px;">
+          <table class="bookings-table">
+            <thead><tr><th><input type="checkbox" id="regsAll" aria-label="Select all"></th><th>Received</th><th>Reference</th><th>From</th><th>Status</th><th>Name</th><th>Email</th></tr></thead>
+            <tbody id="regsBody"></tbody>
+          </table>
+        </div>
+        <div class="form-row" style="max-width:360px;margin-top:12px;"><label for="regsConfirm">Type DELETE to confirm</label><input id="regsConfirm" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+        <button class="btn btn-primary" type="button" id="deleteRegsBtn" disabled>Delete selected</button>
+      </div>
+      <p id="deleteRegsMsg" role="status" class="staff-ok"></p>
+    </div>
   </div>
 
   <div id="tab_patients" style="display:none;">
@@ -285,7 +302,7 @@
 </main>
 
 <script src="/js/availability-editor.js?v=9f9178f4"></script>
-<script src="/js/admin-dashboard.js?v=c79aefb5"></script>
+<script src="/js/admin-dashboard.js?v=f5d5aa64"></script>
 <script src="/js/nav-toggle.js?v=727b2c08"></script>
 </body>
 </html>

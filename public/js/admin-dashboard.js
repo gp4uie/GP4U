@@ -618,6 +618,55 @@ document.getElementById('deleteConsultsBtn').addEventListener('click', async () 
   msg.textContent = `Deleted ${data.counts.bookings} consultation(s)${data.counts.patients ? ` and ${data.counts.patients} patient login(s)` : ''}.`;
 });
 
+// --- Delete test registrations (pre-launch clean-up) ---
+function regsSelected() { return [...document.querySelectorAll('#regsBody input[type=checkbox]:checked')].map((c) => c.value); }
+function regsRefreshBtn() {
+  const n = regsSelected().length;
+  const btn = document.getElementById('deleteRegsBtn');
+  btn.disabled = n === 0; btn.textContent = n ? `Delete selected (${n})` : 'Delete selected';
+}
+async function loadRegistrations() {
+  const msg = document.getElementById('deleteRegsMsg'); msg.className = 'staff-ok'; msg.textContent = 'Loading…';
+  const res = await fetch('/api/admin/registrations');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { msg.className = 'staff-error'; msg.textContent = data.error || 'Could not load registrations'; return; }
+  msg.textContent = data.registrations.length ? '' : 'There are no registrations.';
+  document.getElementById('regsBody').innerHTML = data.registrations.map((r) => `
+    <tr>
+      <td><input type="checkbox" value="${pEsc(r.id)}" aria-label="Select ${pEsc(r.id)}"></td>
+      <td>${pEsc(new Date(r.created_at).toLocaleDateString('en-IE'))}</td>
+      <td>${pEsc(r.id)}</td>
+      <td>${r.source === 'desk' ? 'Desk' : 'Website'}</td>
+      <td>${pEsc(r.status)}</td>
+      <td>${pEsc(r.full_name)}</td>
+      <td>${pEsc(r.email || '—')}</td>
+    </tr>`).join('');
+  document.getElementById('regsAll').checked = false;
+  document.getElementById('regsWrap').hidden = !data.registrations.length;
+  regsRefreshBtn();
+}
+document.getElementById('loadRegsBtn').addEventListener('click', loadRegistrations);
+document.getElementById('regsBody').addEventListener('change', regsRefreshBtn);
+document.getElementById('regsAll').addEventListener('change', (e) => {
+  document.querySelectorAll('#regsBody input[type=checkbox]').forEach((c) => { c.checked = e.target.checked; });
+  regsRefreshBtn();
+});
+document.getElementById('deleteRegsBtn').addEventListener('click', async () => {
+  const ids = regsSelected();
+  if (!ids.length) return;
+  const msg = document.getElementById('deleteRegsMsg');
+  const confirmEl = document.getElementById('regsConfirm');
+  if (confirmEl.value.trim() !== 'DELETE') { msg.className = 'staff-error'; msg.textContent = `Type DELETE in the box to permanently delete ${ids.length} registration(s). This cannot be undone.`; confirmEl.focus(); return; }
+  confirmEl.value = '';
+  msg.className = 'staff-ok'; msg.textContent = 'Deleting…';
+  const res = await fetch('/api/admin/registrations/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, confirm: 'DELETE' }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { msg.className = 'staff-error'; msg.textContent = data.error || 'Could not delete'; return; }
+  await loadRegistrations();
+  msg.className = 'staff-ok';
+  msg.textContent = `Deleted ${data.counts.registrations} registration(s).`;
+});
+
 document.getElementById('removeTestBtn').addEventListener('click', async () => {
   if (!window.confirm('Remove all test records (patient names starting "ZZ LIVE TEST")?')) return;
   const msg = document.getElementById('removeTestMsg'); msg.className = 'staff-ok'; msg.textContent = 'Removing…';

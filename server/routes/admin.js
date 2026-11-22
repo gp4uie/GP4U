@@ -675,6 +675,28 @@ router.post('/consultations/delete', requireAdmin, async (req, res) => {
   res.json({ ok: true, counts });
 });
 
+// --- Pre-launch clean-up of clinic registrations (new-patient sign-up forms), same rules as consultations above.
+router.get('/registrations', requireAdmin, async (req, res) => {
+  const rows = await db.all(`SELECT id, created_at, source, status, full_name, email FROM patient_registrations ORDER BY created_at DESC LIMIT 1000`);
+  res.json({ registrations: rows });
+});
+
+router.post('/registrations/delete', requireAdmin, async (req, res) => {
+  const { ids, confirm } = req.body || {};
+  if (confirm !== 'DELETE') return res.status(400).json({ error: 'Please type DELETE to confirm' });
+  if (!Array.isArray(ids) || !ids.length || ids.length > 500 || !ids.every((i) => typeof i === 'string' && /^[A-Z0-9-]{1,32}$/i.test(i))) {
+    return res.status(400).json({ error: 'Choose at least one registration' });
+  }
+  const unique = [...new Set(ids)];
+  const r = await db.run(`DELETE FROM patient_registrations WHERE id IN (${unique.map(() => '?').join(',')})`, unique);
+  const me = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
+  try {
+    await db.run('INSERT INTO site_change_log (admin_name, action, detail) VALUES (?, ?, ?)',
+      [me.name, 'Deleted test registrations', JSON.stringify({ registrations: r.changes || 0, ids: unique })]);
+  } catch (err) { /* logging is best-effort */ }
+  res.json({ ok: true, counts: { registrations: r.changes || 0 } });
+});
+
 // Sends a real email to the signed-in admin's own address, so email setup can be checked without waiting for a booking.
 router.post('/test-email', requireAdmin, async (req, res) => {
   const me = await db.get('SELECT name, email FROM admins WHERE id = ?', [req.session.adminId]);
