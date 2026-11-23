@@ -1304,3 +1304,5 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
   .td-side { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
   .td-time { font-size: 1.15rem; }
 }
+/* While nobody is waiting in the walk-in queue (e.g. before the clinic opens), online appointments get more room. */
+@media (min-width: 1001px) { .today-cols:has(#tdQueue > .empty) { grid-template-columns: 1fr 2fr; } }
