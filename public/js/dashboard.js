@@ -75,9 +75,29 @@ function showSessionExpired() {
 
 let doctorTotpEnabled = false;
 
-async function checkSession() {
-  const res = await fetchRetry('/api/doctor/me');
-  const data = await res.json();
+// Asks the server "who is signed in?". The host can be briefly busy or waking up (it answers with an error page
+// instead of data for a few seconds), so this keeps trying for about 20 seconds before giving up.
+async function fetchMe(onWait) {
+  const delays = [1000, 2000, 3000, 4000, 5000, 5000];
+  let lastErr;
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      const res = await fetch('/api/doctor/me', { cache: 'no-store', credentials: 'same-origin' });
+      const text = await res.text();
+      try { return JSON.parse(text); } catch (e) { lastErr = new Error('server answered ' + res.status + ' without data'); }
+    } catch (err) { lastErr = err; }
+    if (i < delays.length) { if (onWait) onWait(i); await new Promise((r) => setTimeout(r, delays[i])); }
+  }
+  throw lastErr || new Error('no answer');
+}
+// Starts one part of the dashboard; a part that fails never stops the rest from opening.
+function safeStart(fn) {
+  try { const p = fn(); if (p && typeof p.catch === 'function') p.catch((err) => console.warn('dashboard part failed:', err)); }
+  catch (err) { console.warn('dashboard part failed:', err); }
+}
+
+async function checkSession(onWait) {
+  const data = await fetchMe(onWait);
   if (data.loggedIn) {
     document.getElementById('totpBox').style.display = 'none';
     document.getElementById('loginBox').style.display = 'none';
@@ -87,14 +107,8 @@ async function checkSession() {
     document.getElementById('logoutLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
     doctorTotpEnabled = !!data.totpEnabled;
-    handleClaimParam();
-    handleOpenParam();
-    loadServiceLabels();
-    loadNotifications();
-    loadMedications();
-    loadTasks();
-    loadClinicSummary();
-    openInitialTab();
+    [handleClaimParam, handleOpenParam, loadServiceLabels, loadNotifications, loadMedications, loadTasks, loadClinicSummary, openInitialTab]
+      .forEach(safeStart);
     setInterval(loadNotifications, 15000);
     // Walk-in queue stays live while the Walk-in clinic section is open; the registrations list is left alone
     // on the timer so an expanded registration doesn't collapse while it's being read.
@@ -195,7 +209,7 @@ async function login() {
       document.getElementById('totpCodeInput').value = '';
       document.getElementById('totpCodeInput').focus();
     } else if (res.ok) {
-      await checkSession();
+      await checkSession(() => { if (btn) btn.textContent = 'Opening your dashboard…'; });
       if (document.getElementById('loginBox').style.display !== 'none') {
         errEl.textContent = 'Your password was accepted, but your browser did not keep you signed in. Allow cookies for gp4u.ie (or try a private window) and try again.';
       }
@@ -205,7 +219,11 @@ async function login() {
   } catch (err) {
     // Signed in, but the dashboard failed to open — reloading re-runs checkSession with the session already set.
     errEl.innerHTML = '';
-    errEl.append('Signed in, but the dashboard could not load just now (the connection dropped for a moment). ');
+    errEl.append('Your password was accepted, but the dashboard could not open (the website did not answer for about 20 seconds). Please press the button below. ');
+    const detail = document.createElement('div');
+    detail.style.cssText = 'font-size:.8rem;opacity:.7;margin-top:4px;';
+    detail.textContent = 'Technical detail: ' + ((err && err.message) || err);
+    errEl.append(detail);
     const again = document.createElement('button');
     again.type = 'button'; again.className = 'btn btn-secondary'; again.style.marginTop = '8px'; again.textContent = 'Reload the dashboard';
     again.addEventListener('click', () => location.reload());
