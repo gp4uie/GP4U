@@ -481,11 +481,16 @@ function setOnlineView(view) {
   loadOnline();
 }
 
+// Each load gets a number; if the doctor clicks to another day before an earlier answer arrives, that late answer is
+// ignored, so the calendar never shows one day's heading with another day's appointments.
+let onlineLoadSeq = 0;
 async function loadOnline() {
   if (onlineView === 'recent') return loadRecent();
+  const seq = ++onlineLoadSeq;
   document.getElementById('scheduleDateLabel').textContent = scheduleDate.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
   const res = await doctorFetch('/api/doctor/schedule?type=online&date=' + isoDate(scheduleDate));
   const data = await res.json();
+  if (seq !== onlineLoadSeq) return;
   caseLists.online = data.bookings.map((b) => b.id);
   if (onlineView === 'calendar') { renderScheduleGrid(data.bookings, data.dayStartMins, data.dayEndMins); renderWeekStrip(); }
   else renderOnlineDay(data.bookings);
