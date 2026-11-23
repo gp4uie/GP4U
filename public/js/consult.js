@@ -319,6 +319,23 @@ function setupSelfView() {
   updateMirror();
 }
 
+// After the call: a call opened as its own window (computer) closes; a call opened in the same tab (phones — browsers
+// won't let a page close a tab it didn't open) goes back to where the person came from instead.
+const backUrl = role === 'doctor'
+  ? `/dashboard.html?open=${encodeURIComponent(bookingId)}`
+  : `/confirmation.html?id=${encodeURIComponent(bookingId)}&token=${encodeURIComponent(token)}`;
+const openedAsWindow = !!(window.opener && !window.opener.closed);
+const closeBtn = document.getElementById('closeCallBtn');
+closeBtn.textContent = openedAsWindow ? 'Close window' : (role === 'doctor' ? 'Back to the dashboard' : 'Back to my booking');
+closeBtn.onclick = () => {
+  if (openedAsWindow) {
+    window.close();
+    setTimeout(() => { if (!window.closed) location.href = backUrl; }, 400); // if the browser refused to close it
+  } else {
+    location.href = backUrl;
+  }
+};
+
 document.getElementById('endBtn').onclick = () => {
   if (currentCall) currentCall.close();
   if (localStream) localStream.getTracks().forEach((t) => t.stop());
