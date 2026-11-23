@@ -283,6 +283,19 @@ async function initSchema() {
   // active rather than stored as a boolean, since there's no reliable server-side signal for a
   // browser tab closing without logging out.
   await ensureColumn('doctors', 'last_active_at', 'DATETIME NULL');
+  // Handwritten signatures (see server/signatures.js): rows are never changed, and each prescription/document keeps
+  // the id of the signature in use when it was issued, so a later change never alters an issued document.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS doctor_signatures (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      doctor_id INT NOT NULL,
+      image MEDIUMTEXT NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await ensureColumn('doctors', 'signature_id', 'INT NULL');
+  await ensureColumn('prescriptions', 'signature_id', 'INT NULL');
+  await ensureColumn('documents', 'signature_id', 'INT NULL');
 
   // Each doctor's own weekly working hours — any number of rows per day (e.g. a split shift
   // 12:00-13:00 and 19:00-23:00 on the same day), no rows means that doctor doesn't work that

@@ -13,6 +13,7 @@ const { getDayHoursRange } = require('../slots');
 const loginLimiter = require('../loginLimiter');
 const totp = require('../totp');
 const sessionStamp = require('../sessionStamp');
+const signatures = require('../signatures');
 
 const router = express.Router();
 
@@ -697,6 +698,25 @@ router.post('/bookings/:id/notes', requireDoctor, async (req, res) => {
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
+// --- My signature: printed above the doctor's name on every prescription, certificate and letter issued from now on ---
+router.get('/signature', requireDoctor, async (req, res) => {
+  const doctor = await getCurrentDoctor(req);
+  res.json({ image: await signatures.dataUrl(doctor.signature_id), name: doctor.name, regNumber: doctor.reg_number });
+});
+
+router.put('/signature', requireDoctor, async (req, res) => {
+  const image = req.body && req.body.image;
+  const problem = signatures.problemWith(image);
+  if (problem) return res.status(400).json({ error: problem });
+  await signatures.save(req.session.doctorId, image);
+  res.json({ ok: true });
+});
+
+router.delete('/signature', requireDoctor, async (req, res) => {
+  await db.run('UPDATE doctors SET signature_id = NULL WHERE id = ?', [req.session.doctorId]);
+  res.json({ ok: true });
+});
+
 // --- Prescriptions ---
 router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
   const { medication, dose, frequency, duration, instructions, quantity, pharmacyName } = req.body;
@@ -712,9 +732,9 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
     booking = { ...booking, pharmacy_name: pharmacyName.trim().slice(0, 255) };
   }
   const info = await db.run(`
-    INSERT INTO prescriptions (booking_id, medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number)
-    VALUES (?,?,?,?,?,?,?,?,?)
-  `, [req.params.id, db.encrypt(medication), db.encrypt(dose), db.encrypt(frequency), db.encrypt(duration), db.encrypt(instructions), quantity, doctor.name, doctor.reg_number]);
+    INSERT INTO prescriptions (booking_id, medication, dose, frequency, duration, instructions, quantity, doctor_name, doctor_reg_number, signature_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?)
+  `, [req.params.id, db.encrypt(medication), db.encrypt(dose), db.encrypt(frequency), db.encrypt(duration), db.encrypt(instructions), quantity, doctor.name, doctor.reg_number, doctor.signature_id || null]);
 
   await db.run(
     `INSERT INTO tasks (doctor_id, booking_id, type, description, related_id) VALUES (?, ?, 'send_prescription', ?, ?)`,
@@ -727,7 +747,7 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
     const practice = await getPractice();
     const pdfBuffer = await generatePrescriptionPdf({
       rx: { id: info.lastInsertRowid, medication, dose, frequency, duration, instructions, quantity, doctor_name: doctor.name, doctor_reg_number: doctor.reg_number, issued_at: new Date() },
-      booking: await enrichBooking(booking), practice,
+      booking: await enrichBooking(booking), practice, signature: await signatures.buffer(doctor.signature_id),
     });
     const admins = await db.all('SELECT email FROM admins');
     for (const admin of admins) {
@@ -757,7 +777,7 @@ router.get('/prescriptions/:rxId', requireDoctor, async (req, res) => {
   if (!rx) return res.status(404).json({ error: 'Not found' });
   const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]));
   const { patient_token, ...safeBooking } = booking;
-  res.json({ prescription: rx, booking: safeBooking, practice: await getPractice() });
+  res.json({ prescription: { ...rx, signature_image: await signatures.dataUrl(rx.signature_id) }, booking: safeBooking, practice: await getPractice() });
 });
 
 // Lets the doctor download the same PDF that would be emailed — for cases like sending a
@@ -767,7 +787,7 @@ router.get('/prescriptions/:rxId/pdf', requireDoctor, async (req, res) => {
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ?', [req.params.rxId]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
   const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]));
-  const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practice: await getPractice() });
+  const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practice: await getPractice(), signature: await signatures.buffer(rx.signature_id) });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="Prescription-${fileSafe(booking.patient_name)}.pdf"`);
   res.send(pdfBuffer);
@@ -782,7 +802,7 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
 
   try {
     const practice = await getPractice();
-    const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practice });
+    const pdfBuffer = await generatePrescriptionPdf({ rx, booking, practice, signature: await signatures.buffer(rx.signature_id) });
     await mailer.sendMail({
       to: toEmail,
       subject: `Prescription for ${booking.patient_name} — ${practice.name}`,
@@ -819,9 +839,9 @@ router.post('/bookings/:id/documents', requireDoctor, async (req, res) => {
   if (!booking) return res.status(404).json({ error: 'Consultation not found' });
   const doctor = await getCurrentDoctor(req);
   const info = await db.run(`
-    INSERT INTO documents (booking_id, doc_type, fields, doctor_name, doctor_reg_number)
-    VALUES (?,?,?,?,?)
-  `, [req.params.id, docType, db.encrypt(JSON.stringify(fields)), doctor.name, doctor.reg_number]);
+    INSERT INTO documents (booking_id, doc_type, fields, doctor_name, doctor_reg_number, signature_id)
+    VALUES (?,?,?,?,?,?)
+  `, [req.params.id, docType, db.encrypt(JSON.stringify(fields)), doctor.name, doctor.reg_number, doctor.signature_id || null]);
   notifyPatientDocumentReady(booking, patientDocName({ doc_type: docType, fields }));
   res.json({ ok: true, id: info.lastInsertRowid });
 });
@@ -831,7 +851,7 @@ router.get('/documents/:docId', requireDoctor, async (req, res) => {
   if (!doc) return res.status(404).json({ error: 'Not found' });
   const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]));
   const { patient_token, ...safeBooking } = booking;
-  res.json({ document: { ...doc, fields: JSON.parse(doc.fields) }, booking: safeBooking, practice: await getPractice() });
+  res.json({ document: { ...doc, fields: JSON.parse(doc.fields), signature_image: await signatures.dataUrl(doc.signature_id) }, booking: safeBooking, practice: await getPractice() });
 });
 
 // Download the same PDF that would be emailed — for patients with no email address (walk-ins) or to hand over in person.
@@ -841,7 +861,7 @@ router.get('/documents/:docId/pdf', requireDoctor, async (req, res) => {
   const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [doc.booking_id]));
   const fields = JSON.parse(doc.fields);
   const practice = await getPractice();
-  const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number };
+  const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number, signature: await signatures.buffer(doc.signature_id) };
   const pdfBuffer = doc.doc_type === 'sick_cert'
     ? await generateSickCertPdf({ fields, booking, doctor, practice, id: doc.id })
     : await generateReferralPdf({ fields, booking, doctor, practice, isAE: doc.doc_type === 'referral_ae', id: doc.id });
@@ -864,7 +884,7 @@ router.post('/documents/:docId/send', requireDoctor, async (req, res) => {
   const fields = JSON.parse(doc.fields);
   const label = certLabelFor(doc);
   const practice = await getPractice();
-  const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number };
+  const doctor = { name: doc.doctor_name, reg_number: doc.doctor_reg_number, signature: await signatures.buffer(doc.signature_id) };
 
   try {
     const pdfBuffer = doc.doc_type === 'sick_cert'

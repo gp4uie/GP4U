@@ -31,9 +31,11 @@
   function patientFields(b, withPhone) {
     return field('Patient', b.patient_name) + field('Date of birth', dobIE(b.patient_dob)) + field('Address', b.patient_address) + (withPhone ? field('Phone', b.patient_phone) : '');
   }
-  const signature = (name, reg, practice, withSlogan) => `
+  // sigImage: the doctor's handwritten signature (a PNG data URL from the server), shown above the name.
+  const signature = (name, reg, practice, withSlogan, sigImage) => `
     <div class="sig">
       ${withSlogan ? '<p>Yours sincerely,</p>' : ''}
+      ${/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(sigImage || '') ? `<img class="sig-img" src="${sigImage}" alt="Signature of ${esc(name)}" style="display:block;max-width:220px;max-height:64px;margin:4px 0 -6px;">` : ''}
       <p class="sig-name">${esc(name)}</p>
       <p class="sig-meta">IMC Reg No: ${esc(reg)}<br>Issued electronically by ${esc(practice.name)}</p>
     </div>`;

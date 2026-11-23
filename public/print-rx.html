@@ -47,7 +47,7 @@
 
 <script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
-<script src="/js/print-letter.js?v=a197a20b"></script>
+<script src="/js/print-letter.js?v=45821049"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const rxId = params.get('rxId');
@@ -73,7 +73,7 @@ fetch(url).then((r) => r.json()).then((data) => {
     <div class="field"><label>Medication</label><strong>${L.esc(p.medication)} — ${L.esc(p.dose)}</strong></div>
     ${L.field('Frequency', p.frequency)}${L.field('Duration', p.duration)}${L.field('Quantity', p.quantity)}${L.field('Instructions', p.instructions)}
     ${L.field('Date of issue', L.dateIE(p.issued_at))}
-    ${L.signature(p.doctor_name, p.doctor_reg_number, practice)}
+    ${L.signature(p.doctor_name, p.doctor_reg_number, practice, false, p.signature_image)}
     ${L.footer(practice, reference, p.issued_at)}
   `;
 }).catch(() => { document.getElementById('letter').textContent = 'This prescription could not be loaded.'; });

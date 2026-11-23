@@ -50,7 +50,7 @@
 
 <script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
-<script src="/js/print-letter.js?v=a197a20b"></script>
+<script src="/js/print-letter.js?v=45821049"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const docId = params.get('docId');
@@ -73,7 +73,7 @@ function renderSickCert(f, b, practice, doc) {
     ${L.patientFields(b)}
     ${L.field('Seen', L.visitLine(b))}
     <p class="body-text" style="margin-top:18px;">${bodyText}</p>
-    ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice)}
+    ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice, false, doc.signature_image)}
     ${L.footer(practice, 'CERT-' + String(doc.id).padStart(5, '0'), doc.created_at)}
   `;
 }
@@ -94,7 +94,7 @@ function renderReferral(f, b, practice, doc, isAE) {
     <h3>Reason for referral</h3>
     <p class="body-text">${L.esc(f.reasonForReferral)}</p>
     <p>Thank you for seeing this patient. Please reply to ${L.esc([practice.email, practice.phone].filter(Boolean).join(' or ') || practice.name)}.</p>
-    ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice, true)}
+    ${L.signature(doc.doctor_name, doc.doctor_reg_number, practice, true, doc.signature_image)}
     ${L.footer(practice, 'REF-' + String(doc.id).padStart(5, '0'), doc.created_at)}
   `;
 }

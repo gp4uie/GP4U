@@ -11,6 +11,7 @@ const { getPractice, escapeHtml: esc, emailHeader, emailFooter, emailButton, sit
 const { notifyDoctorsOfBooking } = require('../claims');
 const { detectImage, sendUpload } = require('../imageCheck');
 const formLimiter = require('../formLimiter');
+const signatures = require('../signatures');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -349,14 +350,14 @@ router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, async (req,
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ? AND booking_id = ?', [req.params.rxId, req.params.id]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
   const { patient_token, ...safeBooking } = await enrichBooking(req.booking);
-  res.json({ prescription: rx, booking: safeBooking, practice: await getPractice() });
+  res.json({ prescription: { ...rx, signature_image: await signatures.dataUrl(rx.signature_id) }, booking: safeBooking, practice: await getPractice() });
 });
 
 router.get('/bookings/:id/documents/:docId', requirePatientToken, async (req, res) => {
   const doc = await db.get('SELECT * FROM documents WHERE id = ? AND booking_id = ?', [req.params.docId, req.params.id]);
   if (!doc) return res.status(404).json({ error: 'Not found' });
   const { patient_token, ...safeBooking } = await enrichBooking(req.booking);
-  res.json({ document: { ...doc, fields: JSON.parse(doc.fields) }, booking: safeBooking, practice: await getPractice() });
+  res.json({ document: { ...doc, fields: JSON.parse(doc.fields), signature_image: await signatures.dataUrl(doc.signature_id) }, booking: safeBooking, practice: await getPractice() });
 });
 
 module.exports = router;

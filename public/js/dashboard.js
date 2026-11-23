@@ -284,7 +284,7 @@ async function submitForgot() {
 // Exactly one section is on screen at a time and it opens at the top of the page.
 const TAB_TITLES = {
   today: 'Today', online: 'Online clinic', walkin: 'Walk-in clinic', search: 'Find a patient',
-  registrations: 'Registrations', tasks: 'Tasks', teammsg: 'Team messages', security: 'Security',
+  registrations: 'Registrations', tasks: 'Tasks', teammsg: 'Team messages', signature: 'My signature', security: 'Security',
 };
 const TAB_ALIASES = { clinic: 'walkin', schedule: 'online', recent: 'online' };
 
@@ -306,6 +306,7 @@ function showTab(tab, opts) {
   if (tab === 'registrations') loadRegistrations();
   if (tab === 'tasks') loadTasks();
   if (tab === 'security') renderSecurityTab();
+  if (tab === 'signature' && typeof loadSignature === 'function') loadSignature();
   if (tab === 'teammsg') { loadStaffDirectory(); loadStaffMessages(); }
   if (tab === 'search') { const i = document.getElementById('searchInput'); if (i && !i.value) i.focus({ preventScroll: true }); }
 }

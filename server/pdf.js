@@ -100,8 +100,18 @@ function patientBlock(doc, booking, { phone = false } = {}) {
   if (phone) row(doc, 'Phone', booking.patient_phone);
 }
 
-function signature(doc, name, reg, practice) {
-  doc.moveDown(2.2);
+// sigImage: the doctor's handwritten signature (PNG buffer) when they have set one in "My signature".
+function signature(doc, name, reg, practice, sigImage) {
+  if (sigImage) {
+    // keep the signature, name and registration together on one page
+    if (doc.y + 120 > doc.page.height - doc.page.margins.bottom) doc.addPage();
+    doc.moveDown(1);
+    const top = doc.y;
+    try { doc.image(sigImage, 50, top, { fit: [180, 52], valign: 'bottom' }); } catch (err) { /* unreadable image: name only */ }
+    doc.y = top + 56;
+  } else {
+    doc.moveDown(2.2);
+  }
   const y = doc.y;
   doc.strokeColor('#8a8a8a').lineWidth(0.6).moveTo(50, y).lineTo(230, y).stroke();
   doc.font('Helvetica-Bold').fontSize(11).fillColor(INK).text(name, 50, y + 5);
@@ -124,7 +134,7 @@ function generateSickCertPdf({ fields, booking, doctor, practice, id }) {
       : `This is to certify that ${booking.patient_name} was assessed by me and is ${fields.fitForWork} from ` +
         `${dateIE(fields.dateFrom)} to ${dateIE(fields.dateTo)} inclusive, due to: ${fields.diagnosis}.`;
     doc.font('Helvetica').fontSize(11.5).fillColor(INK).text(bodyText, { lineGap: 5 });
-    signature(doc, doctor.name, doctor.reg_number, practice);
+    signature(doc, doctor.name, doctor.reg_number, practice, doctor.signature);
   });
 }
 
@@ -158,11 +168,11 @@ function generateReferralPdf({ fields, booking, doctor, practice, isAE, id }) {
     doc.text(`Thank you for seeing this patient. Please reply to ${[practice.email, practice.phone].filter(Boolean).join(' or ') || practice.name}.`, { lineGap: 3 });
     doc.moveDown(0.6);
     doc.text('Yours sincerely,');
-    signature(doc, doctor.name, doctor.reg_number, practice);
+    signature(doc, doctor.name, doctor.reg_number, practice, doctor.signature);
   });
 }
 
-function generatePrescriptionPdf({ rx, booking, practice }) {
+function generatePrescriptionPdf({ rx, booking, practice, signature: sigImage }) {
   const reference = `RX-${String(rx.id || '').padStart(5, '0') || 'NEW'}`;
   const issued = rx.issued_at || new Date();
   return pdfBufferFrom(practice, reference, issued, (doc) => {
@@ -182,7 +192,7 @@ function generatePrescriptionPdf({ rx, booking, practice }) {
     row(doc, 'Quantity', rx.quantity);
     row(doc, 'Instructions', rx.instructions);
     row(doc, 'Date of issue', dateIE(issued));
-    signature(doc, rx.doctor_name, rx.doctor_reg_number, practice);
+    signature(doc, rx.doctor_name, rx.doctor_reg_number, practice, sigImage);
   });
 }
 

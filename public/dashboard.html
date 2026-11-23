@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <link rel="stylesheet" href="/css/style.css?v=62977f52">
-<link rel="stylesheet" href="/css/clinic.css?v=0830a227">
+<link rel="stylesheet" href="/css/clinic.css?v=c6142deb">
 <!-- @/head -->
 </head>
 <body class="clinic-page staff-page">
@@ -91,6 +91,7 @@
       <button class="dash-link" id="tabBtn_teammsg" onclick="showTab('teammsg')">Team messages</button>
 
       <p class="dash-group">Account</p>
+      <button class="dash-link" id="tabBtn_signature" onclick="showTab('signature')">My signature</button>
       <button class="dash-link" id="tabBtn_security" onclick="showTab('security')">Security</button>
     </nav>
 
@@ -188,6 +189,33 @@
     <h1>Tasks</h1>
     <p style="color:var(--ink-500);">Issuing a prescription automatically adds a task here. Mark it complete once you've sent it to the pharmacy — sending it through "Send to Pharmacy" also marks it complete automatically.</p>
     <div id="tasksList"></div>
+  </div>
+
+  <div id="tab_signature" style="display:none;">
+    <h1>My signature</h1>
+    <p style="color:var(--ink-500);max-width:680px;">Your signature is printed above your name and IMC number on every prescription, sick / fit-to-work certificate and referral letter you issue from now on — on the emailed PDF and on the printed copy. Documents already issued stay exactly as they were.</p>
+
+    <div class="card sig-card">
+      <h3 style="margin-top:0;">Your current signature</h3>
+      <div id="sigCurrent" class="sig-current">Loading…</div>
+      <button class="btn btn-secondary" id="sigRemoveBtn" type="button" style="display:none;" onclick="removeSignature()">Remove signature</button>
+      <p id="sigRemoveMsg" class="sig-msg"></p>
+    </div>
+
+    <div class="card sig-card">
+      <h3 style="margin-top:0;" id="sigPadTitle">Add your signature</h3>
+      <p style="color:var(--ink-500);margin-top:0;">Sign in the box below with your mouse, finger or stylus. Or upload a photo or scan of your signature on plain white paper.</p>
+      <div class="sig-pad-wrap">
+        <canvas id="sigPad" class="sig-pad" width="900" height="300" aria-label="Signature box: sign here"></canvas>
+        <span class="sig-pad-hint" id="sigPadHint">Sign here</span>
+      </div>
+      <div class="sig-actions">
+        <button class="btn btn-secondary" type="button" onclick="clearSignaturePad()">Clear</button>
+        <label class="btn btn-secondary sig-upload">Upload an image<input type="file" id="sigFile" accept="image/png,image/jpeg" hidden></label>
+        <button class="btn btn-primary" type="button" id="sigSaveBtn" onclick="saveSignature()">Save signature</button>
+      </div>
+      <p id="sigMsg" class="sig-msg"></p>
+    </div>
   </div>
 
   <div id="tab_security" style="display:none;">
@@ -431,8 +459,9 @@
 
 <script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
-<script src="/js/dashboard.js?v=e0f4a2c6"></script>
+<script src="/js/dashboard.js?v=c10c1902"></script>
 <script src="/js/dashboard-clinic.js?v=95aa72a1"></script>
+<script src="/js/dashboard-signature.js?v=076d5397"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=dd645959"></script>
 <script src="/js/consent.js?v=c0bcdc2c"></script>

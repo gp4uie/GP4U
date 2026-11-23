@@ -1306,3 +1306,18 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 }
 /* While nobody is waiting in the walk-in queue (e.g. before the clinic opens), online appointments get more room. */
 @media (min-width: 1001px) { .today-cols:has(#tdQueue > .empty) { grid-template-columns: 1fr 2fr; } }
+
+
+/* ---------- Doctor "My signature" ---------- */
+.sig-card { max-width: 640px; margin-bottom: 18px; }
+.sig-current { min-height: 80px; display: flex; align-items: center; padding: 14px 18px; margin-bottom: 12px; border: 1px dashed var(--line-warm, #e3dccd); border-radius: 12px; background: #fff; color: var(--ink-500, #6b8089); }
+.sig-current img { max-width: 260px; max-height: 80px; display: block; }
+.sig-pad-wrap { position: relative; border: 1px solid var(--line-warm, #e3dccd); border-radius: 12px; background: #fff; overflow: hidden; }
+.sig-pad { display: block; width: 100%; height: auto; aspect-ratio: 3 / 1; touch-action: none; cursor: crosshair; }
+.sig-pad-wrap::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: 24%; border-bottom: 1px solid #d6dde0; pointer-events: none; }
+.sig-pad-hint { position: absolute; left: 6%; bottom: 26%; font-size: .85rem; color: #a7b1b3; pointer-events: none; }
+.sig-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.sig-upload { cursor: pointer; }
+.sig-msg { margin: 10px 0 0; font-weight: 600; }
+.sig-msg.is-ok { color: var(--teal, #0f6e6e); }
+.sig-msg.is-error { color: #c0392b; }
