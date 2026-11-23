@@ -219,12 +219,28 @@ async function loadToday() {
       </article>`).join('') + (queue.length > 6 ? `<p class="staff-hint">+ ${queue.length - 6} more in the Walk-in clinic</p>` : '')
       : '<div class="empty">No one is waiting.</div>';
 
-    document.getElementById('tdAppts2').innerHTML = appts.length ? appts.map((b) => `
-      <div class="appt-row">
-        <span class="appt-time">${clinicEsc(new Date(b.slot_start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }))}</span>
-        <span class="appt-who"><strong>${clinicEsc(b.patient_name)}</strong><span class="appt-svc">${clinicEsc(svcLabel(b.service_type))}</span></span>
-        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${statusBadge(b)}${claimBadge(b)}
-        <button class="btn btn-secondary" style="padding:8px 16px;" onclick="openBooking('${clinicEsc(b.id)}', 'online')">Open</button></span>
-      </div>`).join('') : '<div class="empty">No online appointments today.</div>';
+    // Today's online appointments: one tidy card each — time and how soon on the left, patient on one line with the
+    // service and reason below, only the labels that matter on the right; the next patient is highlighted.
+    const nowMs = Date.now();
+    const nextId = (appts.find((b) => b.status !== 'completed' && new Date(b.slot_end).getTime() > nowMs) || {}).id;
+    const when = (b) => {
+      const s = new Date(b.slot_start).getTime(), e = new Date(b.slot_end).getTime();
+      if (b.status === 'completed') return { text: 'Done', cls: 'is-done' };
+      if (nowMs >= s && nowMs < e) return { text: 'Now', cls: 'is-now' };
+      if (nowMs >= e) return { text: 'Due', cls: 'is-late' };
+      const mins = Math.round((s - nowMs) / 60000);
+      return { text: mins < 60 ? `in ${mins} min` : `in ${Math.floor(mins / 60)} h${mins % 60 ? ' ' + (mins % 60) + ' min' : ''}`, cls: '' };
+    };
+    document.getElementById('tdAppts2').innerHTML = appts.length ? `<div class="td-appts">${appts.map((b) => {
+      const w = when(b);
+      const mine = b.claimed_by && b.claimed_by === myStaffId;
+      const detail = [svcLabel(b.service_type), b.patient_dob ? clinicAge(b.patient_dob) : '', b.reason || ''].filter(Boolean).join(' · ');
+      const label = b.status === 'completed' ? '' : (mine ? '' : claimBadge(b));
+      return `<button type="button" class="td-appt ${w.cls} ${b.id === nextId ? 'is-next' : ''}" onclick="openBooking('${clinicEsc(b.id)}', 'online')">
+        <span class="td-when"><span class="td-time">${clinicEsc(new Date(b.slot_start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }))}</span><span class="td-rel">${clinicEsc(w.text)}</span></span>
+        <span class="td-who"><strong class="td-name">${clinicEsc(b.patient_name)}</strong><span class="td-detail">${clinicEsc(detail)}</span></span>
+        <span class="td-side">${b.id === nextId ? '<span class="td-next">Next</span>' : ''}${label}<span class="td-open">Open ›</span></span>
+      </button>`;
+    }).join('')}</div>` : '<div class="empty">No online appointments today.</div>';
   } catch (err) { /* session-expired handled by doctorFetch */ }
 }

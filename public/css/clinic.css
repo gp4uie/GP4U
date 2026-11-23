@@ -757,7 +757,8 @@ body.staff-page { background: var(--cream); }
 /* Grid columns may shrink below their content's natural width, so queue cards and long names wrap instead of pushing the page sideways on a phone. */
 .today-cols > * { min-width: 0; }
 .queue-card > * { min-width: 0; }
-.qc-name, .qc-reason, .qc-meta, .appt-who { overflow-wrap: anywhere; }
+/* Long words wrap only when they must; names are never broken letter by letter. */
+.qc-name, .qc-reason, .qc-meta, .appt-who { overflow-wrap: break-word; min-width: 0; }
 .today-head h2 { margin: 0; font-size: 1.35rem; }
 .today-head a { font-weight: 700; font-size: 0.93rem; }
 .staff-page .notif-bell { background: none; border: 0; color: var(--ink); cursor: pointer; padding: 8px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; position: relative; }
@@ -1271,4 +1272,35 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
   .tl-row, .tl-free { grid-template-columns: 58px minmax(0, 1fr); }
   .tl-hour { padding-left: 10px; font-size: .85rem; }
   .tl-cards { grid-template-columns: minmax(0, 1fr); padding: 8px; }
+}
+
+
+/* ---------- Doctor "Today": online appointment cards ---------- */
+.td-appts { display: flex; flex-direction: column; gap: 8px; }
+.td-appt { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; color: inherit;
+  background: #fff; border: 1px solid var(--line-warm); border-left: 5px solid var(--teal); border-radius: 14px; padding: 12px 16px 12px 14px; cursor: pointer;
+  transition: box-shadow .15s, transform .15s, border-color .15s; }
+.td-appt:hover { box-shadow: 0 8px 20px rgba(18, 49, 58, .10); transform: translateY(-1px); }
+.td-appt:focus-visible { outline: 3px solid rgba(15, 110, 110, .35); outline-offset: 2px; }
+.td-appt.is-next { background: #f1f9f8; border-color: #bfe0dc; border-left-color: var(--teal); box-shadow: 0 6px 18px rgba(15, 110, 110, .12); }
+.td-appt.is-now { border-left-color: #c0392b; }
+.td-appt.is-late { border-left-color: #c8742b; }
+.td-appt.is-done { background: #f7f6f3; border-left-color: #a7b1b3; opacity: .75; }
+.td-when { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.td-time { font-family: 'Fraunces', Georgia, serif; font-size: 1.35rem; font-weight: 600; line-height: 1.1; color: var(--navy, #12313a); }
+.td-rel { font-size: .74rem; font-weight: 700; color: var(--teal); text-transform: none; }
+.td-appt.is-now .td-rel { color: #fff; background: #c0392b; border-radius: 999px; padding: 1px 8px; }
+.td-appt.is-late .td-rel { color: #a85d1e; }
+.td-appt.is-done .td-rel, .td-appt.is-done .td-time { color: var(--muted, #6b8089); }
+.td-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.td-name { font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-detail { font-size: .86rem; color: var(--muted, #6b8089); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-side { display: flex; align-items: center; gap: 8px; flex: none; }
+.td-side .badge { font-size: .72rem; padding: 3px 9px; }
+.td-next { font-size: .72rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--teal); background: #dff0ee; border-radius: 999px; padding: 3px 9px; }
+.td-open { font-weight: 700; font-size: .9rem; color: var(--teal); white-space: nowrap; }
+@media (max-width: 640px) {
+  .td-appt { grid-template-columns: 62px minmax(0, 1fr); gap: 10px; padding: 10px 12px; }
+  .td-side { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+  .td-time { font-size: 1.15rem; }
 }
