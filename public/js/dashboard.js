@@ -518,12 +518,12 @@ function renderScheduleGrid(bookings, dayStartMins, dayEndMins) {
   const lastHour = Math.max(firstHour, Math.ceil(dayEndMins / 60) - 1);
   const now = new Date();
   const isToday = isoDate(scheduleDate) === isoDate(now);
-  const nowHour = isToday ? now.getHours() : -1;
+  const nowHour = isToday ? irishHour(now) : -1;
 
   // Bookings by hour (a booking outside the working hours still gets shown, in its own hour).
   const byHour = new Map();
   bookings.forEach((b) => {
-    const h = new Date(b.slot_start).getHours();
+    const h = irishHour(new Date(b.slot_start));
     if (!byHour.has(h)) byHour.set(h, []);
     byHour.get(h).push(b);
   });

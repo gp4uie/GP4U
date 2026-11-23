@@ -525,7 +525,7 @@ function renderReview() {
   const start = new Date(selectedSlot.start);
   document.getElementById('reviewCard').innerHTML = `
     <h3>${s.label}</h3>
-    <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+    <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} (Irish time)</p>
     <p><strong>Patient:</strong> ${bookEsc(intakeData.patientName)}</p>
     <p><strong>Reason:</strong> ${bookEsc(intakeData.reason)}</p>
     <p style="font-size:1.3rem;"><strong>Total: €${(s.priceCents / 100).toFixed(2)}</strong></p>

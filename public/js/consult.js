@@ -29,12 +29,23 @@ function setStatus(text) { statusEl.textContent = text; statusEl.style.display =
 // Confirms the caller actually has a right to this booking (patient token, or a logged-in
 // doctor session) before any camera/microphone access or WebRTC signalling happens — the
 // booking ID in the address bar alone is not treated as sufficient proof of access.
+// Returns true/false for "allowed", or 'offline' when the server couldn't be reached (so the page retries instead of
+// wrongly telling the patient their link is invalid).
 async function verifyAccess() {
   const url = role === 'doctor'
-    ? `/api/doctor/bookings/${bookingId}`
-    : `/api/bookings/${bookingId}?token=${token}`;
-  const res = await fetch(url);
-  return res.ok;
+    ? `/api/doctor/bookings/${encodeURIComponent(bookingId)}`
+    : `/api/bookings/${encodeURIComponent(bookingId)}?token=${encodeURIComponent(token)}`;
+  for (let attempt = 1; attempt <= 12; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status >= 500) throw new Error('server ' + res.status);
+      return res.ok;
+    } catch (err) {
+      setStatus('Reconnecting… (this page will continue by itself as soon as the connection is back)');
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  return 'offline';
 }
 
 // Only the doctor can start a call (see the dashboard's startCall()) — the patient's side never
@@ -62,6 +73,10 @@ async function waitForDoctorToStartCall() {
 
 async function start() {
   const allowed = await verifyAccess();
+  if (allowed === 'offline') {
+    setStatus("We can't reach GP4U from this device right now. Please check your internet connection (try switching between Wi-Fi and mobile data), then reload this page.");
+    return;
+  }
   if (!allowed) {
     setStatus(role === 'doctor'
       ? 'You need to be logged in as the doctor to join this call.'

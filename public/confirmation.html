@@ -177,6 +177,7 @@
 </footer>
 <!-- @/footer -->
 
+<script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
 <script>
 const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -213,11 +214,21 @@ async function confirmPayment() {
     return true;
   } catch (err) { return false; }
 }
+// If the connection drops, keep trying for about a minute (showing "Reconnecting…") and carry on by itself as soon
+// as it's back, instead of giving up after the first failure.
 async function confirmAndLoad() {
-  const confirmed = await confirmPayment();
-  try { await loadBooking(); } catch (err) {
-    document.getElementById('loading').innerHTML = '<p style="color:#c0392b;">We couldn\'t load your booking just now. Please check your connection and <a href="">reload this page</a>.</p>';
-    return;
+  let confirmed = await confirmPayment();
+  const loadingEl = document.getElementById('loading');
+  for (let attempt = 1; ; attempt++) {
+    try { await loadBooking(); break; } catch (err) {
+      if (attempt >= 12) {
+        loadingEl.innerHTML = '<p style="color:#c0392b;">We can\'t reach GP4U from this device right now. Please check your internet connection (try switching between Wi-Fi and mobile data), then <a href="">reload this page</a>.</p>';
+        return;
+      }
+      loadingEl.innerHTML = '<p>Reconnecting… <span style="color:var(--ink-500);">(this page will load by itself as soon as the connection is back)</span></p>';
+      await new Promise((r) => setTimeout(r, 5000));
+      if (!confirmed) confirmed = await confirmPayment();
+    }
   }
   if (!confirmed) { await confirmPayment(); loadBooking().catch(() => {}); }
   loadAccountStatus().catch(() => {});
@@ -254,7 +265,7 @@ async function loadBooking() {
   document.getElementById('bookingDetails').innerHTML = `
     <p><strong>Reference:</strong> ${esc(b.id)}</p>
     <p><strong>Service:</strong> ${esc(b.service_type === 'walk_in' ? 'Walk-in visit' : b.service_type.replace('_',' '))}</p>
-    <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}</p>
+    <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })} (Irish time)</p>
     <p><strong>Status:</strong> ${esc(b.status)}</p>
   `;
   const joinLink = document.getElementById('joinLink');
@@ -294,7 +305,7 @@ async function loadBooking() {
   if (isCompleted || callStarted) {
     if (callPollTimer) { clearInterval(callPollTimer); callPollTimer = null; }
   } else if (!callPollTimer) {
-    callPollTimer = setInterval(loadBooking, 6000);
+    callPollTimer = setInterval(() => { loadBooking().catch(() => {}); }, 6000);
   }
 
   if (data.attachments.length) {
