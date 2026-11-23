@@ -164,6 +164,9 @@ function sitemap() {
 // ---------------------------------------------------------------- middleware
 function redirects(req, res, next) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  // Data requests are answered on gp4u.ie and www.gp4u.ie alike: browsers refuse to follow a redirect to another
+  // address for a page's own data requests, which left pages opened as gp4u.ie stuck on "Reconnecting…".
+  if (req.path.startsWith('/api/')) return next();
   const q = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
   // gp4u.ie -> www.gp4u.ie (only on the real domain; localhost and test hosts are left alone)
   // (one hop straight to the final address, e.g. gp4u.ie/walk-in.html -> www.gp4u.ie/walk-in-gp-newbridge/)

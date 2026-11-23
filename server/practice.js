@@ -21,12 +21,14 @@ function siteUrl() {
   let u = String(process.env.BASE_URL || '').trim().replace(/\/+$/, '');
   if (!/^https?:\/\/[^/\s]+$/i.test(u)) u = DEFAULT_SITE;
   if (/\/\/(localhost|127\.0\.0\.1)(:|$)/i.test(u) && seenPublicSite) u = seenPublicSite;
+  // The site's single address is www.gp4u.ie — emailed links must never use the bare domain.
+  u = u.replace(/^https?:\/\/gp4u\.ie$/i, 'https://www.gp4u.ie');
   return u;
 }
 function noteRequestHost(req, res, next) {
   const host = String(req.get('host') || '').toLowerCase();
   if (!seenPublicSite && /^[a-z0-9.-]+\.[a-z]{2,}$/.test(host) && !/^(localhost|127\.)/.test(host)) {
-    seenPublicSite = `https://${host}`;
+    seenPublicSite = `https://${host === 'gp4u.ie' ? 'www.gp4u.ie' : host}`;
   }
   next();
 }
