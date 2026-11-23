@@ -177,6 +177,7 @@
 </footer>
 <!-- @/footer -->
 
+<script src="/js/net-retry.js?v=aa6cd5eb"></script>
 <script>
 const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const params = new URLSearchParams(location.search);
@@ -203,16 +204,28 @@ if (window.Notification && Notification.permission === 'default') {
   btn.onclick = () => Notification.requestPermission().then(() => { btn.style.display = 'none'; });
 }
 
+// The payment check must never stop the page itself from loading: if it fails (connection blip), the booking is
+// still shown, and the check runs again on the next refresh of the booking details.
+async function confirmPayment() {
+  try {
+    const data = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/confirm-payment`, { method: 'POST' }).then(r => r.json());
+    if (data.demo) document.getElementById('demoNotice').style.display = 'block';
+    return true;
+  } catch (err) { return false; }
+}
 async function confirmAndLoad() {
-  await fetch(`/api/bookings/${bookingId}/confirm-payment`, { method: 'POST' })
-    .then(r => r.json())
-    .then(data => { if (data.demo) document.getElementById('demoNotice').style.display = 'block'; });
-  await loadBooking();
-  await loadAccountStatus();
+  const confirmed = await confirmPayment();
+  try { await loadBooking(); } catch (err) {
+    document.getElementById('loading').innerHTML = '<p style="color:#c0392b;">We couldn\'t load your booking just now. Please check your connection and <a href="">reload this page</a>.</p>';
+    return;
+  }
+  if (!confirmed) { await confirmPayment(); loadBooking().catch(() => {}); }
+  loadAccountStatus().catch(() => {});
 }
 
 async function loadAccountStatus() {
   const res = await fetch(`/api/bookings/${bookingId}/account-status?token=${token}`);
+  if (!res.ok) return;
   const data = await res.json();
   document.getElementById('passwordBox').style.display = data.hasPassword ? 'none' : 'block';
 }
@@ -224,8 +237,8 @@ async function setPassword() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ bookingId, token, password }),
   });
-  const data = await res.json();
-  if (!res.ok) { document.getElementById('passwordMsg').textContent = data.error; return; }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { document.getElementById('passwordMsg').textContent = data.error || 'Could not set your password just now. Please try again.'; return; }
   document.getElementById('passwordBox').innerHTML = '<p>Password set! You can now <a href="/patient-login.html">log in</a> anytime to see all your bookings.</p>';
 }
 
@@ -327,13 +340,22 @@ function renderMessages(messages) {
 async function sendMessage() {
   const input = document.getElementById('messageInput');
   if (!input.value.trim()) return;
-  const res = await fetch(`/api/bookings/${bookingId}/messages?token=${token}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body: input.value, token }),
-  });
-  if (res.ok) input.value = '';
-  loadBooking();
+  let note = document.getElementById('messageError');
+  if (!note) { note = document.createElement('p'); note.id = 'messageError'; note.setAttribute('role', 'alert'); note.style.color = '#c0392b'; input.insertAdjacentElement('afterend', note); }
+  note.textContent = '';
+  try {
+    const res = await fetch(`/api/bookings/${bookingId}/messages?token=${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: input.value, token }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) input.value = '';
+    else note.textContent = data.error || 'Your message could not be sent. Please try again.';
+  } catch (err) {
+    note.textContent = "Your message wasn't sent: the connection dropped. Please try again.";
+  }
+  loadBooking().catch(() => {});
 }
 
 confirmAndLoad();

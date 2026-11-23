@@ -49,23 +49,8 @@ let MEDICATIONS_LIST = [];
 // the session state themselves) should go through this instead of a bare fetch(), so an expired
 // session lands back on a clean login screen with a clear message instead of the page silently
 // treating an {error: ...} response as real data and throwing.
-// Reading data survives a brief connection blip (mobile signal, Wi-Fi hand-over, the host restarting the app):
-// a GET that fails at the network level, or gets a 502/503/504 from the host, is retried twice before giving up.
-// Requests that change something (POST, PUT, DELETE) are never repeated automatically.
-async function fetchRetry(url, options) {
-  const method = ((options && options.method) || 'GET').toUpperCase();
-  const tries = method === 'GET' ? 3 : 1;
-  for (let attempt = 1; ; attempt++) {
-    try {
-      const res = await fetch(url, options);
-      if (attempt < tries && [502, 503, 504].includes(res.status)) throw new Error('host busy');
-      return res;
-    } catch (err) {
-      if (attempt >= tries) throw err;
-      await new Promise((r) => setTimeout(r, attempt === 1 ? 700 : 1800));
-    }
-  }
-}
+// Brief connection drops are retried for every read request by /js/net-retry.js (loaded before this file).
+function fetchRetry(url, options) { return fetch(url, options); }
 
 async function doctorFetch(url, options) {
   const res = await fetchRetry(url, options);

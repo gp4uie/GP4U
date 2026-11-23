@@ -23,14 +23,15 @@ const isHttps = (process.env.BASE_URL || '').startsWith('https');
 // Don't advertise the server software to attackers.
 app.disable('x-powered-by');
 
-// The session cookie is signed with SESSION_SECRET. A missing or well-known secret would let anyone forge a
-// signed-in cookie (e.g. pose as a doctor), so the old public fallback string is never used: without a proper
-// secret a random one is made at start-up — sessions then simply end when the server restarts — and it is logged loudly.
-let sessionSecret = process.env.SESSION_SECRET || '';
-if (sessionSecret.length < 24 || sessionSecret === 'dev-only-secret-change-me') {
-  sessionSecret = require('crypto').randomBytes(48).toString('hex');
-  console.error('WARNING: SESSION_SECRET is missing or too short (needs 24+ random characters). Using a temporary random one: everyone will be signed out whenever the server restarts. Set SESSION_SECRET in the hosting settings.');
-}
+// The session cookie is signed with a secret key. A missing or well-known key would let anyone forge a signed-in
+// cookie (e.g. pose as a doctor), so the old public fallback string is never used. SESSION_SECRET from the hosting
+// settings is used when it is set properly (16+ characters, matching the admin setup checklist); otherwise a strong key
+// is generated once and kept in the database, so sign-ins survive restarts and work across several server processes.
+// The key is loaded before the server starts listening (see the bottom of this file); sessionKeys is read per request.
+const envSecret = process.env.SESSION_SECRET || '';
+const envSecretOk = envSecret.length >= 16 && envSecret !== 'dev-only-secret-change-me';
+const sessionKeys = [envSecretOk ? envSecret : require('crypto').randomBytes(48).toString('hex')];
+app.locals.sessionKeySource = envSecretOk ? 'hosting' : 'pending';
 
 // Hostinger's reverse proxy terminates TLS and forwards plain HTTP internally. Without this,
 // Express (and the `cookies` package cookie-session relies on) sees every request as insecure,
@@ -68,7 +69,7 @@ app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store')
 // so the cookie still works over plain http on localhost but is HTTPS-only in production.
 app.use(cookieSession({
   name: 'gp4u_session',
-  secret: sessionSecret,
+  keys: sessionKeys,
   maxAge: 30 * 24 * 60 * 60 * 1000,
   httpOnly: true,
   sameSite: 'lax',
@@ -127,7 +128,12 @@ app.use((err, req, res, next) => {
 });
 
 db.initSchema()
-  .then(() => {
+  .then(async () => {
+    if (!envSecretOk) {
+      sessionKeys[0] = await db.getOrCreateSecret('session_secret');
+      app.locals.sessionKeySource = 'database';
+      console.log('NOTE: SESSION_SECRET is not set (or shorter than 16 characters) in the hosting settings, so the sign-in key stored in the database is used. Sign-ins survive restarts.');
+    }
     app.listen(PORT, () => {
       console.log(`GP4U server running at http://localhost:${PORT}`);
       if (!process.env.STRIPE_SECRET_KEY) {

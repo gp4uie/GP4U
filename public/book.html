@@ -182,7 +182,9 @@
         </div>
         <div class="form-row">
           <label id="photoInputLabel" for="photoInput">Attach a photo (optional — e.g. a rash or a letter)</label>
-          <input type="file" id="photoInput" accept="image/*" multiple>
+          <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" multiple>
+          <p class="form-hint" style="font-size:0.85rem;color:var(--ink-500);margin:4px 0 0;">Photos only (JPG, PNG, WebP, GIF or iPhone HEIC), up to 5, each under 8&nbsp;MB.</p>
+          <p id="photoError" role="alert" style="color:#c0392b;margin:6px 0 0;"></p>
         </div>
         <button type="button" class="btn btn-primary" id="step2ContinueBtn" onclick="goToStep3FromForm()">Continue</button>
       </div>
@@ -282,7 +284,7 @@
 <!-- @/sticky -->
 
 <script src="/js/questionnaires.js?v=d2ce8a6e"></script>
-<script src="/js/book.js?v=1f83fab0"></script>
+<script src="/js/book.js?v=bb0abefd"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=dd645959"></script>
 <script src="/js/consent.js?v=c0bcdc2c"></script>

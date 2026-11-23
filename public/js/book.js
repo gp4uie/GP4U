@@ -409,9 +409,25 @@ function collectConditionAnswers(formData) {
   return answers;
 }
 
+// Same rules the server applies to photos (see server/imageCheck.js), checked here first so a patient is told straight
+// away instead of a photo silently going missing after the booking is made.
+function checkPhotos() {
+  const files = Array.from(document.getElementById('photoInput').files || []);
+  if (files.length > 5) return 'Please choose up to 5 photos.';
+  const okType = (f) => /^image\/(jpeg|png|webp|gif|heic|heif)$/i.test(f.type) || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name);
+  const bad = files.find((f) => !okType(f));
+  if (bad) return `"${bad.name}" isn't a photo we can accept. Please attach JPG, PNG, WebP, GIF or iPhone (HEIC) photos only.`;
+  const big = files.find((f) => f.size > 8 * 1024 * 1024);
+  if (big) return `"${big.name}" is larger than 8 MB. Please choose a smaller photo.`;
+  return '';
+}
+
 function goToStep3FromForm() {
   const form = document.getElementById('intakeForm');
   if (!form.reportValidity()) return;
+  const photoProblem = checkPhotos();
+  document.getElementById('photoError').textContent = photoProblem;
+  if (photoProblem) { document.getElementById('photoInput').focus(); return; }
   const formData = new FormData(form);
   intakeData = Object.fromEntries(formData.entries());
   intakeData.conditionAnswers = buildConditionAnswersSummary(selectedService, formData);
@@ -503,14 +519,15 @@ function pickSlot(el) {
   goToStep(4);
 }
 
+const bookEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function renderReview() {
   const s = SERVICES[selectedService];
   const start = new Date(selectedSlot.start);
   document.getElementById('reviewCard').innerHTML = `
     <h3>${s.label}</h3>
     <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
-    <p><strong>Patient:</strong> ${intakeData.patientName}</p>
-    <p><strong>Reason:</strong> ${intakeData.reason}</p>
+    <p><strong>Patient:</strong> ${bookEsc(intakeData.patientName)}</p>
+    <p><strong>Reason:</strong> ${bookEsc(intakeData.reason)}</p>
     <p style="font-size:1.3rem;"><strong>Total: €${(s.priceCents / 100).toFixed(2)}</strong></p>
   `;
 }
@@ -532,17 +549,21 @@ async function submitBooking() {
         slotEnd: selectedSlot.end,
       }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong on our side. Please try again in a moment.');
 
     const photoInput = document.getElementById('photoInput');
     if (photoInput.files.length) {
       const formData = new FormData();
       Array.from(photoInput.files).forEach((f) => formData.append('photos', f));
-      await fetch(`/api/bookings/${data.bookingId}/attachments?token=${data.patientToken}`, {
-        method: 'POST',
-        body: formData,
-      });
+      // The booking already exists at this point, so a photo problem must not stop the patient reaching payment;
+      // they can still send the photo to their GP from the booking page's messages.
+      try {
+        await fetch(`/api/bookings/${data.bookingId}/attachments?token=${data.patientToken}`, {
+          method: 'POST',
+          body: formData,
+        });
+      } catch (photoErr) { /* carry on to payment */ }
     }
 
     if (typeof window.gp4uTrack === 'function') window.gp4uTrack('online_booking_checkout'); // no service or price sent

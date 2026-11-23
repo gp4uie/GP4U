@@ -84,6 +84,16 @@ async function widenColumn(table, column, definition) {
   await pool.query(`ALTER TABLE ${table} MODIFY COLUMN ${column} ${definition}`);
 }
 
+// Secrets the app generates for itself and must keep across restarts and across several server processes
+// (e.g. the session-signing key when SESSION_SECRET isn't set in the hosting settings). INSERT IGNORE + read back
+// means two processes starting at the same moment still end up with the same value.
+async function getOrCreateSecret(name) {
+  await pool.query('CREATE TABLE IF NOT EXISTS app_secrets (name VARCHAR(64) PRIMARY KEY, value VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)');
+  await pool.query('INSERT IGNORE INTO app_secrets (name, value) VALUES (?, ?)', [name, require('crypto').randomBytes(48).toString('hex')]);
+  const [rows] = await pool.query('SELECT value FROM app_secrets WHERE name = ?', [name]);
+  return rows[0].value;
+}
+
 async function initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bookings (
@@ -762,4 +772,4 @@ async function initSchema() {
   }
 }
 
-module.exports = { pool, get, all, run, initSchema, toMySQLDateTime, encrypt };
+module.exports = { pool, get, all, run, initSchema, toMySQLDateTime, encrypt, getOrCreateSecret };
