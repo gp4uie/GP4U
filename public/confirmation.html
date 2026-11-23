@@ -274,22 +274,24 @@ async function loadBooking() {
     <p><strong>Status:</strong> ${esc(b.status)}</p>
   `;
   const joinLink = document.getElementById('joinLink');
-  const callUrl = `/consult.html?id=${bookingId}&token=${token}&role=patient`;
+  const callUrl = `/consult.html?id=${encodeURIComponent(bookingId)}&token=${encodeURIComponent(token)}&role=patient`;
   joinLink.href = callUrl;
-  // Opened as its own window rather than a same-tab navigation, so this confirmation page
-  // stays open behind it and isn't lost when the call ends.
-  joinLink.onclick = (e) => {
+  // On a computer the call opens in its own window so this page stays open behind it. Phones (and the browsers
+  // built into apps like Gmail) block or ignore pop-up windows, so there the call opens in this same tab — and if a
+  // computer's browser blocks the window, it falls back to this tab too. Tapping Join must always do something.
+  const openCall = (url, name, features) => (e) => {
     e.preventDefault();
-    window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
+    const phone = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (phone) { location.href = url; return; }
+    const w = window.open(url, name, features);
+    if (!w || w.closed || typeof w.closed === 'undefined') location.href = url;
   };
+  joinLink.onclick = openCall(callUrl, 'gp4u-video-call', 'width=900,height=700');
 
   const joinAudioLink = document.getElementById('joinAudioLink');
-  const audioCallUrl = `/consult.html?id=${bookingId}&token=${token}&role=patient&mode=audio`;
+  const audioCallUrl = callUrl + '&mode=audio';
   joinAudioLink.href = audioCallUrl;
-  joinAudioLink.onclick = (e) => {
-    e.preventDefault();
-    window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
-  };
+  joinAudioLink.onclick = openCall(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
 
   const isCompleted = b.status === 'completed';
   document.getElementById('messageComposer').style.display = isCompleted ? 'none' : 'block';

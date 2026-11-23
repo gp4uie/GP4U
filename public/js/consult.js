@@ -26,6 +26,23 @@ const ICON_CAM_OFF = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none
 
 function setStatus(text) { statusEl.textContent = text; statusEl.style.display = text ? 'block' : 'none'; }
 
+// Browsers built into apps (Gmail, Outlook, Facebook, Instagram…) often can't use the camera or microphone at all.
+const IN_APP_BROWSER = /; wv\)|\bGSA\/|FBAN|FBAV|Instagram|Line\/|Outlook|\bGmail/i.test(navigator.userAgent);
+function showOpenInBrowserHelp(reason) {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  statusEl.innerHTML = '';
+  const p = document.createElement('p');
+  p.textContent = reason + ' Please open this page in ' + (isIOS ? 'Safari' : 'Chrome') + ': tap the menu (⋮ or ⋯) and choose "Open in ' + (isIOS ? 'Safari' : 'Chrome') + '" or "Open in browser" — or copy the link below and paste it into ' + (isIOS ? 'Safari' : 'Chrome') + '.';
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'btn btn-primary'; btn.style.marginTop = '10px'; btn.textContent = 'Copy the link to this call';
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(location.href); btn.textContent = 'Link copied — now paste it into ' + (isIOS ? 'Safari' : 'Chrome'); }
+    catch (err) { window.prompt('Copy this link:', location.href); }
+  });
+  statusEl.append(p, btn);
+  statusEl.style.display = 'block';
+}
+
 // Confirms the caller actually has a right to this booking (patient token, or a logged-in
 // doctor session) before any camera/microphone access or WebRTC signalling happens — the
 // booking ID in the address bar alone is not treated as sufficient proof of access.
@@ -88,11 +105,18 @@ async function start() {
   setStatus(audioOnly ? 'Setting up your microphone…' : 'Setting up your camera and microphone…');
 
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showOpenInBrowserHelp(IN_APP_BROWSER
+        ? 'The browser inside this app can\'t use your camera or microphone.'
+        : 'This browser can\'t use your camera or microphone.');
+      return;
+    }
     localStream = await navigator.mediaDevices.getUserMedia({
       video: audioOnly ? false : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
     });
   } catch (err) {
+    if (IN_APP_BROWSER) { showOpenInBrowserHelp('The browser inside this app could not start your ' + (audioOnly ? 'microphone.' : 'camera and microphone.')); return; }
     setStatus(audioOnly
       ? 'Could not access your microphone. Please allow microphone permissions and reload this page.'
       : 'Could not access your camera/microphone. Please allow camera and microphone permissions and reload this page.');
