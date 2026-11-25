@@ -2,7 +2,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-const LOGO_PATH = path.join(__dirname, '..', 'public', 'img', 'gp4u-app-icon.png');
+const LOGO_PATH = path.join(__dirname, '..', 'public', 'img', 'gp4u-logo-print.png');
 const logoBuffer = fs.existsSync(LOGO_PATH) ? fs.readFileSync(LOGO_PATH) : null;
 
 /*
@@ -33,13 +33,16 @@ function drawLetterhead(doc, practice) {
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const top = doc.y;
-  // Logo mark to the left of the practice name, sized to sit level with the two lines of text beside it.
-  const logoSize = 30;
-  const textLeft = logoBuffer ? left + logoSize + 10 : left;
-  if (logoBuffer) doc.image(logoBuffer, left, top, { width: logoSize, height: logoSize });
-  doc.font('Helvetica-Bold').fontSize(18).fillColor(TEAL).text(practice.name, textLeft, top, { width: 300 - (textLeft - left) });
-  doc.font('Helvetica').fontSize(9).fillColor(GREY).text(practice.tagline || '', textLeft, doc.y + 1, { width: 300 - (textLeft - left) });
-  const leftBottom = Math.max(doc.y, top + logoSize);
+  // The full GP4U Clinic logo (icon + name), with the slogan underneath. Falls back to the typed name if the file is missing.
+  if (logoBuffer) {
+    const logoH = 34;
+    doc.image(logoBuffer, left - 1, top, { height: logoH });
+    doc.font('Helvetica').fontSize(9).fillColor(GREY).text(practice.tagline || '', left, top + logoH + 4, { width: 300 });
+  } else {
+    doc.font('Helvetica-Bold').fontSize(18).fillColor(TEAL).text(practice.name, left, top, { width: 300 });
+    doc.font('Helvetica').fontSize(9).fillColor(GREY).text(practice.tagline || '', left, doc.y + 1, { width: 300 });
+  }
+  const leftBottom = doc.y;
   // contact block, right-aligned
   const lines = [...practice.addressLines, practice.phone && `Tel ${practice.phone}`, practice.email, practice.website].filter(Boolean);
   let y = top + 2;

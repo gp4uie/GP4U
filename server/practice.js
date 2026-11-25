@@ -66,7 +66,8 @@ const escapeHtml = (v) => String(v === null || v === undefined ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 // The line at the top of every email the clinic sends.
-const emailHeader = (p) => `<p><strong>${escapeHtml(p.name)}</strong> — ${escapeHtml(p.tagline)} — ${escapeHtml(p.website)}</p>`;
+// The logo itself is added above this by the mailer (server/mailer.js), so the name is not repeated in the HTML.
+const emailHeader = (p) => `<p style="color:#555;font-size:13px;margin:0 0 18px;"><span style="display:none;">${escapeHtml(p.name)} — </span>${escapeHtml(p.tagline)} · ${escapeHtml(p.website)}</p>`;
 
 // The line at the bottom of patient-facing emails: how to reach the clinic, and that this is an automated message.
 const emailFooter = (p) => {

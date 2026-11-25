@@ -14,7 +14,7 @@
     return `
       <div class="letterhead">
         <div>
-          <div class="letterhead-brand"><img src="/img/gp4u-app-icon.png" alt=""><h1>${esc(p.name)}</h1></div>
+          <h1 class="letterhead-brand"><img src="/img/gp4u-logo-print.png" alt="${esc(p.name)}" class="letterhead-logo" style="display:block;height:46px;width:auto;"></h1>
           <p class="letterhead-slogan">${esc(p.tagline)}</p>
         </div>
         <p class="letterhead-domain">${lines.map(esc).join('<br>')}</p>

@@ -51,6 +51,24 @@ async function fromHeader() {
   return { name, address: addr };
 }
 
+// The GP4U Clinic logo at the top of every email, sent inside the email itself (not loaded from the website), so it
+// shows even in mail apps that block outside pictures. The plain-text copy is unaffected.
+const path = require('path');
+const fs = require('fs');
+const LOGO_FILE = path.join(__dirname, '..', 'public', 'img', 'gp4u-logo.png');
+const LOGO_CID = 'gp4u-logo@gp4u.ie';
+let logoBuffer;
+function emailLogo() {
+  if (logoBuffer === undefined) { try { logoBuffer = fs.readFileSync(LOGO_FILE); } catch (err) { logoBuffer = null; } }
+  return logoBuffer;
+}
+function withLogo(html, attachments) {
+  const logo = emailLogo();
+  if (!html || !logo) return { html, attachments };
+  const top = `<p style="margin:0 0 20px;"><img src="cid:${LOGO_CID}" alt="GP4U Clinic" width="216" height="48" style="display:block;border:0;outline:none;width:216px;height:48px;"></p>`;
+  return { html: top + html, attachments: [...(attachments || []), { filename: 'gp4u-clinic-logo.png', content: logo, cid: LOGO_CID, contentType: 'image/png', contentDisposition: 'inline' }] };
+}
+
 async function sendMail({ to, subject, html, text, attachments, replyTo }) {
   if (!isConfigured()) {
     const err = new Error(
@@ -68,10 +86,9 @@ async function sendMail({ to, subject, html, text, attachments, replyTo }) {
     to,
     replyTo: reply,
     subject,
-    html,
     text: text || htmlToText(html),
-    attachments,
+    ...withLogo(html, attachments),
   });
 }
 
-module.exports = { isConfigured, sendMail, htmlToText };
+module.exports = { isConfigured, sendMail, htmlToText, withLogo };

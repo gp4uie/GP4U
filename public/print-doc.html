@@ -18,7 +18,8 @@
   .letter { max-width: 680px; margin: 40px auto; padding: 30px; }
   .letterhead { border-bottom: 3px solid var(--teal-700); padding-bottom: 14px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
   .letterhead-brand { display: flex; align-items: center; gap: 10px; }
-  .letterhead-brand img { width: 32px; height: 32px; flex-shrink: 0; }
+  .letterhead-brand img { display: block; height: 46px; width: auto; }
+  .letterhead h1.letterhead-brand { line-height: 0; }
   .letterhead h1 { color: var(--teal-900); margin: 0; font-size: 1.3rem; }
   .letterhead-slogan { margin: 4px 0 0; color: var(--ink-500); font-size: 0.85rem; }
   .letterhead-domain { margin: 0; color: var(--ink-500); font-size: 0.85rem; white-space: nowrap; }
@@ -50,7 +51,7 @@
 
 <script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
-<script src="/js/print-letter.js?v=928b3fb5"></script>
+<script src="/js/print-letter.js?v=94905a80"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const docId = params.get('docId');
