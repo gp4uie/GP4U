@@ -384,23 +384,13 @@ async function main() {
     });
     await test('inner pages: the photo header is blended into the page (photo on the right, text clear of it) on every page', async () => {
       await tab.mobile(false);
-      for (const p of ['/walk-in-gp-newbridge/', '/services/', '/about/', '/family-gp/', '/fees/', '/faq/', '/contact/', '/book/']) {
+      for (const p of ['/walk-in-gp-newbridge/', '/online-gp/', '/services/', '/about/', '/family-gp/', '/fees/', '/faq/', '/contact/', '/book/']) {
         await tab.goto(p);
         const r = await tab.ev(`(() => { const m = document.querySelector('.phero .phero-media'); const img = m && m.querySelector('img'); const h1 = document.querySelector('.phero h1'); if (!m || !h1) return null; const mr = m.getBoundingClientRect(); return { pos: getComputedStyle(m).position, loaded: img.complete && img.naturalWidth > 0, h1Right: h1.getBoundingClientRect().right, mediaLeft: mr.left, mediaW: mr.width, vw: window.innerWidth }; })()`);
         assert(r && r.pos === 'absolute' && r.loaded, p + ': should have a blended photo header: ' + JSON.stringify(r));
         assert(r.h1Right <= r.mediaLeft + 40, p + ': the heading runs into the photo: ' + JSON.stringify(r));
         if (process.env.E2E_SHOTS && ['/walk-in-gp-newbridge/', '/contact/', '/services/'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.replace(/\W+/g, '') + '.png'), Buffer.from(c.data, 'base64')); }
       }
-    });
-    await test('Online GP page: poster beside the heading, blended (no box), and the Book button is on the first screen of a laptop', async () => {
-      await tab.mobile(false);
-      await tab.send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 657, deviceScaleFactor: 1, mobile: false });
-      try {
-        await tab.goto('/online-gp/');
-        const r = await tab.ev(`(() => { const img = document.querySelector('.phero .poster-hero img'); const btn = document.querySelector('.phero .hero2-actions .btn-primary'); if (!img || !btn) return null; const s = getComputedStyle(img); return { loaded: img.complete && img.naturalWidth > 0, alt: img.alt.length, radius: s.borderRadius, shadow: s.boxShadow, btnBottom: btn.getBoundingClientRect().bottom, imgBottom: img.getBoundingClientRect().bottom, vh: innerHeight, posters: document.querySelectorAll('img[src*="posters/online-gp"]').length }; })()`);
-        assert(r && r.loaded && r.alt > 100 && r.radius === '0px' && r.shadow === 'none' && r.posters === 1, 'poster header: ' + JSON.stringify(r));
-        assert(r.btnBottom <= r.vh && r.imgBottom <= r.vh + 40, 'Book button and poster should fit the first screen (1366x657): ' + JSON.stringify(r));
-      } finally { await tab.send('Emulation.clearDeviceMetricsOverride'); }
     });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
       await tab.goto('/');
