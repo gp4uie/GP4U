@@ -3,7 +3,7 @@ const bookingId = params.get('id');
 const token = params.get('token');
 const role = params.get('role') === 'doctor' ? 'doctor' : 'patient';
 const otherRole = role === 'doctor' ? 'patient' : 'doctor';
-const audioOnly = params.get('mode') === 'audio';
+let audioOnly = params.get('mode') === 'audio';
 
 const statusEl = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
@@ -80,7 +80,12 @@ async function waitForDoctorToStartCall() {
       const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/call-status?token=${encodeURIComponent(token)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.started && data.room) { callRoom = data.room; return; }
+        if (data.started && data.room) {
+          callRoom = data.room;
+          // The GP chose a phone (audio) consultation: don't switch the patient's camera on.
+          if (data.mode === 'audio' && !audioOnly) { audioOnly = true; document.title = 'Audio Consultation — GP4U'; document.body.classList.add('audio-only-call'); }
+          return;
+        }
       }
     } catch (err) { /* transient network issue — just keep polling */ }
     setStatus('Waiting for your GP to start the call. This page updates automatically — no need to refresh.');
@@ -132,67 +137,246 @@ async function start() {
   // Peer IDs come from a secret room name the server gives only to the signed-in doctor and the patient-token
   // holder, so nobody who merely knows the booking reference can take a participant's place or call in.
   if (!callRoom) { setStatus('Could not set up the call. Please reload this page.'); return; }
-  const myId = `gp4u-${callRoom}-${role}`;
-  const theirId = `gp4u-${callRoom}-${otherRole}`;
+  myId = `gp4u-${callRoom}-${role}`;
+  theirId = `gp4u-${callRoom}-${otherRole}`;
+  iceServers = await loadIceServers();
+  openPeer();
+}
 
-  peer = new Peer(myId);
+// ---------------------------------------------------------------------------------------------------------------
+// Connecting the two sides.
+//  - The patient rings the GP (and keeps retrying until the picture/sound arrive); the GP only answers. One call,
+//    never two crossing each other.
+//  - A relay server (TURN, from /call-ice) carries the picture and sound when the two networks can't connect directly
+//    (mobile data, many work/hospital networks). Without it a call can "connect" with no video or audio at all.
+//  - A small data line between the two pages carries "camera off" / "muted" / "call ended".
+//  - If one side's connection drops or the page is reloaded, the other side waits and reconnects by itself.
+// ---------------------------------------------------------------------------------------------------------------
+let myId, theirId, iceServers, relayAvailable = false;
+let connected = false, ended = false, callStartedAt = 0, dataConn = null, retryTimer = null;
+const theirName = otherRole === 'doctor' ? 'GP' : 'patient';
+
+async function loadIceServers() {
+  const url = role === 'doctor'
+    ? `/api/doctor/bookings/${encodeURIComponent(bookingId)}/call-ice`
+    : `/api/bookings/${encodeURIComponent(bookingId)}/call-ice?token=${encodeURIComponent(token)}`;
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      relayAvailable = !!data.relay;
+      if (Array.isArray(data.iceServers) && data.iceServers.length) return data.iceServers;
+    }
+  } catch (err) { /* fall back to public STUN below */ }
+  return [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
+}
+
+function openPeer() {
+  if (ended) return;
+  peer = new Peer(myId, { config: { iceServers, sdpSemantics: 'unified-plan' } });
 
   peer.on('open', () => {
-    setStatus(`Waiting for the ${otherRole === 'doctor' ? 'GP' : 'patient'} to join…`);
-    tryCall(theirId);
+    if (!connected) setStatus(`Waiting for the ${theirName} to join…`);
+    if (role === 'patient') { tryCall(); clearInterval(retryTimer); retryTimer = setInterval(tryCall, 4000); }
   });
 
   peer.on('call', (call) => {
     // Only ever answer the other participant of this consultation.
     if (call.peer !== theirId) { call.close(); return; }
+    useCall(call);
     call.answer(localStream);
-    wireCall(call);
+  });
+
+  peer.on('connection', (conn) => {
+    if (conn.peer !== theirId) { conn.close(); return; }
+    useData(conn);
+  });
+
+  // Lost touch with the connecting service (not the call itself): reconnect quietly.
+  peer.on('disconnected', () => {
+    if (ended || peer.destroyed) return;
+    setTimeout(() => { if (!ended && peer.disconnected && !peer.destroyed) peer.reconnect(); }, 2000);
   });
 
   peer.on('error', (err) => {
-    if (err.type === 'peer-unavailable') {
-      setTimeout(() => tryCall(theirId), 2000);
-    } else {
-      console.error(err);
+    if (ended) return;
+    if (err.type === 'peer-unavailable') return; // the other side isn't there (yet) — the patient's retry handles it
+    if (err.type === 'unavailable-id') {
+      // This page's name is still held by an earlier copy of it (e.g. just reloaded) — try again in a moment.
+      setStatus('Reconnecting…');
+      try { peer.destroy(); } catch (e) { /* ignore */ }
+      setTimeout(openPeer, 4000);
+      return;
     }
+    if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
+      if (!connected) setStatus('Having trouble reaching the call service — retrying…');
+      return;
+    }
+    console.error(err);
   });
 }
 
-function tryCall(theirId) {
-  if (currentCall) return;
+function tryCall() {
+  if (ended || connected || !peer || peer.destroyed || peer.disconnected || !peer.open) return;
+  if (currentCall && Date.now() - callStartedAt < 15000) return; // give the current attempt time to connect
   const call = peer.call(theirId, localStream);
-  if (call) wireCall(call);
-  setTimeout(() => { if (!currentCall) tryCall(theirId); }, 3000);
+  if (!call) return;
+  useCall(call);
+  if (!dataConn || !dataConn.open) useData(peer.connect(theirId, { reliable: true }));
 }
 
-function wireCall(call) {
+function useCall(call) {
+  const old = currentCall;
   currentCall = call;
-  call.on('stream', (remoteStream) => {
-    // Still attached (and its audio still plays) even when hidden — only shown if the other
-    // side actually sent a video track, so an audio-only caller doesn't see a blank video box.
-    remoteVideo.srcObject = remoteStream;
-    const hasRemoteVideo = remoteStream.getVideoTracks().length > 0;
-    remoteVideo.style.display = hasRemoteVideo ? 'block' : 'none';
-    setStatus(hasRemoteVideo ? '' : `Audio call connected with the ${otherRole === 'doctor' ? 'GP' : 'patient'}.`);
-  });
-  call.on('close', () => {
-    if (localStream) localStream.getTracks().forEach((t) => t.stop());
-    if (document.fullscreenElement) document.exitFullscreen();
-    document.getElementById('endedOverlay').querySelector('p').textContent = `The ${otherRole === 'doctor' ? 'GP' : 'patient'} left the call.`;
-    document.getElementById('endedOverlay').style.display = 'flex';
-  });
+  callStartedAt = Date.now();
+  if (old && old !== call) { try { old.close(); } catch (e) { /* ignore */ } }
+  call.on('stream', (remoteStream) => { if (call === currentCall) showRemote(remoteStream); });
+  const dropped = () => { if (call !== currentCall) return; currentCall = null; onDropped(); };
+  call.on('close', dropped);
+  call.on('error', dropped);
+  watchConnection(call);
 }
+
+// Follows the actual media connection, so problems are explained instead of leaving a black screen.
+function watchConnection(call) {
+  const attach = () => {
+    const pc = call.peerConnection;
+    if (!pc) { if (call === currentCall) setTimeout(attach, 300); return; }
+    const slowTimer = setTimeout(() => {
+      if (call === currentCall && !connected) setStatus(`Still connecting to the ${theirName}… If this takes more than a minute, both of you could try another connection (switch between Wi-Fi and mobile data) and reload the page.`);
+    }, 20000);
+    pc.addEventListener('iceconnectionstatechange', () => {
+      if (call !== currentCall) return;
+      const st = pc.iceConnectionState;
+      if (st === 'connected' || st === 'completed') {
+        clearTimeout(slowTimer);
+        if (remoteVideo.srcObject) setStatus(audioOnly || !hasRemoteVideo() ? `Call connected with the ${theirName}.` : '');
+      } else if (st === 'disconnected') {
+        setStatus('The connection is unstable — trying to recover…');
+      } else if (st === 'failed') {
+        clearTimeout(slowTimer);
+        connected = false;
+        setStatus(relayAvailable
+          ? 'The connection dropped — reconnecting…'
+          : `The video could not connect between your network and the ${theirName}'s. Retrying… (switching between Wi-Fi and mobile data often helps.)`);
+        if (role === 'patient') { currentCall = null; try { call.close(); } catch (e) { /* ignore */ } setTimeout(tryCall, 1500); }
+      }
+    });
+  };
+  attach();
+}
+
+function hasRemoteVideo() { const s = remoteVideo.srcObject; return !!(s && s.getVideoTracks().length); }
+
+function showRemote(remoteStream) {
+  connected = true;
+  // Still attached (and its audio still plays) even when hidden — only shown if the other side sends video.
+  remoteVideo.srcObject = remoteStream;
+  remoteVideo.style.display = hasRemoteVideo() && !audioOnly ? 'block' : 'none';
+  setStatus(hasRemoteVideo() && !audioOnly ? '' : `Call connected with the ${theirName}.`);
+  playRemote();
+  sendState();
+  showRemoteNote();
+}
+
+// Browsers may refuse to start sound until the person taps the page — offer a button instead of silent video.
+const tapBtn = document.createElement('button');
+tapBtn.type = 'button'; tapBtn.className = 'btn btn-primary call-tap'; tapBtn.hidden = true;
+tapBtn.textContent = 'Tap to turn on the sound and picture';
+tapBtn.onclick = () => playRemote();
+document.querySelector('.video-stage').append(tapBtn);
+function playRemote() {
+  remoteVideo.muted = false;
+  const p = remoteVideo.play();
+  if (p && p.then) p.then(() => { tapBtn.hidden = true; }).catch(() => { tapBtn.hidden = false; });
+}
+
+// "Camera off" / "Muted" shown over the other person's picture.
+const remoteNote = document.createElement('div');
+remoteNote.className = 'remote-note'; remoteNote.hidden = true;
+document.querySelector('.video-stage').append(remoteNote);
+let remoteCamOn = true, remoteMicOn = true;
+function showRemoteNote() {
+  const bits = [];
+  if (!remoteCamOn && !audioOnly) bits.push(`The ${theirName} has turned their camera off`);
+  if (!remoteMicOn) bits.push(`The ${theirName} is muted`);
+  remoteNote.textContent = bits.join(' · ');
+  remoteNote.hidden = !bits.length || !connected;
+}
+
+function useData(conn) {
+  if (!conn) return;
+  conn.on('open', () => { dataConn = conn; sendState(); });
+  conn.on('data', (msg) => {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'state') { remoteCamOn = msg.cam !== false; remoteMicOn = msg.mic !== false; showRemoteNote(); }
+    if (msg.type === 'end') endedByOther();
+  });
+  conn.on('close', () => { if (dataConn === conn) dataConn = null; });
+  conn.on('error', () => { if (dataConn === conn) dataConn = null; });
+}
+function send(msg) { try { if (dataConn && dataConn.open) dataConn.send(msg); } catch (e) { /* ignore */ } }
+function sendState() { send({ type: 'state', cam: camOn && !audioOnly, mic: micOn }); }
+
+// The other side's connection went (page reloaded, network change) without them ending the call: wait for them.
+function onDropped() {
+  if (ended) return;
+  connected = false;
+  remoteNote.hidden = true;
+  setStatus(`The ${theirName}'s connection dropped — reconnecting… (no need to do anything)`);
+  if (role === 'patient') setTimeout(tryCall, 1500);
+}
+
+function finishCall(message) {
+  ended = true;
+  clearInterval(retryTimer);
+  if (localStream) localStream.getTracks().forEach((t) => t.stop());
+  setTimeout(() => { try { if (currentCall) currentCall.close(); if (peer) peer.destroy(); } catch (e) { /* ignore */ } }, 300);
+  if (document.fullscreenElement) document.exitFullscreen();
+  if (message) document.getElementById('endedOverlay').querySelector('p').textContent = message;
+  document.getElementById('endedOverlay').style.display = 'flex';
+}
+function endedByOther() { finishCall(`The ${theirName} ended the call.`); }
+
+// ---- Call buttons, with a short label under each so it is clear what they do ----
+function labelButton(id, text) {
+  const btn = document.getElementById(id);
+  if (!btn.querySelector('.ico')) {
+    const ico = document.createElement('span'); ico.className = 'ico';
+    while (btn.firstChild) ico.append(btn.firstChild);
+    const lbl = document.createElement('span'); lbl.className = 'lbl';
+    btn.append(ico, lbl);
+  }
+  btn.querySelector('.lbl').textContent = text;
+  return btn;
+}
+labelButton('micBtn', 'Mute');
+labelButton('camBtn', 'Camera off');
+labelButton('selfBtn', 'My picture');
+labelButton('fullscreenBtn', 'Full screen');
+labelButton('endBtn', 'End call');
 
 document.getElementById('micBtn').onclick = () => {
+  if (!localStream) return;
   micOn = !micOn;
   localStream.getAudioTracks().forEach((t) => (t.enabled = micOn));
-  document.getElementById('micBtn').innerHTML = micOn ? ICON_MIC : ICON_MIC_OFF;
+  const btn = labelButton('micBtn', micOn ? 'Mute' : 'Unmute');
+  btn.querySelector('.ico').innerHTML = micOn ? ICON_MIC : ICON_MIC_OFF;
+  btn.classList.toggle('is-off', !micOn);
+  btn.setAttribute('aria-pressed', String(!micOn));
+  sendState();
 };
 
 document.getElementById('camBtn').onclick = () => {
+  if (!localStream) return;
   camOn = !camOn;
   localStream.getVideoTracks().forEach((t) => (t.enabled = camOn));
-  document.getElementById('camBtn').innerHTML = camOn ? ICON_CAM : ICON_CAM_OFF;
+  const btn = labelButton('camBtn', camOn ? 'Camera off' : 'Camera on');
+  btn.querySelector('.ico').innerHTML = camOn ? ICON_CAM : ICON_CAM_OFF;
+  btn.classList.toggle('is-off', !camOn);
+  btn.setAttribute('aria-pressed', String(!camOn));
+  document.getElementById('selfView').classList.toggle('cam-off', !camOn);
+  sendState();
 };
 
 document.getElementById('fullscreenBtn').onclick = () => {
@@ -337,11 +521,8 @@ closeBtn.onclick = () => {
 };
 
 document.getElementById('endBtn').onclick = () => {
-  if (currentCall) currentCall.close();
-  if (localStream) localStream.getTracks().forEach((t) => t.stop());
-  if (peer) peer.destroy();
-  if (document.fullscreenElement) document.exitFullscreen();
-  document.getElementById('endedOverlay').style.display = 'flex';
+  send({ type: 'end' });
+  finishCall('Call ended.');
 };
 
 start();

@@ -553,6 +553,11 @@ router.get('/bookings/:id/call-room', requireDoctor, async (req, res) => {
   res.json({ room });
 });
 
+// Connection helpers for the call (STUN + the relay server, see server/turn.js).
+router.get('/bookings/:id/call-ice', requireDoctor, async (req, res) => {
+  res.json(await require('../turn').iceServers());
+});
+
 router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
   const mode = req.body.mode === 'audio' ? 'audio' : 'video';
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);

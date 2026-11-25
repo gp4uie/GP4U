@@ -594,6 +594,8 @@ router.get('/setup-status', requireAdmin, async (req, res) => {
       'Set ENCRYPTION_KEY in the hosting settings — and keep a copy of it somewhere safe.', 'Without the key, saved clinical notes cannot be read.'),
     item('sessionkey', 'Security', 'Sign-in key is permanent', ['hosting', 'database'].includes(req.app.locals.sessionKeySource),
       'Restart the app from the hosting panel.', 'Otherwise everyone is signed out whenever the server restarts.'),
+    item('videorelay', 'Online consultations', 'Video-call relay server is set up', require('../turn').isConfigured(),
+      'Add a free Cloudflare TURN key in the hosting settings (CLOUDFLARE_TURN_KEY_ID and CLOUDFLARE_TURN_API_TOKEN) — see README.', 'Without it, video and phone calls often show no picture or sound when the patient is on mobile data or a different network.'),
     item('https', 'Security', 'The site address is https', /^https:\/\//.test(process.env.BASE_URL || ''),
       'Set BASE_URL=https://www.gp4u.ie in the hosting settings.', 'Links in emails and cookies need it.'),
   ];

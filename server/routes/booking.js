@@ -339,6 +339,12 @@ router.get('/bookings/:id/call-status', requirePatientToken, async (req, res) =>
   });
 });
 
+// Connection helpers for the call (STUN + the relay server, see server/turn.js) — only once the GP has started it.
+router.get('/bookings/:id/call-ice', requirePatientToken, async (req, res) => {
+  if (!req.booking.call_started_at) return res.status(409).json({ error: 'The call has not started yet.' });
+  res.json(await require('../turn').iceServers());
+});
+
 router.get('/bookings/:id/account-status', requirePatientToken, async (req, res) => {
   const patient = await db.get('SELECT password_hash FROM patients WHERE email = ?', [req.booking.patient_email]);
   res.json({ hasPassword: !!(patient && patient.password_hash) });

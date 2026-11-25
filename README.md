@@ -172,6 +172,22 @@ this app can do is send a normal email *from an account you control* — so:
   work end to end. Don't use this for real patient prescriptions — only a genuine Healthmail (or
   similarly secure) channel is appropriate for real patient health information.
 
+## 3.6. Video-call relay server (needed for reliable video and phone consultations)
+
+A call goes straight from the doctor's device to the patient's when their networks allow it. Often they don't
+(mobile data, hospital/office Wi-Fi, some home routers) — then the picture and sound must be passed on by a
+**relay (TURN) server**. Without one, the call screen connects but **no video or sound arrives**. The free relay
+that used to come with PeerJS no longer exists, so one has to be set up here. `server/turn.js` supports:
+
+- **Cloudflare (recommended, free allowance is large):** Cloudflare dashboard → Realtime → TURN Server → Create.
+  Copy the **Turn Token ID** and **API Token** into the hosting environment variables as
+  `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_API_TOKEN`, then restart/redeploy.
+- **Metered.ca:** `METERED_TURN_DOMAIN` (e.g. `yourname.metered.live`) and `METERED_TURN_API_KEY`.
+- **Any other TURN server:** `TURN_URLS` (comma-separated), `TURN_USERNAME`, `TURN_CREDENTIAL`.
+
+Admin → Setup checklist shows "Video-call relay server is set up" once it is configured. Temporary relay logins are
+fetched by the server (cached for an hour); the API token itself never reaches the browser.
+
 ## 5. Important — read before using this with real patients
 
 This prototype is a strong starting point, but there are things a solicitor, your medical indemnity
