@@ -104,6 +104,11 @@ header.site-header::after {
   box-shadow: 0 4px 10px rgba(10, 14, 20, 0.35);
 }
 .brand-badge img.brand-mark { height: 24px; width: auto; display: block; }
+/* The logo picture (icon + "GP4U Clinic"; phones get the shorter icon + "GP4U" version) */
+.brand-logo { display: block; flex: none; line-height: 0; }
+.brand-logo img { display: block; height: 44px; width: auto; }
+@media (max-width: 440px) { .brand-logo img { height: 40px; } }
+@media (max-width: 380px) { .brand-logo img { height: 36px; } }
 nav.main-nav {
   display: flex;
   align-items: center;

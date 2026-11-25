@@ -2,7 +2,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-const LOGO_PATH = path.join(__dirname, '..', 'public', 'img', 'gp4u-icon-pdf.png');
+const LOGO_PATH = path.join(__dirname, '..', 'public', 'img', 'gp4u-app-icon.png');
 const logoBuffer = fs.existsSync(LOGO_PATH) ? fs.readFileSync(LOGO_PATH) : null;
 
 /*
