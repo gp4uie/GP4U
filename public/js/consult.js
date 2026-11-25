@@ -140,6 +140,12 @@ async function start() {
   myId = `gp4u-${callRoom}-${role}`;
   theirId = `gp4u-${callRoom}-${otherRole}`;
   iceServers = await loadIceServers();
+  if (!relayAvailable && role === 'doctor') {
+    const warn = document.createElement('div');
+    warn.className = 'relay-warn';
+    warn.textContent = 'Video relay server not set up: calls only connect when your network and the patient’s allow a direct connection. Set it up in Admin → Setup checklist.';
+    document.querySelector('.video-stage').append(warn);
+  }
   openPeer();
 }
 
@@ -243,14 +249,18 @@ function watchConnection(call) {
     const pc = call.peerConnection;
     if (!pc) { if (call === currentCall) setTimeout(attach, 300); return; }
     const slowTimer = setTimeout(() => {
-      if (call === currentCall && !connected) setStatus(`Still connecting to the ${theirName}… If this takes more than a minute, both of you could try another connection (switch between Wi-Fi and mobile data) and reload the page.`);
+      if (call === currentCall && !iceOk()) setStatus(relayAvailable
+        ? `Still connecting to the ${theirName}… If this takes more than a minute, both of you could try another connection (switch between Wi-Fi and mobile data) and reload the page.`
+        : (role === 'doctor'
+          ? 'The picture and sound cannot get through between these two networks, because the video relay server is not set up yet (Admin → Setup checklist). Until it is, ask the patient to join on the same kind of connection as you, or phone them.'
+          : `Still connecting to the ${theirName}… If this doesn't work within a minute, please try joining on Wi-Fi instead of mobile data (or the other way round) and reload this page.`));
     }, 20000);
     pc.addEventListener('iceconnectionstatechange', () => {
       if (call !== currentCall) return;
       const st = pc.iceConnectionState;
       if (st === 'connected' || st === 'completed') {
         clearTimeout(slowTimer);
-        if (remoteVideo.srcObject) setStatus(audioOnly || !hasRemoteVideo() ? `Call connected with the ${theirName}.` : '');
+        if (remoteVideo.srcObject) { setStatus(audioOnly || !hasRemoteVideo() ? `Call connected with the ${theirName}.` : ''); playRemote(); }
       } else if (st === 'disconnected') {
         setStatus('The connection is unstable — trying to recover…');
       } else if (st === 'failed') {
@@ -268,28 +278,39 @@ function watchConnection(call) {
 
 function hasRemoteVideo() { const s = remoteVideo.srcObject; return !!(s && s.getVideoTracks().length); }
 
+function iceOk() { const pc = currentCall && currentCall.peerConnection; return !!pc && ['connected', 'completed'].includes(pc.iceConnectionState); }
+
 function showRemote(remoteStream) {
   connected = true;
-  // Still attached (and its audio still plays) even when hidden — only shown if the other side sends video.
-  remoteVideo.srcObject = remoteStream;
+  // PeerJS reports the stream once per track (sound, then picture). Re-attaching the same stream would interrupt the
+  // video that is just starting (which is what made "tap to turn on" appear and then do nothing) — so attach it once.
+  if (remoteVideo.srcObject !== remoteStream) remoteVideo.srcObject = remoteStream;
   remoteVideo.style.display = hasRemoteVideo() && !audioOnly ? 'block' : 'none';
-  setStatus(hasRemoteVideo() && !audioOnly ? '' : `Call connected with the ${theirName}.`);
+  if (iceOk()) setStatus(hasRemoteVideo() && !audioOnly ? '' : `Call connected with the ${theirName}.`);
+  else setStatus(`Connecting the picture and sound with the ${theirName}…`);
   playRemote();
   sendState();
   showRemoteNote();
 }
 
-// Browsers may refuse to start sound until the person taps the page — offer a button instead of silent video.
+// Browsers may refuse to start sound until the person taps the page. Only then is a button offered; any tap anywhere
+// on the page also starts it.
 const tapBtn = document.createElement('button');
 tapBtn.type = 'button'; tapBtn.className = 'btn btn-primary call-tap'; tapBtn.hidden = true;
 tapBtn.textContent = 'Tap to turn on the sound and picture';
 tapBtn.onclick = () => playRemote();
 document.querySelector('.video-stage').append(tapBtn);
+let playing = false;
 function playRemote() {
+  if (!remoteVideo.srcObject) return;
   remoteVideo.muted = false;
   const p = remoteVideo.play();
-  if (p && p.then) p.then(() => { tapBtn.hidden = true; }).catch(() => { tapBtn.hidden = false; });
+  if (!p || !p.then) return;
+  p.then(() => { playing = true; tapBtn.hidden = true; })
+    .catch((err) => { if (err && err.name === 'NotAllowedError') tapBtn.hidden = false; });
 }
+document.addEventListener('pointerdown', () => { if (remoteVideo.srcObject && (remoteVideo.paused || !playing)) playRemote(); }, true);
+remoteVideo.addEventListener('playing', () => { playing = true; tapBtn.hidden = true; });
 
 // "Camera off" / "Muted" shown over the other person's picture.
 const remoteNote = document.createElement('div');
