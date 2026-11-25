@@ -1321,3 +1321,8 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .sig-msg { margin: 10px 0 0; font-weight: 600; }
 .sig-msg.is-ok { color: var(--teal, #0f6e6e); }
 .sig-msg.is-error { color: #c0392b; }
+
+/* Promotional posters shown on the Online GP and walk-in pages */
+.poster { margin: 0 auto; max-width: 1040px; }
+.poster img { display: block; width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line-warm); box-shadow: 0 18px 40px rgba(10, 46, 46, .10); background: #fff; }
+@media (max-width: 600px) { .poster img { border-radius: 12px; } }
