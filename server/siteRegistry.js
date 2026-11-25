@@ -147,7 +147,7 @@ const IMAGES = [
   I('home.banner', 'Home page', '"Real people. Real care." photo', ['index.html'], 'mother-baby.webp', { hint: 'Light left side works best, because text sits over it (JPG, PNG or WebP, up to 4 MB).' }),
   I('home.panel', 'Home page', 'Family care panel photo', ['index.html'], 'family-sofa.webp'),
   I('page.walkin', 'Other pages', 'Walk-in clinic page header', ['walk-in.html'], 'walk-in-consult.jpg'),
-  I('page.online', 'Other pages', 'Online GP page header', ['online.html'], 'online-gp-home.jpg'),
+  // (the Online GP page header is now the online-consultations poster, not an editable photo)
   I('page.services', 'Other pages', 'Services page header', ['services.html'], 'gp-family-exam.jpg'),
   I('page.about', 'Other pages', 'About page header', ['about.html'], 'clinic-room.jpg'),
   I('page.register', 'Other pages', 'Register page header', ['new-patients.html'], 'family-sofa.webp'),
