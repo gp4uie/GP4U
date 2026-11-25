@@ -1327,16 +1327,21 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .poster img { display: block; width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line-warm); box-shadow: 0 18px 40px rgba(10, 46, 46, .10); background: #fff; }
 @media (max-width: 600px) { .poster img { border-radius: 12px; } }
 
-/* Online GP page: the poster is the page header, on the same sand colour as the other page headers so it blends in */
-.phero.phero-poster { padding: 0 0 clamp(36px, 5vw, 60px); }
-.poster-hero { margin: 0 auto; max-width: 1180px; }
-.poster-hero img { display: block; width: 100%; height: auto;
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0,0,0,0) 100%);
-          mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0,0,0,0) 100%); }
-.phero-poster .phero-grid { margin-top: clamp(4px, 1.5vw, 16px); }
-.phero-poster .phero-grid > div:first-child { max-width: 760px; }
+/* Online GP page: the heading and Book buttons on the left, the consultations poster (steps + five points) on the
+   right, on the page's sand colour so it blends in. Short enough that the Book button is on a laptop's first screen. */
+.phero.phero-poster { padding: clamp(20px, 3vw, 36px) 0 clamp(28px, 4vw, 48px); }
+.phero-poster .phero-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(20px, 3vw, 44px); align-items: center; }
+.phero-poster .phero-grid > div:first-child { max-width: none; }
+.phero-poster h1 { font-size: clamp(2rem, 3.3vw, 2.85rem); margin: 8px 0 12px; }
+.phero-poster .lead { font-size: 1.05rem; }
+.phero-poster .hero2-actions { margin-top: 20px; gap: 10px; }
+.phero-poster .trust-row { margin-top: 18px; }
+.poster-hero { margin: 0; }
+.poster-hero img { display: block; width: 100%; height: auto; max-height: min(470px, calc(100vh - 210px)); object-fit: contain; object-position: center;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 86%, rgba(0,0,0,0) 100%);
+          mask-image: linear-gradient(180deg, #000 0%, #000 86%, rgba(0,0,0,0) 100%); }
 @media (max-width: 860px) {
-  .phero.phero-poster { padding: 8px 0 28px; }
+  .phero-poster .phero-grid { grid-template-columns: 1fr; }
   .phero-poster .container { padding-top: 0; }
-  .phero-poster .phero-grid { margin-top: 18px; }
+  .poster-hero img { max-height: none; }
 }

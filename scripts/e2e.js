@@ -392,11 +392,15 @@ async function main() {
         if (process.env.E2E_SHOTS && ['/walk-in-gp-newbridge/', '/contact/', '/services/'].includes(p)) { const c = await tab.send('Page.captureScreenshot', { format: 'png' }); fs.mkdirSync(process.env.E2E_SHOTS, { recursive: true }); fs.writeFileSync(path.join(process.env.E2E_SHOTS, 'hero-' + p.replace(/\W+/g, '') + '.png'), Buffer.from(c.data, 'base64')); }
       }
     });
-    await test('Online GP page: the poster is the page header, loaded, full width and blended (no box), with the heading below it', async () => {
+    await test('Online GP page: poster beside the heading, blended (no box), and the Book button is on the first screen of a laptop', async () => {
       await tab.mobile(false);
-      await tab.goto('/online-gp/');
-      const r = await tab.ev(`(() => { const img = document.querySelector('.phero .poster-hero img'); const h1 = document.querySelector('.phero h1'); if (!img || !h1) return null; const s = getComputedStyle(img); return { loaded: img.complete && img.naturalWidth > 0, alt: img.alt.length, w: img.getBoundingClientRect().width, radius: s.borderRadius, shadow: s.boxShadow, h1Top: h1.getBoundingClientRect().top, imgBottom: img.getBoundingClientRect().bottom, posters: document.querySelectorAll('img[src*="posters/online-gp"]').length }; })()`);
-      assert(r && r.loaded && r.alt > 100 && r.w > 900 && r.radius === '0px' && r.shadow === 'none' && r.h1Top >= r.imgBottom - 40 && r.posters === 1, 'poster header: ' + JSON.stringify(r));
+      await tab.send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 657, deviceScaleFactor: 1, mobile: false });
+      try {
+        await tab.goto('/online-gp/');
+        const r = await tab.ev(`(() => { const img = document.querySelector('.phero .poster-hero img'); const btn = document.querySelector('.phero .hero2-actions .btn-primary'); if (!img || !btn) return null; const s = getComputedStyle(img); return { loaded: img.complete && img.naturalWidth > 0, alt: img.alt.length, radius: s.borderRadius, shadow: s.boxShadow, btnBottom: btn.getBoundingClientRect().bottom, imgBottom: img.getBoundingClientRect().bottom, vh: innerHeight, posters: document.querySelectorAll('img[src*="posters/online-gp"]').length }; })()`);
+        assert(r && r.loaded && r.alt > 100 && r.radius === '0px' && r.shadow === 'none' && r.posters === 1, 'poster header: ' + JSON.stringify(r));
+        assert(r.btnBottom <= r.vh && r.imgBottom <= r.vh + 40, 'Book button and poster should fit the first screen (1366x657): ' + JSON.stringify(r));
+      } finally { await tab.send('Emulation.clearDeviceMetricsOverride'); }
     });
     await test('homepage: walk-in clinic hours and online GP times are labelled and separate, nothing floats over the photo', async () => {
       await tab.goto('/');
