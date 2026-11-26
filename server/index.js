@@ -95,26 +95,13 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
   },
 }));
 
-// DOXY_ROOM_URL, e.g. https://doxy.me/gp4u (or just "gp4u"). Only doxy.me addresses are accepted.
-function doxyRoomUrl() {
-  let v = (process.env.DOXY_ROOM_URL || '').trim();
-  if (!v) return null;
-  if (!/^https?:\/\//i.test(v)) v = 'https://doxy.me/' + v.replace(/^\/+/, '');
-  try {
-    const u = new URL(v);
-    if (u.hostname !== 'doxy.me' && !u.hostname.endsWith('.doxy.me')) return null;
-    u.protocol = 'https:';
-    return u.toString();
-  } catch (e) { return null; }
-}
-
 app.get('/api/config', (req, res) => {
   res.json({
     practiceName: process.env.PRACTICE_NAME || 'GP4U',
     stripeConfigured: !!process.env.STRIPE_SECRET_KEY,
     emailConfigured: require('./mailer').isConfigured(),
     // Optional: hold video/audio consultations in the practice's Doxy.me room instead of the built-in call page.
-    videoRoomUrl: doxyRoomUrl(),
+    videoRoomUrl: require('./videoRoom').clinicRoom(),
   });
 });
 

@@ -192,6 +192,7 @@ router.get('/me', async (req, res) => {
     practiceName: process.env.PRACTICE_NAME,
     mailerConfigured: mailer.isConfigured(),
     totpEnabled: !!doctor.totp_enabled,
+    videoRoomUrl: (await require('../videoRoom').doctorRoom(doctor.id)) || require('../videoRoom').clinicRoom(),
   });
 });
 

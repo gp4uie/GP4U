@@ -336,6 +336,8 @@ router.get('/bookings/:id/call-status', requirePatientToken, async (req, res) =>
     mode: req.booking.call_mode || 'video',
     // Only handed out once the doctor has started the call, and only to the holder of the patient token.
     room: req.booking.call_started_at ? (req.booking.call_room || null) : null,
+    // Doxy.me room of the doctor who claimed this consultation (or the practice's room), once the call has started.
+    videoRoomUrl: req.booking.call_started_at ? await require('../videoRoom').roomForBooking(req.booking) : null,
   });
 });
 

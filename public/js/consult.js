@@ -69,6 +69,7 @@ async function verifyAccess() {
 // requests camera/microphone or connects on its own. It waits here, polling, until the doctor
 // has actually started this booking's call.
 let callRoom = null;
+let patientVideoRoom = null; // Doxy.me room of the doctor who claimed this consultation (from call-status)
 async function waitForDoctorToStartCall() {
   if (role !== 'patient') {
     const res = await fetch(`/api/doctor/bookings/${encodeURIComponent(bookingId)}/call-room`);
@@ -82,6 +83,7 @@ async function waitForDoctorToStartCall() {
         const data = await res.json();
         if (data.started && data.room) {
           callRoom = data.room;
+          patientVideoRoom = data.videoRoomUrl || null;
           // The GP chose a phone (audio) consultation: don't switch the patient's camera on.
           if (data.mode === 'audio' && !audioOnly) { audioOnly = true; document.title = 'Audio Consultation — GP4U'; document.body.classList.add('audio-only-call'); }
           return;
@@ -97,8 +99,8 @@ async function waitForDoctorToStartCall() {
 // call the patient's page simply becomes the practice's Doxy.me room (shown inside this page, no extra step), and a
 // GP who lands here goes straight on to their Doxy.me dashboard.
 async function goToExternalRoom() {
-  let room = null;
-  try { const r = await fetch('/api/config'); if (r.ok) room = (await r.json()).videoRoomUrl; } catch (e) { /* use the built-in call */ }
+  let room = role === 'patient' ? patientVideoRoom : null;
+  if (!room) { try { const r = await fetch(role === 'doctor' ? '/api/doctor/me' : '/api/config'); if (r.ok) room = (await r.json()).videoRoomUrl; } catch (e) { /* use the built-in call */ } }
   if (!room) return false;
   if (role === 'doctor') { location.replace('https://doxy.me/sign-in'); return true; }
   setStatus('');

@@ -485,6 +485,7 @@ async function editPerson(kind, id) {
       <div class="form-grid">
         <div class="form-row"><label for="pName">Name</label><input id="pName" maxlength="255" value="${pEsc(p.name)}"></div>
         ${isDoctor ? `<div class="form-row"><label for="pReg">IMC registration number</label><input id="pReg" maxlength="64" value="${pEsc(p.reg_number)}"></div>` : ''}
+        ${isDoctor ? `<div class="form-row"><label for="pRoom">Doxy.me room link <span style="font-weight:400;color:var(--muted);">(optional — patients this doctor claims go to this waiting room; blank = the practice's room)</span></label><input id="pRoom" maxlength="255" placeholder="https://doxy.me/drarshad" value="${pEsc(p.video_room_url || '')}"></div>` : ''}
         <div class="form-row"><label for="pEmail">Login email</label><input id="pEmail" type="email" maxlength="255" value="${pEsc(p.email)}"></div>
         <div class="form-row"><label for="pPw">New password <span style="font-weight:400;color:var(--muted);">(optional, at least 8 characters)</span></label><input id="pPw" type="password" autocomplete="new-password"></div>
       </div>
@@ -504,7 +505,7 @@ async function editPerson(kind, id) {
     try {
       const base = isDoctor ? '/api/admin/doctors/' : '/api/admin/receptionists/';
       await call(base + id, 'PUT', isDoctor
-        ? { name: document.getElementById('pName').value, regNumber: document.getElementById('pReg').value, email: document.getElementById('pEmail').value }
+        ? { name: document.getElementById('pName').value, regNumber: document.getElementById('pReg').value, email: document.getElementById('pEmail').value, videoRoom: document.getElementById('pRoom').value }
         : { name: document.getElementById('pName').value, email: document.getElementById('pEmail').value });
       const pw = document.getElementById('pPw').value;
       if (pw) await call(base + id + '/password', 'POST', { password: pw });

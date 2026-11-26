@@ -294,6 +294,8 @@ async function initSchema() {
     )
   `);
   await ensureColumn('doctors', 'signature_id', 'INT NULL');
+  // The doctor's own Doxy.me room (see server/videoRoom.js); patients they claim are sent there.
+  await ensureColumn('doctors', 'video_room_url', 'VARCHAR(255) NULL');
   await ensureColumn('prescriptions', 'signature_id', 'INT NULL');
   await ensureColumn('documents', 'signature_id', 'INT NULL');
 

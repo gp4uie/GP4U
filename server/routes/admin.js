@@ -130,7 +130,7 @@ router.post('/reset-password', async (req, res) => {
 // --- Onboard / manage doctors ---
 router.get('/doctors', requireAdmin, async (req, res) => {
   const doctors = await db.all(
-    'SELECT id, name, reg_number, email, active, last_login_at, last_active_at, totp_enabled, created_at FROM doctors ORDER BY created_at ASC'
+    'SELECT id, name, reg_number, email, active, last_login_at, last_active_at, totp_enabled, video_room_url, created_at FROM doctors ORDER BY created_at ASC'
   );
   res.json(doctors.map((d) => ({ ...d, online: isOnline(d.last_active_at) })));
 });
@@ -730,7 +730,11 @@ router.put('/doctors/:id', requireAdmin, async (req, res) => {
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
   const clash = await db.get('SELECT id FROM doctors WHERE email = ? AND id <> ?', [email, req.params.id]);
   if (clash) return res.status(409).json({ error: 'Another doctor already uses that email' });
-  const result = await db.run('UPDATE doctors SET name = ?, reg_number = ?, email = ? WHERE id = ?', [name, regNumber, email, req.params.id]);
+  // Optional: the doctor's own Doxy.me room. Blank = use the practice's room.
+  const roomRaw = cleanStr(req.body.videoRoom, 255);
+  const videoRoom = roomRaw ? require('../videoRoom').normalizeDoxyUrl(roomRaw) : null;
+  if (roomRaw && !videoRoom) return res.status(400).json({ error: 'The video room must be a Doxy.me room link, e.g. https://doxy.me/drarshad' });
+  const result = await db.run('UPDATE doctors SET name = ?, reg_number = ?, email = ?, video_room_url = ? WHERE id = ?', [name, regNumber, email, videoRoom, req.params.id]);
   if (!result.changes) return res.status(404).json({ error: 'Doctor not found' });
   res.json({ ok: true });
 });

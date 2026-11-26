@@ -5,7 +5,7 @@ let SERVICE_LABELS = {};
 // Loaded up front so the window opens straight from the click (browsers block windows opened later).
 const DOXY_DASHBOARD = 'https://doxy.me/sign-in';
 let videoRoomUrl = null;
-fetch('/api/config').then((r) => r.json()).then((c) => { videoRoomUrl = c.videoRoomUrl || null; }).catch(() => {});
+// (set from /api/doctor/me at sign-in: the doctor's own room, or the practice's)
 function svcLabel(t) {
   if (t === 'walk_in') return 'Walk-in visit';
   return (SERVICE_LABELS[t] && SERVICE_LABELS[t].label) || String(t || '').replace(/_/g, ' ');
@@ -112,6 +112,7 @@ async function checkSession(onWait) {
     document.getElementById('logoutLink').style.display = 'inline';
     document.getElementById('notifWrap').style.display = 'block';
     doctorTotpEnabled = !!data.totpEnabled;
+    videoRoomUrl = data.videoRoomUrl || null;
     [handleClaimParam, handleOpenParam, loadServiceLabels, loadNotifications, loadMedications, loadTasks, loadClinicSummary, openInitialTab]
       .forEach(safeStart);
     setInterval(loadNotifications, 15000);

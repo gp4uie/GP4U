@@ -177,6 +177,8 @@ this app can do is send a normal email *from an account you control* — so:
 Set `DOXY_ROOM_URL` in Hostinger's environment variables to the practice's Doxy.me room, e.g. `https://doxy.me/gp4u`.
 The Join buttons and email links stay the same: when the GP starts the call, the patient is taken to the Doxy.me room
 and the GP's call window opens the Doxy.me dashboard (sign in there; the patient appears in the waiting room).
+Each doctor can also have their own Doxy.me room (Admin > Doctors > Edit > "Doxy.me room link"): patients whose
+consultation that doctor claims and starts go to that doctor's waiting room; doctors without one use the practice's room.
 Remove the variable to go back to the built-in video call (which then needs the relay server below).
 
 ## 3.6. Video-call relay server (needed for reliable video and phone consultations)
