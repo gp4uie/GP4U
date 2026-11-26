@@ -93,6 +93,28 @@ async function waitForDoctorToStartCall() {
   }
 }
 
+// If the practice holds its consultations in Doxy.me (DOXY_ROOM_URL in Hostinger), send both sides there once the
+// GP has started the call: the patient to the practice's room, the GP to their Doxy.me dashboard (waiting room).
+async function goToExternalRoom() {
+  let room = null;
+  try { const r = await fetch('/api/config'); if (r.ok) room = (await r.json()).videoRoomUrl; } catch (e) { /* use the built-in call */ }
+  if (!room) return false;
+  const target = role === 'doctor' ? 'https://doxy.me/sign-in' : room;
+  statusEl.innerHTML = '';
+  const p = document.createElement('p');
+  p.textContent = role === 'doctor'
+    ? 'Opening your Doxy.me dashboard — your patient will appear in your waiting room there.'
+    : 'Your GP is ready. Taking you to our secure video room on Doxy.me… Type your name, tap "Check in", and allow the camera and microphone.'
+      + (audioOnly ? ' This is a phone-style consultation, so you can turn your camera off there.' : '');
+  const a = document.createElement('a');
+  a.className = 'btn btn-primary'; a.style.marginTop = '12px'; a.href = target; a.rel = 'noopener';
+  a.textContent = role === 'doctor' ? 'Open Doxy.me' : 'Go to the video room';
+  statusEl.append(p, a);
+  statusEl.style.display = 'block';
+  setTimeout(() => { location.href = target; }, 1500);
+  return true;
+}
+
 async function start() {
   const allowed = await verifyAccess();
   if (allowed === 'offline') {
@@ -107,7 +129,8 @@ async function start() {
   }
 
   await waitForDoctorToStartCall();
-  setStatus(audioOnly ? 'Setting up your microphone…' : 'Setting up your camera and microphone…');
+  if (await goToExternalRoom()) return;
+  setStatus(audioOnly ?'Setting up your microphone…' : 'Setting up your camera and microphone…');
 
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {

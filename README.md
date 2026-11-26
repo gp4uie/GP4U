@@ -172,6 +172,13 @@ this app can do is send a normal email *from an account you control* — so:
   work end to end. Don't use this for real patient prescriptions — only a genuine Healthmail (or
   similarly secure) channel is appropriate for real patient health information.
 
+## 3.5b. Using Doxy.me for consultations (free, optional)
+
+Set `DOXY_ROOM_URL` in Hostinger's environment variables to the practice's Doxy.me room, e.g. `https://doxy.me/gp4u`.
+The Join buttons and email links stay the same: when the GP starts the call, the patient is taken to the Doxy.me room
+and the GP's call window opens the Doxy.me dashboard (sign in there; the patient appears in the waiting room).
+Remove the variable to go back to the built-in video call (which then needs the relay server below).
+
 ## 3.6. Video-call relay server (needed for reliable video and phone consultations)
 
 A call goes straight from the doctor's device to the patient's when their networks allow it. Often they don't
