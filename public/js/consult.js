@@ -93,25 +93,23 @@ async function waitForDoctorToStartCall() {
   }
 }
 
-// If the practice holds its consultations in Doxy.me (DOXY_ROOM_URL in Hostinger), send both sides there once the
-// GP has started the call: the patient to the practice's room, the GP to their Doxy.me dashboard (waiting room).
+// If the practice holds its consultations in Doxy.me (DOXY_ROOM_URL in Hostinger), then once the GP has started the
+// call the patient's page simply becomes the practice's Doxy.me room (shown inside this page, no extra step), and a
+// GP who lands here goes straight on to their Doxy.me dashboard.
 async function goToExternalRoom() {
   let room = null;
   try { const r = await fetch('/api/config'); if (r.ok) room = (await r.json()).videoRoomUrl; } catch (e) { /* use the built-in call */ }
   if (!room) return false;
-  const target = role === 'doctor' ? 'https://doxy.me/sign-in' : room;
-  statusEl.innerHTML = '';
-  const p = document.createElement('p');
-  p.textContent = role === 'doctor'
-    ? 'Opening your Doxy.me dashboard — your patient will appear in your waiting room there.'
-    : 'Your GP is ready. Taking you to our secure video room on Doxy.me… Type your name, tap "Check in", and allow the camera and microphone.'
-      + (audioOnly ? ' This is a phone-style consultation, so you can turn your camera off there.' : '');
-  const a = document.createElement('a');
-  a.className = 'btn btn-primary'; a.style.marginTop = '12px'; a.href = target; a.rel = 'noopener';
-  a.textContent = role === 'doctor' ? 'Open Doxy.me' : 'Go to the video room';
-  statusEl.append(p, a);
-  statusEl.style.display = 'block';
-  setTimeout(() => { location.href = target; }, 1500);
+  if (role === 'doctor') { location.replace('https://doxy.me/sign-in'); return true; }
+  setStatus('');
+  const frame = document.createElement('iframe');
+  frame.src = room;
+  frame.title = 'Video consultation';
+  frame.allow = 'camera; microphone; autoplay; display-capture; fullscreen; speaker-selection';
+  frame.allowFullscreen = true;
+  frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:1000;background:#fff;';
+  document.body.append(frame);
+  document.body.style.overflow = 'hidden';
   return true;
 }
 

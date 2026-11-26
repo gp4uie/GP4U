@@ -49,8 +49,9 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // Camera and microphone are only for this site's own consultation page; nothing else may use them.
-  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), payment=(), usb=()');
+  // Camera and microphone are only for this site's own consultation page (and the practice's Doxy.me room shown
+  // inside it, when DOXY_ROOM_URL is set); nothing else may use them.
+  res.setHeader('Permissions-Policy', 'camera=(self "https://doxy.me"), microphone=(self "https://doxy.me"), display-capture=(self "https://doxy.me"), geolocation=(), payment=(), usb=()');
   if (isHttps) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
   next();
 });

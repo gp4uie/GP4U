@@ -1,6 +1,11 @@
 // Names for the service keys stored on bookings ('phone', 'video', ...). Loaded once after sign-in; walk-in bookings
 // (created when someone walks in or is added at the front desk) are always "Walk-in visit".
 let SERVICE_LABELS = {};
+// When consultations are held in Doxy.me (DOXY_ROOM_URL in Hostinger), Join opens the GP's Doxy.me dashboard directly.
+// Loaded up front so the window opens straight from the click (browsers block windows opened later).
+const DOXY_DASHBOARD = 'https://doxy.me/sign-in';
+let videoRoomUrl = null;
+fetch('/api/config').then((r) => r.json()).then((c) => { videoRoomUrl = c.videoRoomUrl || null; }).catch(() => {});
 function svcLabel(t) {
   if (t === 'walk_in') return 'Walk-in visit';
   return (SERVICE_LABELS[t] && SERVICE_LABELS[t].label) || String(t || '').replace(/_/g, ' ');
@@ -877,6 +882,7 @@ async function openBooking(id, listKey, keepTab) {
   joinCallBtn.onclick = (e) => {
     e.preventDefault();
     startCall('video');
+    if (videoRoomUrl) { window.open(DOXY_DASHBOARD, 'gp4u-doxy'); return; } // consultations held in Doxy.me
     window.open(callUrl, 'gp4u-video-call', 'width=900,height=700');
   };
 
@@ -886,6 +892,7 @@ async function openBooking(id, listKey, keepTab) {
   joinAudioCallBtn.onclick = (e) => {
     e.preventDefault();
     startCall('audio');
+    if (videoRoomUrl) { window.open(DOXY_DASHBOARD, 'gp4u-doxy'); return; }
     window.open(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
   };
   if (!isSameBooking) document.getElementById('rxPharmacy').value = b.pharmacy_name || '';
