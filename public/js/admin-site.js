@@ -18,6 +18,7 @@
   };
   let DATA = null;
   let current = 'details';
+  let dirty = false; // unsaved edits on the open pane
   let faqState = null;
 
   // ---------------------------------------------------------------- helpers
@@ -30,7 +31,7 @@
     return data;
   }
   const send = (url, method, body) => api(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
-  function ok(msg) { $('paneErr').textContent = ''; $('paneMsg').textContent = msg; window.scrollTo(0, 0); }
+  function ok(msg) { dirty = false; $('paneErr').textContent = ''; $('paneMsg').textContent = msg; window.scrollTo(0, 0); }
   function fail(e) { if (e && e.message === 'signed-out') return; $('paneMsg').textContent = ''; $('paneErr').textContent = e.message || String(e); window.scrollTo(0, 0); }
   function clearMsg() { $('paneMsg').textContent = ''; $('paneErr').textContent = ''; }
   function showLogin() { $('siteBox').style.display = 'none'; $('loginNotice').style.display = 'block'; }
@@ -52,6 +53,8 @@
 
   // ---------------------------------------------------------------- navigation
   function showPane(name) {
+    if (dirty && name !== current && !confirm('You have changes on this page that are not saved yet. Leave without saving them?')) return;
+    dirty = false;
     current = name;
     clearMsg();
     document.querySelectorAll('#siteNav [data-pane]').forEach((b) => b.classList.toggle('active', b.dataset.pane === name));
@@ -65,6 +68,13 @@
     ({ details: renderDetails, hours: renderHours, fees: renderFees, text: renderText, photos: renderPhotos, faq: renderFaq, banner: renderBanner, history: renderHistory })[name]();
   }
   document.querySelectorAll('#siteNav [data-pane]').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.pane)));
+  // Any typing in a pane counts as an unsaved change until a save succeeds (ok() clears it).
+  document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('.site-pane') && e.target.type !== 'search') dirty = true; });
+  document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('.site-pane') && e.target.type !== 'search' && e.target.type !== 'file') dirty = true; });
+  window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+  // The Save bar sticks just under the page header while scrolling long lists (e.g. Page wording).
+  const setBarTop = () => { const h = document.querySelector('.site-header'); const pos = h ? getComputedStyle(h).position : ''; document.documentElement.style.setProperty('--ed-top', ((pos === 'sticky' || pos === 'fixed') ? h.offsetHeight : 0) + 'px'); };
+  setBarTop(); window.addEventListener('resize', setBarTop);
 
   async function resetGroup(name, what) {
     if (!window.confirm(`Put ${what} back to the original? Your edits will be removed (you can still restore them from Change history).`)) return;

@@ -773,3 +773,13 @@ async function deleteVoucher(id) {
   if (document.getElementById('voucherId').value === String(id)) resetVoucherForm();
   loadVouchers();
 }
+
+// Pre-launch: zero the amounts of demo/test bookings (never touches real Stripe card payments).
+async function resetTestRevenue() {
+  const typed = prompt('This sets every test / demo booking\'s payment to €0 so Revenue starts from zero. Real card payments made through Stripe are never changed, and no bookings are deleted.\n\nType RESET to confirm:');
+  if (typed === null) return;
+  const res = await fetch('/api/admin/reset-test-revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: typed.trim().toUpperCase() }) });
+  const data = await res.json().catch(() => ({}));
+  alert(res.ok ? `Done — ${data.changed} test booking(s) set to €0.` : (data.error || 'Could not reset.'));
+  loadAnalytics();
+}

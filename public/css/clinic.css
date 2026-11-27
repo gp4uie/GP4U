@@ -1350,3 +1350,6 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
   .svc-card .btn { grid-area: btn; width: auto; margin: 0; padding: 8px 16px; min-height: 40px; font-size: 0.9rem; white-space: nowrap; }
   .svc-card .svc-btn-more { display: none; }
 }
+
+/* Website settings: the Save bar stays visible while scrolling a long list */
+.ed-bar { position: sticky; top: var(--ed-top, 0px); z-index: 20; background: var(--cream, #faf6ef); padding: 10px 0; box-shadow: 0 8px 12px -12px rgba(0, 0, 0, 0.25); }

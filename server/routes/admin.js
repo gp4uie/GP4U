@@ -630,6 +630,17 @@ router.delete('/admins/:id', requireAdmin, async (req, res) => {
 // --- Remove obviously fake test records. Only records whose patient name starts with "ZZ LIVE TEST" are touched, so this can
 // never remove a real patient's record; the removal itself is logged. ---
 const TEST_PREFIX = 'ZZ LIVE TEST';
+// Before launch every "payment" is a demo-mode or test booking. This sets their recorded amount to €0 so the revenue
+// figures start from zero. Only bookings that never went through Stripe are touched — a real card payment always has
+// a Stripe session and is never changed. The bookings themselves (and their clinical records) are kept.
+router.post('/reset-test-revenue', requireAdmin, async (req, res) => {
+  if ((req.body || {}).confirm !== 'RESET') return res.status(400).json({ error: 'Please type RESET to confirm' });
+  const r = await db.run("UPDATE bookings SET amount_cents = 0 WHERE amount_cents <> 0 AND (stripe_session_id IS NULL OR stripe_session_id = '')");
+  const me = await db.get('SELECT name FROM admins WHERE id = ?', [req.session.adminId]);
+  try { await db.run('INSERT INTO site_change_log (admin_name, action, detail) VALUES (?, ?, ?)', [me ? me.name : 'Admin', 'Reset test revenue', `${r.changes || 0} test booking(s) set to €0`]); } catch (err) { /* best-effort */ }
+  res.json({ ok: true, changed: r.changes || 0 });
+});
+
 router.post('/remove-test-records', requireAdmin, async (req, res) => {
   if (!req.body || req.body.confirm !== true) return res.status(400).json({ error: 'Please confirm' });
   const like = TEST_PREFIX + '%';
