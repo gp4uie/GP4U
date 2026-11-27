@@ -46,7 +46,9 @@ async function getAvailableSlots(serviceKey) {
   const availability = await db.all('SELECT doctor_id, day_of_week, start_time, end_time FROM doctor_availability');
   if (availability.length === 0) return [];
 
-  const existing = await db.all("SELECT slot_start, slot_end FROM bookings WHERE status IN ('paid', 'pending_payment')");
+  // A booking waiting at the card page holds its time for 35 minutes only (Stripe's payment page expires after 30),
+  // so a patient who abandons payment doesn't block that slot for everyone else.
+  const existing = await db.all("SELECT slot_start, slot_end FROM bookings WHERE status = 'paid' OR (status = 'pending_payment' AND created_at > DATE_SUB(NOW(), INTERVAL 35 MINUTE))");
 
   const slots = [];
   const now = new Date();

@@ -61,6 +61,9 @@ app.use((req, res, next) => {
 app.use(seo.redirects);
 app.use(seo.pages);
 
+// Stripe's payment notifications must be read as the exact bytes Stripe sent (to check its signature), so this one
+// route comes before the JSON body reader. Set the endpoint in Stripe to https://www.gp4u.ie/api/stripe/webhook.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '1mb' }), (req, res) => bookingRoutes.stripeWebhook(req, res));
 app.use(express.json({ limit: '200kb' }));
 // Patient and clinical data must never be kept in a shared or browser cache.
 app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });

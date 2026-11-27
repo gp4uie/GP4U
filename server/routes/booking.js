@@ -98,6 +98,50 @@ async function notifyBookingPaid(booking) {
   }
 }
 
+// One place that turns a paid Stripe Checkout session into a confirmed booking — used by the patient's return to
+// the confirmation page AND by Stripe's webhook (whichever arrives first; the other does nothing). Checks the amount
+// and currency against the booking, so a session can never confirm a booking it wasn't made for.
+async function markPaidFromSession(session) {
+  const bookingId = session && session.metadata && session.metadata.bookingId;
+  if (!bookingId || session.payment_status !== 'paid') return false;
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [bookingId]);
+  if (!booking || booking.stripe_session_id !== session.id) return false;
+  if (Number(session.amount_total) !== Number(booking.amount_cents) || String(session.currency).toLowerCase() !== 'eur') {
+    console.error('Stripe session amount/currency does not match booking', bookingId, session.amount_total, session.currency);
+    return false;
+  }
+  const pi = typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent && session.payment_intent.id) || null;
+  const r = await db.run("UPDATE bookings SET status = 'paid', stripe_payment_intent = COALESCE(stripe_payment_intent, ?) WHERE id = ? AND status IN ('pending_payment', 'payment_expired')", [pi, booking.id]);
+  if (r.changes) await notifyBookingPaid(booking);
+  return true;
+}
+
+// Stripe calls this (server to server) when a payment completes or a card page expires. The body must be the raw
+// bytes Stripe sent, so this is mounted in index.js before the JSON body reader. Signed with STRIPE_WEBHOOK_SECRET.
+async function stripeWebhook(req, res) {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!stripe || !secret) return res.status(503).send('Stripe webhook not configured');
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], secret);
+  } catch (err) {
+    return res.status(400).send('Invalid signature');
+  }
+  try {
+    const session = event.data && event.data.object;
+    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+      await markPaidFromSession(session);
+    } else if (event.type === 'checkout.session.expired' && session && session.metadata && session.metadata.bookingId) {
+      // The patient never paid: release the time (the booking is kept, marked so, in case they get in touch).
+      await db.run("UPDATE bookings SET status = 'payment_expired' WHERE id = ? AND stripe_session_id = ? AND status = 'pending_payment'", [session.metadata.bookingId, session.id]);
+    }
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Stripe webhook handling failed:', err);
+    res.status(500).send('Webhook handling failed'); // Stripe retries
+  }
+}
+
 router.get('/services', async (req, res) => {
   res.json(await getServices());
 });
@@ -198,7 +242,8 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      payment_method_types: ['card'],
+      // No fixed list of payment methods: Stripe offers whatever is switched on in the Stripe Dashboard
+      // (cards, Apple Pay, Google Pay…) for the patient's device.
       line_items: [{
         price_data: {
           currency: 'eur',
@@ -208,6 +253,16 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
         quantity: 1,
       }],
       customer_email: patientEmail,
+      // The card page closes after 30 minutes (Stripe's minimum); the time slot is held for that long only.
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+      payment_intent_data: {
+        receipt_email: patientEmail, // Stripe emails a payment receipt (when receipts are on in the Dashboard)
+        description: `GP4U ${service.label} — booking ${id}`,
+        metadata: { bookingId: id },
+      },
+      // Optional: a proper Stripe invoice (PDF) for every payment. Stripe charges a small fee per invoice, so it is
+      // only switched on when STRIPE_INVOICES=1 is set in the hosting settings.
+      ...(process.env.STRIPE_INVOICES === '1' ? { invoice_creation: { enabled: true, invoice_data: { description: `GP4U ${service.label} — booking ${id}`, metadata: { bookingId: id } } } } : {}),
       success_url: `${siteUrl()}/confirmation.html?id=${id}&token=${patientToken}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl()}/book.html?cancelled=1`,
       metadata: { bookingId: id },
@@ -231,7 +286,7 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
     // The confirmation page calls this every time it is opened, including long after the consultation.
     // Only a booking still waiting for payment may be confirmed — otherwise reopening the link would
     // reset a 'completed' consultation back to 'paid' (reopening messaging and re-notifying the doctor).
-    if (booking.status !== 'pending_payment') return res.json({ status: booking.status });
+    if (booking.status !== 'pending_payment' && booking.status !== 'payment_expired') return res.json({ status: booking.status });
 
     if (Number(booking.amount_cents) === 0 && booking.voucher_code) {
       // Fully paid by a voucher (the €0 price was set by the server when the booking was made) — nothing to charge.
@@ -253,11 +308,7 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
     }
 
     const session = await stripe.checkout.sessions.retrieve(booking.stripe_session_id);
-    if (session.payment_status === 'paid') {
-      const r = await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status = 'pending_payment'", [booking.id]);
-      if (r.changes) await notifyBookingPaid(booking);
-      return res.json({ status: 'paid' });
-    }
+    if (await markPaidFromSession(session)) return res.json({ status: 'paid' });
     res.json({ status: session.payment_status });
   } catch (err) {
     console.error(err);
@@ -400,3 +451,4 @@ router.get('/bookings/:id/documents/:docId', requirePatientToken, async (req, re
 });
 
 module.exports = router;
+module.exports.stripeWebhook = stripeWebhook;

@@ -314,6 +314,7 @@ async function initSchema() {
   `);
   await ensureColumn('bookings', 'voucher_code', 'VARCHAR(40) NULL');
   await ensureColumn('bookings', 'discount_cents', 'INT NOT NULL DEFAULT 0');
+  await ensureColumn('bookings', 'stripe_payment_intent', 'VARCHAR(255) NULL');
   await ensureColumn('prescriptions', 'signature_id', 'INT NULL');
   await ensureColumn('documents', 'signature_id', 'INT NULL');
 
