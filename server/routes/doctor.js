@@ -449,6 +449,7 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   const { patient_token, ...safeBooking } = booking;
   const claimer = booking.claimed_by ? await db.get('SELECT name FROM doctors WHERE id = ?', [booking.claimed_by]) : null;
   const claim = { by: booking.claimed_by || null, byName: claimer ? claimer.name : null, mine: booking.claimed_by === req.session.doctorId };
+  safeBooking.audio_only = await require('../services').bookingIsAudioOnly(booking);
   res.json({ claim, booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile, patientSummary });
 });
 
@@ -560,9 +561,10 @@ router.get('/bookings/:id/call-ice', requireDoctor, async (req, res) => {
 });
 
 router.post('/bookings/:id/start-call', requireDoctor, async (req, res) => {
-  const mode = req.body.mode === 'audio' ? 'audio' : 'video';
   const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  // A phone consultation was paid for as audio only, so its call is always audio whatever button was pressed.
+  const mode = (req.body.mode === 'audio' || await require('../services').bookingIsAudioOnly(booking)) ? 'audio' : 'video';
   const taken = await claims.claimBooking(req.params.id, req.session.doctorId);
   if (!taken.ok) return res.status(409).json({ error: `${taken.claimedByName || 'Another doctor'} has claimed this case. Ask them to release it if you need to take over.` });
   await db.run("UPDATE bookings SET call_started_at = NOW(), call_mode = ?, call_room = COALESCE(call_room, ?) WHERE id = ?",

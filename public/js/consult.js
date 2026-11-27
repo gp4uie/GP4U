@@ -106,8 +106,9 @@ async function goToExternalRoom() {
   setStatus('');
   const frame = document.createElement('iframe');
   frame.src = room;
-  frame.title = 'Video consultation';
-  frame.allow = 'camera; microphone; autoplay; display-capture; fullscreen; speaker-selection';
+  frame.title = audioOnly ? 'Phone consultation' : 'Video consultation';
+  // Audio-only (phone) consultations: the room gets the microphone but never the camera.
+  frame.allow = audioOnly ? 'microphone; autoplay; fullscreen; speaker-selection' : 'camera; microphone; autoplay; display-capture; fullscreen; speaker-selection';
   frame.allowFullscreen = true;
   frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:1000;background:#fff;';
   document.body.append(frame);

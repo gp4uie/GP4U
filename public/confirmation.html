@@ -72,7 +72,7 @@
     </div>
 
     <h2 style="margin-top:32px;">Your consultation</h2>
-    <p>Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
+    <p id="callIntro">Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
     <a id="joinLink" class="btn btn-primary" style="display:none;">Join Video Consultation</a>
     <a id="joinAudioLink" class="btn btn-secondary" style="display:none;">Join Audio Consultation</a>
     <div id="callWaitingNotice" class="notice" style="display:none;">
@@ -301,7 +301,12 @@ async function loadBooking() {
   // Only the doctor can start a call — this page never lets the patient join early, it just
   // waits (polling) until the doctor has started this booking's call, then reveals the buttons.
   const callStarted = !!b.call_started_at;
-  document.getElementById('joinLink').style.display = (!isCompleted && callStarted) ? 'inline-block' : 'none';
+  // Phone consultation (paid as audio only), or the GP chose a phone call: only the audio option, no video.
+  const audioOnly = !!b.audio_only || b.call_mode === 'audio';
+  if (b.audio_only) document.getElementById('callIntro').textContent = "You booked a phone consultation, so this is an audio-only call — your camera won't be used. When your GP starts the call, a Join button appears here; tap it and allow your microphone.";
+  joinAudioLink.textContent = b.audio_only ? 'Join Phone Consultation' : 'Join Audio Consultation';
+  joinAudioLink.className = audioOnly ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('joinLink').style.display = (!isCompleted && callStarted && !audioOnly) ? 'inline-block' : 'none';
   document.getElementById('joinAudioLink').style.display = (!isCompleted && callStarted) ? 'inline-block' : 'none';
   document.getElementById('callWaitingNotice').style.display = (!isCompleted && !callStarted) ? 'block' : 'none';
   document.getElementById('callClosedNotice').style.display = isCompleted ? 'block' : 'none';

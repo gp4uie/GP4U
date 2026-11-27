@@ -852,8 +852,11 @@ async function openBooking(id, listKey, keepTab) {
     ${b.safety_answers ? `<p><strong>Safety questionnaire:</strong><br>${esc(b.safety_answers).replace(/\n/g, '<br>')}</p>` : ''}`;
 
   // Video / audio calls and patient messaging only make sense for online consultations.
-  document.getElementById('joinCallBtn').style.display = walk ? 'none' : '';
+  // A phone consultation was paid for as audio only: just the phone-call button.
+  document.getElementById('joinCallBtn').style.display = (walk || b.audio_only) ? 'none' : '';
   document.getElementById('joinAudioCallBtn').style.display = walk ? 'none' : '';
+  document.getElementById('joinAudioCallBtn').textContent = b.audio_only ? 'Join Phone Call (audio only)' : 'Join Audio Call';
+  document.getElementById('joinAudioCallBtn').className = b.audio_only ? 'btn btn-primary' : 'btn btn-secondary';
   document.getElementById('chartTabBtn_messages').style.display = walk ? 'none' : '';
   const completeBtn = document.getElementById('markCompleteBtn');
   completeBtn.textContent = b.status === 'completed' ? 'Completed ✓' : (walk ? 'Mark visit seen' : 'Mark Complete');

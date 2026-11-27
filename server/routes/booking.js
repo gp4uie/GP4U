@@ -284,6 +284,7 @@ router.get('/bookings/:id', requirePatientToken, async (req, res) => {
   const documents = await db.all('SELECT id, doc_type, created_at FROM documents WHERE booking_id = ?', [req.params.id]);
   const attachments = await db.all('SELECT id, original_name, mime_type, created_at FROM attachments WHERE booking_id = ?', [req.params.id]);
   const { patient_token, ...safeBooking } = req.booking;
+  safeBooking.audio_only = await require('../services').bookingIsAudioOnly(req.booking);
   // Opening the booking counts as "viewed" for the unread badge shown in the patient portal.
   await db.run('UPDATE bookings SET patient_last_viewed_at = NOW() WHERE id = ?', [req.params.id]);
   res.json({ booking: safeBooking, messages, prescriptions, documents, attachments });
@@ -363,7 +364,7 @@ router.post('/bookings/:id/messages', requirePatientToken, async (req, res) => {
 router.get('/bookings/:id/call-status', requirePatientToken, async (req, res) => {
   res.json({
     started: !!req.booking.call_started_at,
-    mode: req.booking.call_mode || 'video',
+    mode: (await require('../services').bookingIsAudioOnly(req.booking)) ? 'audio' : (req.booking.call_mode || 'video'),
     // Only handed out once the doctor has started the call, and only to the holder of the patient token.
     room: req.booking.call_started_at ? (req.booking.call_room || null) : null,
     // Doxy.me room of the doctor who claimed this consultation (or the practice's room), once the call has started.
