@@ -893,3 +893,6 @@ footer.site-footer .hours-table th { padding-right: 18px; white-space: nowrap; }
 .price-line span:last-child { white-space: nowrap; }
 .price-line.discount { color: var(--teal-700, #0f5f55); }
 .price-line.total { font-size: 1.25rem; font-weight: 700; border-top: 1px solid var(--line, #e3e9e8); padding-top: 10px; margin-top: 10px; }
+
+/* Home "Find us": one location card (the opening hours are shown at the top of the page) */
+.loc.loc-single { grid-template-columns: 1fr; max-width: 760px; margin-left: auto; margin-right: auto; }
