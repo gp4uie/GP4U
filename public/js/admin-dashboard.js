@@ -35,7 +35,7 @@ document.getElementById('logoutLink').addEventListener('click', async (e) => {
 
 function showAdminTab(tab) {
   activeAdminTab = tab;
-  ['analytics', 'doctors', 'reception', 'account', 'patients', 'rx', 'accesslog', 'messages'].forEach((t) => {
+  ['analytics', 'doctors', 'reception', 'account', 'patients', 'vouchers', 'rx', 'accesslog', 'messages'].forEach((t) => {
     document.getElementById('tab_' + t).style.display = t === tab ? 'block' : 'none';
     document.getElementById('tabBtn_' + t).classList.toggle('active', t === tab);
   });
@@ -44,6 +44,7 @@ function showAdminTab(tab) {
   if (tab === 'reception') loadReception();
   if (tab === 'account') loadMyAccount();
   if (tab === 'patients') loadPatients();
+  if (tab === 'vouchers') loadVouchers();
   if (tab === 'rx') { loadAdminPrescriptions(); loadAdminSummaries(); }
   if (tab === 'accesslog') loadAccessLog();
   if (tab === 'messages') { loadStaffDirectory(); loadStaffMessages(); }
@@ -676,3 +677,99 @@ document.getElementById('removeTestBtn').addEventListener('click', async () => {
   msg.className = res.ok ? 'staff-ok' : 'staff-error';
   msg.textContent = res.ok ? `Removed ${data.counts.bookings} booking(s), ${data.counts.walkIns} walk-in(s), ${data.counts.registrations} registration(s), ${data.counts.patients} patient account(s).` : (data.error || 'Could not remove');
 });
+
+// --- Voucher codes (Vouchers tab) ---
+let voucherList = [];
+const euroText = (c) => '€' + (Number(c) / 100).toFixed(Number(c) % 100 ? 2 : 0);
+async function loadVouchers() {
+  const res = await fetch('/api/admin/vouchers');
+  voucherList = res.ok ? await res.json() : [];
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('vouchersBody').innerHTML = voucherList.map((v) => {
+    const expired = v.expires_at && v.expires_at < today;
+    const usedUp = v.max_uses && v.uses >= v.max_uses;
+    const status = !v.active ? '<span class="badge badge-amber">Off</span>'
+      : expired ? '<span class="badge badge-amber">Expired</span>'
+      : usedUp ? '<span class="badge badge-amber">Used up</span>'
+      : '<span class="badge badge-green">Active</span>';
+    const free = v.discount_type === 'percent' && Number(v.discount_value) === 100;
+    return `<tr>
+      <td><strong>${pEsc(v.code)}</strong></td>
+      <td>${pEsc(v.label)}${free ? ' <span class="badge badge-green">Free</span>' : ''}</td>
+      <td>${pEsc(v.description || '')}</td>
+      <td>${v.uses}${v.max_uses ? ' of ' + v.max_uses : ''}${v.discount_total ? `<br><span style="color:var(--ink-500);font-size:0.8rem;">${euroText(v.discount_total)} discounted</span>` : ''}</td>
+      <td>${v.expires_at ? new Date(v.expires_at + 'T12:00:00').toLocaleDateString('en-IE') : '—'}</td>
+      <td>${status}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-secondary" onclick="toggleVoucher(${Number(v.id)}, ${v.active ? 0 : 1})">${v.active ? 'Switch off' : 'Switch on'}</button>
+        <button class="btn btn-secondary" onclick="editVoucher(${Number(v.id)})">Edit</button>
+        <button class="btn btn-secondary" onclick="deleteVoucher(${Number(v.id)})">Delete</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="color:var(--ink-500);">No voucher codes yet — add one below.</td></tr>';
+}
+
+function resetVoucherForm() {
+  document.getElementById('voucherId').value = '';
+  ['voucherCode', 'voucherDesc', 'voucherValue', 'voucherMax', 'voucherExpires'].forEach((id) => { document.getElementById(id).value = ''; });
+  document.getElementById('voucherType').value = 'percent';
+  document.getElementById('voucherActive').checked = true;
+  document.getElementById('voucherFormTitle').textContent = 'Add a voucher';
+  document.getElementById('voucherSaveBtn').textContent = 'Add voucher';
+  document.getElementById('voucherCancelBtn').hidden = true;
+}
+
+function editVoucher(id) {
+  const v = voucherList.find((x) => x.id === id);
+  if (!v) return;
+  document.getElementById('voucherId').value = v.id;
+  document.getElementById('voucherCode').value = v.code;
+  document.getElementById('voucherDesc').value = v.description || '';
+  document.getElementById('voucherType').value = v.discount_type;
+  document.getElementById('voucherValue').value = v.discount_type === 'amount' ? (v.discount_value / 100) : v.discount_value;
+  document.getElementById('voucherMax').value = v.max_uses || '';
+  document.getElementById('voucherExpires').value = v.expires_at || '';
+  document.getElementById('voucherActive').checked = !!v.active;
+  document.getElementById('voucherFormTitle').textContent = 'Edit voucher ' + v.code;
+  document.getElementById('voucherSaveBtn').textContent = 'Save changes';
+  document.getElementById('voucherCancelBtn').hidden = false;
+  document.getElementById('voucherMsg').textContent = '';
+  document.getElementById('voucherFormTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function saveVoucher() {
+  const id = document.getElementById('voucherId').value;
+  const msg = document.getElementById('voucherMsg');
+  msg.style.color = '#c0392b'; msg.textContent = '';
+  const body = {
+    code: document.getElementById('voucherCode').value,
+    description: document.getElementById('voucherDesc').value,
+    discountType: document.getElementById('voucherType').value,
+    discountValue: document.getElementById('voucherValue').value,
+    maxUses: document.getElementById('voucherMax').value,
+    expiresAt: document.getElementById('voucherExpires').value,
+    active: document.getElementById('voucherActive').checked,
+  };
+  const res = await fetch(id ? `/api/admin/vouchers/${id}` : '/api/admin/vouchers', {
+    method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { msg.textContent = data.error || 'Could not save the voucher.'; return; }
+  resetVoucherForm();
+  msg.style.color = 'var(--teal-700)';
+  msg.textContent = id ? 'Voucher updated.' : 'Voucher added.';
+  loadVouchers();
+}
+
+async function toggleVoucher(id, active) {
+  await fetch(`/api/admin/vouchers/${id}/active`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !!active }) });
+  loadVouchers();
+}
+
+async function deleteVoucher(id) {
+  const v = voucherList.find((x) => x.id === id);
+  if (!v || !confirm(`Delete voucher ${v.code}? Patients will no longer be able to use it (bookings that already used it keep their discount). To pause it instead, use "Switch off".`)) return;
+  await fetch(`/api/admin/vouchers/${id}`, { method: 'DELETE' });
+  if (document.getElementById('voucherId').value === String(id)) resetVoucherForm();
+  loadVouchers();
+}

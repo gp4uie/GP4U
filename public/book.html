@@ -56,7 +56,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
-<link rel="stylesheet" href="/css/style.css?v=c33b26a9">
+<link rel="stylesheet" href="/css/style.css?v=d1a57d32">
 <link rel="stylesheet" href="/css/clinic.css?v=42937c31">
 <!-- @/head -->
 </head>
@@ -212,6 +212,14 @@
   <!-- STEP 4 -->
   <div id="step4" style="display:none;">
     <div class="card" id="reviewCard"></div>
+    <div class="voucher-box">
+      <label for="voucherInput">Have a voucher code?</label>
+      <div class="voucher-row">
+        <input id="voucherInput" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter code">
+        <button type="button" class="btn btn-secondary" id="voucherApplyBtn" onclick="applyVoucher()">Apply</button>
+      </div>
+      <p id="voucherStatus" class="voucher-status" role="status" aria-live="polite"></p>
+    </div>
     <button id="payBtn" class="btn btn-primary" style="margin-top:20px;" onclick="submitBooking()">Continue to Payment</button>
     <button class="btn btn-secondary" onclick="goToStep(3)" style="margin-top:20px;">Back</button>
     <p id="bookingError" role="alert" style="color:#c0392b;"></p>
@@ -285,7 +293,7 @@
 <!-- @/sticky -->
 
 <script src="/js/questionnaires.js?v=d2ce8a6e"></script>
-<script src="/js/book.js?v=792c80fe"></script>
+<script src="/js/book.js?v=73df4785"></script>
 <script src="/api/site-settings.js"></script>
 <script src="/js/clinic.js?v=dd645959"></script>
 <script src="/js/consent.js?v=c0bcdc2c"></script>

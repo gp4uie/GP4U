@@ -3,6 +3,7 @@ let selectedService = null;
 let selectedSlot = null;
 let intakeData = {};
 let selectedRxCategory = null;
+let appliedVoucher = null; // { code, label, priceCents, discountCents, finalCents } as worked out by the server
 
 // Can't be born in the future — paired with the static min="1900-01-01" on the input itself.
 // form.reportValidity() (see goToStep3FromForm) enforces both natively via the date input's own
@@ -299,6 +300,7 @@ function buildConditionAnswersSummary(key, formData) {
 
 function chooseService(key) {
   selectedService = key;
+  appliedVoucher = null;
   document.getElementById('redFlagPanel').style.display = 'none';
   // Patient details stay hidden until the safety questionnaire clears (see
   // renderConditionQuestionsStep) — services with no questionnaire at all (video, sick cert,
@@ -528,9 +530,55 @@ function renderReview() {
     <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} (Irish time)</p>
     <p><strong>Patient:</strong> ${bookEsc(intakeData.patientName)}</p>
     <p><strong>Reason:</strong> ${bookEsc(intakeData.reason)}</p>
-    <p style="font-size:1.3rem;"><strong>Total: €${(s.priceCents / 100).toFixed(2)}</strong></p>
+    <div id="reviewTotal"></div>
   `;
+  renderTotal();
 }
+
+const euro = (c) => '€' + (c / 100).toFixed(2);
+// The price lines under the review, and the wording of the main button (no "payment" when a voucher makes it free).
+function renderTotal() {
+  const s = SERVICES[selectedService];
+  const v = appliedVoucher;
+  const total = v ? v.finalCents : s.priceCents;
+  document.getElementById('reviewTotal').innerHTML = v
+    ? `<p class="price-line"><span>Consultation</span><span>${euro(s.priceCents)}</span></p>
+       <p class="price-line discount"><span>Voucher ${bookEsc(v.code)} (${bookEsc(v.label)})</span><span>−${euro(v.discountCents)}</span></p>
+       <p class="price-line total"><span>Total to pay</span><span>${total ? euro(total) : '€0.00 — free'}</span></p>`
+    : `<p class="price-line total"><span>Total</span><span>${euro(total)}</span></p>`;
+  const payBtn = document.getElementById('payBtn');
+  if (!payBtn.disabled) payBtn.textContent = total ? 'Continue to Payment' : 'Confirm my booking';
+  const input = document.getElementById('voucherInput');
+  const btn = document.getElementById('voucherApplyBtn');
+  if (v) { input.value = v.code; input.readOnly = true; btn.textContent = 'Remove'; } else { input.readOnly = false; btn.textContent = 'Apply'; }
+}
+
+async function applyVoucher() {
+  const input = document.getElementById('voucherInput');
+  const status = document.getElementById('voucherStatus');
+  const btn = document.getElementById('voucherApplyBtn');
+  status.className = 'voucher-status';
+  if (appliedVoucher) { appliedVoucher = null; input.value = ''; status.textContent = ''; renderTotal(); input.focus(); return; }
+  const code = input.value.trim();
+  if (!code) { status.classList.add('bad'); status.textContent = 'Please enter your voucher code.'; return; }
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/vouchers/check', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, serviceType: selectedService }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "That voucher code couldn't be checked. Please try again.");
+    appliedVoucher = data;
+    status.classList.add('good');
+    status.textContent = data.finalCents ? `Voucher applied — you save ${euro(data.discountCents)}.` : 'Voucher applied — this consultation is free. No payment needed.';
+    renderTotal();
+  } catch (err) {
+    status.classList.add('bad');
+    status.textContent = err instanceof TypeError ? "We couldn't check the code. Please check your internet connection." : err.message;
+  } finally { btn.disabled = false; }
+}
+document.getElementById('voucherInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyVoucher(); } });
 
 async function submitBooking() {
   const payBtn = document.getElementById('payBtn');
@@ -547,10 +595,15 @@ async function submitBooking() {
         ...intakeData,
         slotStart: selectedSlot.start,
         slotEnd: selectedSlot.end,
+        voucherCode: appliedVoucher ? appliedVoucher.code : '',
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Something went wrong on our side. Please try again in a moment.');
+    if (!res.ok) {
+      // e.g. the voucher was switched off or used up since it was applied — show the price without it.
+      if (appliedVoucher && /voucher/i.test(data.error || '')) { appliedVoucher = null; renderTotal(); }
+      throw new Error(data.error || 'Something went wrong on our side. Please try again in a moment.');
+    }
 
     const photoInput = document.getElementById('photoInput');
     if (photoInput.files.length) {
@@ -574,7 +627,7 @@ async function submitBooking() {
       ? "We couldn't reach our booking system. Please check your internet connection and try again."
       : err.message;
     payBtn.disabled = false;
-    payBtn.textContent = 'Continue to Payment';
+    renderTotal();
   }
 }
 

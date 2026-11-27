@@ -12,6 +12,7 @@ const { notifyDoctorsOfBooking } = require('../claims');
 const { detectImage, sendUpload } = require('../imageCheck');
 const formLimiter = require('../formLimiter');
 const signatures = require('../signatures');
+const vouchers = require('../vouchers');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -107,6 +108,16 @@ router.get('/slots', async (req, res) => {
   res.json(await getAvailableSlots(service));
 });
 
+// "Apply" on the payment step: checks a voucher code and says what the price would be. Limited per network so codes
+// can't be guessed by trying thousands of them.
+router.post('/vouchers/check', formLimiter.limit('voucher', 40), async (req, res) => {
+  const service = await getService(req.body && req.body.serviceType);
+  if (!service) return res.status(400).json({ error: 'Unknown service type' });
+  const result = await vouchers.evaluate(req.body.code, service.priceCents);
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json({ code: result.code, label: result.label, priceCents: service.priceCents, discountCents: result.discountCents, finalCents: result.finalCents });
+});
+
 // Create a pending booking + a Stripe Checkout session for it.
 router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
   try {
@@ -114,7 +125,7 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
       serviceType, patientName, patientDob, patientPhone, patientEmail, patientAddress, pharmacyName,
       reason, symptomsDuration, currentMedications, allergies, extraDetails,
       rxAsPrescribed, rxHealthChanges, conditionAnswers,
-      slotStart, slotEnd,
+      slotStart, slotEnd, voucherCode,
     } = req.body;
 
     const service = await getService(serviceType);
@@ -141,6 +152,14 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
       ? `Taking medication exactly as prescribed: ${rxAsPrescribed || 'Not answered'}\nChanges since last prescription: ${rxHealthChanges || 'Not answered'}`
       : (conditionAnswers || '');
 
+    // Voucher: the price is always worked out here, never taken from the browser.
+    let voucher = null;
+    if (voucherCode && String(voucherCode).trim()) {
+      voucher = await vouchers.evaluate(voucherCode, service.priceCents);
+      if (!voucher.ok) return res.status(400).json({ error: voucher.error });
+    }
+    const amountCents = voucher ? voucher.finalCents : service.priceCents;
+
     const slotStartSql = db.toMySQLDateTime(slotStart);
     const slotEndSql = db.toMySQLDateTime(slotEnd);
 
@@ -157,14 +176,19 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
     await db.run(`
       INSERT INTO bookings (id, patient_token, service_type, patient_name, patient_dob, patient_phone,
         patient_email, patient_address, pharmacy_name, reason, symptoms_duration, current_medications, allergies, extra_details,
-        safety_answers, slot_start, slot_end, amount_cents, status)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
+        safety_answers, slot_start, slot_end, amount_cents, voucher_code, discount_cents, status)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
     `, [id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, db.encrypt(patientAddress || ''), pharmacyName,
       db.encrypt(reason), db.encrypt(symptomsDuration || ''), db.encrypt(currentMedications || ''), db.encrypt(allergies || ''), db.encrypt(extraDetails || ''),
       db.encrypt(safetyAnswers),
-      slotStartSql, slotEndSql, service.priceCents]);
+      slotStartSql, slotEndSql, amountCents, voucher ? voucher.code : null, voucher ? voucher.discountCents : 0]);
 
     await upsertPatient({ email: patientEmail, name: patientName, dob: patientDob, phone: patientPhone, address: patientAddress || '' });
+
+    if (amountCents === 0) {
+      // Fully covered by a voucher: nothing to pay, so skip the card page. The confirmation page confirms it.
+      return res.json({ bookingId: id, patientToken, free: true, checkoutUrl: `/confirmation.html?id=${id}&token=${patientToken}` });
+    }
 
     if (!stripe) {
       // No Stripe key configured yet — let the demo continue without real payment so the
@@ -178,8 +202,8 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
       line_items: [{
         price_data: {
           currency: 'eur',
-          product_data: { name: `GP4U — ${service.label}` },
-          unit_amount: service.priceCents,
+          product_data: { name: `GP4U — ${service.label}` + (voucher ? ` (voucher ${voucher.code}: ${voucher.label})` : '') },
+          unit_amount: amountCents,
         },
         quantity: 1,
       }],
@@ -209,6 +233,12 @@ router.post('/bookings/:id/confirm-payment', async (req, res) => {
     // reset a 'completed' consultation back to 'paid' (reopening messaging and re-notifying the doctor).
     if (booking.status !== 'pending_payment') return res.json({ status: booking.status });
 
+    if (Number(booking.amount_cents) === 0 && booking.voucher_code) {
+      // Fully paid by a voucher (the €0 price was set by the server when the booking was made) — nothing to charge.
+      const r = await db.run("UPDATE bookings SET status = 'paid' WHERE id = ? AND status = 'pending_payment'", [booking.id]);
+      if (r.changes) await notifyBookingPaid(booking);
+      return res.json({ status: 'paid', free: true });
+    }
     if (stripe && !booking.stripe_session_id) {
       // Payments are switched on but this booking never reached the card page (e.g. Stripe was briefly
       // unreachable when it was made). It must never be confirmed without payment.

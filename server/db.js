@@ -296,6 +296,24 @@ async function initSchema() {
   await ensureColumn('doctors', 'signature_id', 'INT NULL');
   // The doctor's own Doxy.me room (see server/videoRoom.js); patients they claim are sent there.
   await ensureColumn('doctors', 'video_room_url', 'VARCHAR(255) NULL');
+  // Voucher / discount codes (Admin > Vouchers, see server/vouchers.js). A booking keeps the code it used and how much
+  // was taken off; amount_cents is what the patient actually paid, so revenue figures stay true.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vouchers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      code VARCHAR(40) NOT NULL,
+      description VARCHAR(255) NULL,
+      discount_type VARCHAR(10) NOT NULL DEFAULT 'percent',
+      discount_value INT NOT NULL,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      max_uses INT NULL,
+      expires_at DATE NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_voucher_code (code)
+    )
+  `);
+  await ensureColumn('bookings', 'voucher_code', 'VARCHAR(40) NULL');
+  await ensureColumn('bookings', 'discount_cents', 'INT NOT NULL DEFAULT 0');
   await ensureColumn('prescriptions', 'signature_id', 'INT NULL');
   await ensureColumn('documents', 'signature_id', 'INT NULL');
 

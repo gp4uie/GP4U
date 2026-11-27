@@ -739,6 +739,65 @@ router.put('/doctors/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Vouchers / discount codes (see server/vouchers.js) ---
+const vouchers = require('../vouchers');
+function readVoucher(body) {
+  const code = vouchers.normalizeCode(body.code);
+  if (!vouchers.CODE_RE.test(code)) return { error: 'The code must be 3–40 letters or numbers (dashes and underscores are allowed), e.g. WELCOME10' };
+  const type = body.discountType === 'amount' ? 'amount' : 'percent';
+  const raw = Number(body.discountValue);
+  if (!Number.isFinite(raw) || raw <= 0) return { error: 'Please enter the discount (a number above 0)' };
+  if (type === 'percent' && (raw > 100 || !Number.isInteger(raw))) return { error: 'A percentage discount must be a whole number from 1 to 100' };
+  const value = type === 'amount' ? Math.round(raw * 100) : raw; // euro amounts are stored in cent
+  if (type === 'amount' && value > 100000) return { error: 'That amount is too large' };
+  const maxUses = body.maxUses === '' || body.maxUses == null ? null : Number(body.maxUses);
+  if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) return { error: 'Maximum uses must be a whole number (or leave it blank for unlimited)' };
+  const expires = cleanStr(body.expiresAt, 10);
+  if (expires && !/^\d{4}-\d{2}-\d{2}$/.test(expires)) return { error: 'Please choose a valid end date (or leave it blank)' };
+  return { code, type, value, maxUses, expires: expires || null, description: cleanStr(body.description, 255) || null, active: body.active === false || body.active === 0 ? 0 : 1 };
+}
+
+router.get('/vouchers', requireAdmin, async (req, res) => {
+  const rows = await db.all(`
+    SELECT v.*,
+      (SELECT COUNT(*) FROM bookings b WHERE b.voucher_code = v.code AND b.status <> 'pending_payment') AS uses,
+      (SELECT COALESCE(SUM(b.discount_cents), 0) FROM bookings b WHERE b.voucher_code = v.code AND b.status <> 'pending_payment') AS discount_total
+    FROM vouchers v ORDER BY v.active DESC, v.created_at DESC`);
+  res.json(rows.map((v) => ({ ...v, uses: Number(v.uses), discount_total: Number(v.discount_total), expires_at: v.expires_at ? String(v.expires_at instanceof Date ? v.expires_at.toISOString() : v.expires_at).slice(0, 10) : null, label: vouchers.describe(v) })));
+});
+
+router.post('/vouchers', requireAdmin, async (req, res) => {
+  const v = readVoucher(req.body || {});
+  if (v.error) return res.status(400).json({ error: v.error });
+  if (await db.get('SELECT id FROM vouchers WHERE code = ?', [v.code])) return res.status(409).json({ error: 'A voucher with that code already exists' });
+  await db.run('INSERT INTO vouchers (code, description, discount_type, discount_value, active, max_uses, expires_at) VALUES (?,?,?,?,?,?,?)',
+    [v.code, v.description, v.type, v.value, v.active, v.maxUses, v.expires]);
+  res.json({ ok: true });
+});
+
+router.put('/vouchers/:id', requireAdmin, async (req, res) => {
+  const v = readVoucher(req.body || {});
+  if (v.error) return res.status(400).json({ error: v.error });
+  if (await db.get('SELECT id FROM vouchers WHERE code = ? AND id <> ?', [v.code, req.params.id])) return res.status(409).json({ error: 'Another voucher already uses that code' });
+  const r = await db.run('UPDATE vouchers SET code = ?, description = ?, discount_type = ?, discount_value = ?, active = ?, max_uses = ?, expires_at = ? WHERE id = ?',
+    [v.code, v.description, v.type, v.value, v.active, v.maxUses, v.expires, req.params.id]);
+  if (!r.changes) return res.status(404).json({ error: 'Voucher not found' });
+  res.json({ ok: true });
+});
+
+router.post('/vouchers/:id/active', requireAdmin, async (req, res) => {
+  const r = await db.run('UPDATE vouchers SET active = ? WHERE id = ?', [req.body && req.body.active ? 1 : 0, req.params.id]);
+  if (!r.changes) return res.status(404).json({ error: 'Voucher not found' });
+  res.json({ ok: true });
+});
+
+// Removing a voucher only stops it being used; bookings that used it keep their code and discount on record.
+router.delete('/vouchers/:id', requireAdmin, async (req, res) => {
+  const r = await db.run('DELETE FROM vouchers WHERE id = ?', [req.params.id]);
+  if (!r.changes) return res.status(404).json({ error: 'Voucher not found' });
+  res.json({ ok: true });
+});
+
 router.post('/doctors/:id/password', requireAdmin, async (req, res) => {
   const { password } = req.body || {};
   if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });

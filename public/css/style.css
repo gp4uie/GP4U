@@ -876,3 +876,20 @@ footer.site-footer .hours-table th { padding-right: 18px; white-space: nowrap; }
 
 /* The HTML [hidden] attribute must win over classes like .btn that set their own display. */
 [hidden] { display: none !important; }
+
+/* Voucher code on the booking "Review & pay" step */
+.voucher-box { margin-top: 16px; padding: 14px 16px; border: 1px dashed var(--line, #d6dfdd); border-radius: 12px; background: var(--paper, #fff); }
+.voucher-box label { display: block; font-weight: 600; margin-bottom: 8px; }
+.voucher-row { display: flex; gap: 8px; }
+.voucher-row input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 0.04em; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: inherit; }
+.voucher-row input:focus { outline: 2px solid var(--teal-700); outline-offset: 1px; }
+.voucher-row input::placeholder, #voucherCode::placeholder { text-transform: none; letter-spacing: 0; }
+.voucher-row input[readonly] { background: var(--teal-soft, #eef7f5); }
+.voucher-row .btn { flex: none; }
+.voucher-status { margin: 8px 0 0; font-size: 0.92rem; min-height: 0; }
+.voucher-status.good { color: var(--teal-700, #0f5f55); font-weight: 600; }
+.voucher-status.bad { color: #c0392b; }
+.price-line { display: flex; justify-content: space-between; gap: 12px; margin: 6px 0; }
+.price-line span:last-child { white-space: nowrap; }
+.price-line.discount { color: var(--teal-700, #0f5f55); }
+.price-line.total { font-size: 1.25rem; font-weight: 700; border-top: 1px solid var(--line, #e3e9e8); padding-top: 10px; margin-top: 10px; }
