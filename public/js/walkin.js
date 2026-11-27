@@ -75,3 +75,24 @@
     }
   });
 })();
+
+// The check-in form stays folded away (it is long on a phone) until the patient asks for it: the "Check in online"
+// button in the card, any link to #book-in (top of this page, home page), or arriving with #book-in in the address.
+(function () {
+  const btn = document.getElementById('bookInOpen');
+  const form = document.getElementById('bookInForm');
+  if (!btn || !form) return;
+  function open(focus) {
+    if (closed && !closed.hidden) return; // closed: nothing to fill in yet
+    form.hidden = false; btn.hidden = true; btn.setAttribute('aria-expanded', 'true');
+    if (focus) { const first = document.getElementById('wiName'); if (first) first.focus({ preventScroll: true }); }
+  }
+  btn.addEventListener('click', () => open(true));
+  // While the clinic is closed the form can't be used, so the button is hidden too (the notice explains why).
+  const closed = document.getElementById('bookInClosed');
+  const sync = () => { if (form.hidden) btn.hidden = !!(closed && !closed.hidden); };
+  if (closed) { new MutationObserver(sync).observe(closed, { attributes: true, attributeFilter: ['hidden'] }); sync(); }
+  document.querySelectorAll('a[href="#book-in"], a[href$="/walk-in-gp-newbridge/#book-in"]').forEach((a) => a.addEventListener('click', () => open(false)));
+  window.addEventListener('hashchange', () => { if (location.hash === '#book-in') open(false); });
+  if (location.hash === '#book-in') open(false);
+})();

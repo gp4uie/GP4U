@@ -1321,3 +1321,32 @@ details.encounter-card summary { list-style: none; cursor: pointer; }
 .sig-msg { margin: 10px 0 0; font-weight: 600; }
 .sig-msg.is-ok { color: var(--teal, #0f6e6e); }
 .sig-msg.is-error { color: #c0392b; }
+
+/* ---- Shorter pages on phones ---- */
+.site-footer .hs-row { color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; max-width: 260px; }
+.site-footer .hs-row strong { color: #fff; }
+.site-footer .hs-row span { color: rgba(255, 255, 255, 0.85); }
+@media (max-width: 640px) {
+  /* Footer: link columns side by side instead of one long stack */
+  .footer-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 18px; margin-bottom: 20px; }
+  .footer-cols > div:nth-child(1), .footer-cols > div:nth-child(2) { grid-column: 1 / -1; }
+  .footer-cols h4 { margin: 0 0 8px; }
+  .footer-cols li { margin-bottom: 5px; }
+  .footer-cols ul, .footer-cols p { margin-top: 0; }
+  .footer-cols p.footer-online { max-width: none; margin-top: 10px; }
+  /* Legal links: one wrapped line across the full width */
+  .footer-cols > div:nth-child(5) { grid-column: 1 / -1; }
+  .footer-cols > div:nth-child(5) ul { display: flex; flex-wrap: wrap; gap: 2px 18px; }
+  .site-footer .footer-tagline { margin-bottom: 8px; }
+  footer.site-footer { padding-top: 36px; padding-bottom: 22px; }
+
+  /* Online GP consultations: compact rows (name, length, price, Book) instead of tall cards */
+  .svc-cards { gap: 10px; }
+  .svc-card { display: grid; grid-template-columns: 40px 1fr auto; grid-template-areas: "ico title amount" "ico meta btn"; align-items: center; column-gap: 12px; row-gap: 4px; padding: 14px 14px; border-radius: 16px; }
+  .svc-card .ico-chip { grid-area: ico; margin: 0; width: 40px; height: 40px; }
+  .svc-card h3 { grid-area: title; font-size: 1rem; line-height: 1.25; }
+  .svc-card .meta { grid-area: meta; font-size: 0.82rem; }
+  .svc-card .amount { grid-area: amount; margin: 0; font-size: 1.25rem; text-align: right; }
+  .svc-card .btn { grid-area: btn; width: auto; margin: 0; padding: 8px 16px; min-height: 40px; font-size: 0.9rem; white-space: nowrap; }
+  .svc-card .svc-btn-more { display: none; }
+}

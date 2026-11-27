@@ -25,9 +25,13 @@
       const card = el('div', 'svc-card');
       const chip = el('span', 'ico-chip'); chip.innerHTML = ICONS[key] || DEFAULT_ICON;
       card.append(chip, el('h3', '', s.label), el('div', 'meta', `${s.durationMins} minute consultation`), el('div', 'amount', euro(s.priceCents)));
-      const a = el('a', 'btn btn-primary', key === 'repeat_rx' ? 'Request a repeat prescription' : 'Book this online');
+      const full = key === 'repeat_rx' ? 'Request a repeat prescription' : 'Book this online';
+      const a = el('a', 'btn btn-primary');
+      // On phones the cards become compact rows, so only the first word of the button shows ("Book" / "Request").
+      const [first, ...rest] = full.split(' ');
+      a.append(first, el('span', 'svc-btn-more', ' ' + rest.join(' ')));
       a.href = bookHref(key);
-      a.setAttribute('aria-label', `${a.textContent}: ${s.label}, ${euro(s.priceCents)}`);
+      a.setAttribute('aria-label', `${full}: ${s.label}, ${euro(s.priceCents)}`);
       card.append(a);
       return card;
     }));
