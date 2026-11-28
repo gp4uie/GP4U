@@ -1371,12 +1371,17 @@ function showRxRefund(b) {
   const box = document.getElementById('rxRefundBox');
   if (!box) return;
   const refunded = b.is_rx && b.refunded_at;
-  box.hidden = !(b.refundable || refunded);
+  // Shown on every declined prescription request, so doctors always know where refunds are — with a reason when
+  // there is nothing to refund (free voucher).
+  const declined = b.is_rx && b.rx_status === 'declined';
+  box.hidden = !(declined || refunded);
   document.getElementById('rxRefundBtn').hidden = !b.refundable;
   document.getElementById('rxRefundConfirm').hidden = true;
   const msg = document.getElementById('rxRefundMsg');
   msg.style.color = 'var(--teal-700)';
-  msg.textContent = refunded ? `Refunded €${(Number(b.refund_cents || 0) / 100).toFixed(2)}${b.refunded_by ? ' by ' + b.refunded_by : ''} on ${new Date(b.refunded_at).toLocaleDateString('en-IE')}.` : '';
+  msg.textContent = refunded ? `Refunded €${(Number(b.refund_cents || 0) / 100).toFixed(2)}${b.refunded_by ? ' by ' + b.refunded_by : ''} on ${new Date(b.refunded_at).toLocaleDateString('en-IE')}.`
+    : (!b.refundable && Number(b.amount_cents || 0) <= 0) ? 'Nothing to refund — the patient paid €0 (free voucher).'
+    : (!b.refundable) ? 'No completed payment on this request to refund.' : '';
   document.getElementById('rxRefundQ').textContent = `Refund €${(Number(b.amount_cents || 0) / 100).toFixed(2)} to the patient?`;
 }
 function askRxRefund(show) {
