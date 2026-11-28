@@ -3,6 +3,9 @@ const { getService } = require('./services');
 
 const DAYS_AHEAD = 10;
 const SLOT_STEP_MINS = 15;
+// At most this many online patients can book the same 15-minute slot (and never more than the doctors working then).
+// Can be changed with MAX_PATIENTS_PER_SLOT in the hosting settings.
+const MAX_PATIENTS_PER_SLOT = Math.max(1, parseInt(process.env.MAX_PATIENTS_PER_SLOT, 10) || 2);
 
 function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
@@ -34,21 +37,32 @@ async function getDayHoursRange(dayOfWeek) {
   };
 }
 
-// Returns available slot start times (ISO strings) for a given service type. A slot is offered
-// only if at least one doctor's own working hours (set in the dashboard's Availability tab)
-// cover it, and fewer existing bookings overlap it than doctors covering it — so two doctors
-// both free at 10am means two patients can book that same 10am slot, one each.
+// Returns available slot start times (ISO strings) for a given service type.
+// The online calendar is a grid of 15-minute slots. Every online booking takes exactly ONE slot (the one it starts in),
+// whatever the consultation's length. A slot is offered while it has fewer bookings than its capacity:
+// MAX_PATIENTS_PER_SLOT (2), or fewer if fewer doctors are working then (one doctor = one patient per slot).
+// Once a slot is full it disappears from the list for the next patient.
 async function getAvailableSlots(serviceKey) {
   const service = await getService(serviceKey);
   if (!service) return [];
 
   const durationMs = service.durationMins * 60 * 1000;
-  const availability = await db.all('SELECT doctor_id, day_of_week, start_time, end_time FROM doctor_availability');
+  // Only doctors whose account is active count (a deactivated doctor's old hours don't open slots).
+  const availability = await db.all('SELECT a.doctor_id, a.day_of_week, a.start_time, a.end_time FROM doctor_availability a JOIN doctors d ON d.id = a.doctor_id AND d.active = 1');
   if (availability.length === 0) return [];
 
   // A booking waiting at the card page holds its time for 35 minutes only (Stripe's payment page expires after 30),
   // so a patient who abandons payment doesn't block that slot for everyone else.
-  const existing = await db.all("SELECT slot_start, slot_end FROM bookings WHERE status = 'paid' OR (status = 'pending_payment' AND created_at > DATE_SUB(NOW(), INTERVAL 35 MINUTE))");
+  // Counted: confirmed and completed consultations (a consultation finished early still keeps its slot), plus ones
+  // at the payment step in the last 35 minutes. Walk-ins at the clinic are not online appointments, so they don't count.
+  const existing = await db.all("SELECT slot_start FROM bookings WHERE service_type <> 'walk_in' AND (status IN ('paid', 'completed') OR (status = 'pending_payment' AND created_at > DATE_SUB(NOW(), INTERVAL 35 MINUTE)))");
+  const perSlot = new Map(); // slot start (ms, rounded down to the 15-minute grid) -> bookings in it
+  const STEP_MS = SLOT_STEP_MINS * 60 * 1000;
+  for (const b of existing) {
+    const t = new Date(b.slot_start).getTime();
+    const key = t - (((t % STEP_MS) + STEP_MS) % STEP_MS);
+    perSlot.set(key, (perSlot.get(key) || 0) + 1);
+  }
 
   const slots = [];
   const now = new Date();
@@ -70,18 +84,14 @@ async function getAvailableSlots(serviceKey) {
       if (start <= now) continue;
       const end = new Date(start.getTime() + durationMs);
 
-      const startMins = mins;
-      const endMins = mins + service.durationMins;
-      const coveringDoctors = dayAvailability.filter(
-        (a) => timeToMinutes(a.start_time) <= startMins && timeToMinutes(a.end_time) >= endMins
-      ).length;
+      // Doctors working for this whole 15-minute slot
+      const coveringDoctors = new Set(dayAvailability.filter(
+        (a) => timeToMinutes(a.start_time) <= mins && timeToMinutes(a.end_time) >= mins + SLOT_STEP_MINS
+      ).map((a) => a.doctor_id)).size;
       if (coveringDoctors === 0) continue;
+      const capacity = Math.min(MAX_PATIENTS_PER_SLOT, coveringDoctors);
 
-      const overlappingBookings = existing.filter((b) =>
-        overlaps(start, end, new Date(b.slot_start), new Date(b.slot_end))
-      ).length;
-
-      if (overlappingBookings < coveringDoctors) {
+      if ((perSlot.get(start.getTime()) || 0) < capacity) {
         slots.push({ start: start.toISOString(), end: end.toISOString() });
       }
     }
