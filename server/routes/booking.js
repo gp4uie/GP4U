@@ -240,7 +240,9 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
       return res.json({ bookingId: id, patientToken, checkoutUrl: `/confirmation.html?id=${id}&token=${patientToken}&demo=1` });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
       mode: 'payment',
       // No fixed list of payment methods: Stripe offers whatever is switched on in the Stripe Dashboard
       // (cards, Apple Pay, Google Pay…) for the patient's device.
@@ -266,7 +268,14 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
       success_url: `${siteUrl()}/confirmation.html?id=${id}&token=${patientToken}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl()}/book.html?cancelled=1`,
       metadata: { bookingId: id },
-    });
+      });
+    } catch (stripeErr) {
+      // Stripe refused to open the payment page (e.g. card payments not yet approved on the account). Release the
+      // time straight away and tell the patient plainly, instead of a generic error and a slot held for 35 minutes.
+      console.error('Stripe Checkout could not be created:', stripeErr.message);
+      await db.run("UPDATE bookings SET status = 'payment_unavailable' WHERE id = ?", [id]).catch(() => {});
+      return res.status(503).json({ error: "Online card payment isn't available right now, so we couldn't complete your booking and you have not been charged. Please try again a little later, or contact us and we'll help you book." });
+    }
 
     await db.run('UPDATE bookings SET stripe_session_id = ? WHERE id = ?', [session.id, id]);
 
