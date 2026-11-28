@@ -14,6 +14,15 @@
 <link rel="stylesheet" href="/css/style.css?v=6c714dc4">
 <link rel="stylesheet" href="/css/clinic.css?v=02338d98">
 <!-- @/head -->
+<style>
+  /* Join box at the top of the booking page */
+  .join-card { margin-bottom: 20px; }
+  .join-card .join-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .join-card .join-actions .btn:not([style*="display:none"]):not([style*="display: none"]) { min-width: 240px; }
+  .join-card.is-live { border: 2px solid var(--teal, #18796d); background: var(--teal-soft, #e8f4f1); box-shadow: 0 10px 30px -18px rgba(15, 110, 110, 0.6); }
+  .join-card.is-live #callHeading { color: var(--teal-700, #0f6e6e); }
+  @media (max-width: 560px) { .join-card .join-actions .btn { width: 100%; min-width: 0; } }
+</style>
 </head>
 <body class="clinic-page on-light" data-sticky="off">
 
@@ -56,6 +65,28 @@
       No Stripe key is configured yet, so this booking was auto-confirmed without a real payment. See the README to connect real Stripe payments.
     </div>
     <h1 style="display:flex;align-items:center;gap:14px;"><span class="ico-chip" style="background:var(--teal-soft);color:var(--teal);"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Booking confirmed</h1>
+    <section class="card join-card" id="joinCard" aria-labelledby="callHeading">
+    <h2 style="margin:0 0 6px;" id="callHeading">Your consultation</h2>
+    <p id="callIntro">Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
+    <div class="join-actions">
+    <a id="joinLink" class="btn btn-primary btn-lg" style="display:none;">Join Video Consultation</a>
+    <a id="joinAudioLink" class="btn btn-secondary btn-lg" style="display:none;">Join Audio Consultation</a>
+    </div>
+    <div id="callWaitingNotice" class="notice" style="display:none;">
+      <strong>Waiting for your GP to start the call</strong>
+      This page updates automatically the moment your GP starts your consultation — no need to
+      refresh or keep checking back.
+      <div style="margin-top:10px;">
+        <button type="button" class="btn btn-secondary" id="enableNotifBtn" style="display:none;">Notify me on this device</button>
+      </div>
+    </div>
+    <div id="callClosedNotice" class="notice" style="display:none;">
+      <strong>This consultation is complete</strong>
+      Your GP has marked this consultation as finished, so the call link is no longer active. If
+      you need further care, please <a href="/book.html">book a new consultation</a>.
+    </div>
+    </section>
+
     <div class="card" id="bookingDetails"></div>
 
     <div class="notice" id="emailNotice">
@@ -71,23 +102,6 @@
       <p id="passwordMsg" style="color:#c0392b;"></p>
     </div>
 
-    <h2 style="margin-top:32px;">Your consultation</h2>
-    <p id="callIntro">Your appointment link will be active from 10 minutes before your slot. Choose video if you'd like the GP to see you, or audio if you'd prefer a phone-call-style consultation.</p>
-    <a id="joinLink" class="btn btn-primary" style="display:none;">Join Video Consultation</a>
-    <a id="joinAudioLink" class="btn btn-secondary" style="display:none;">Join Audio Consultation</a>
-    <div id="callWaitingNotice" class="notice" style="display:none;">
-      <strong>Waiting for your GP to start the call</strong>
-      This page updates automatically the moment your GP starts your consultation — no need to
-      refresh or keep checking back.
-      <div style="margin-top:10px;">
-        <button type="button" class="btn btn-secondary" id="enableNotifBtn" style="display:none;">Notify me on this device</button>
-      </div>
-    </div>
-    <div id="callClosedNotice" class="notice" style="display:none;">
-      <strong>This consultation is complete</strong>
-      Your GP has marked this consultation as finished, so the call link is no longer active. If
-      you need further care, please <a href="/book.html">book a new consultation</a>.
-    </div>
 
     <h2 style="margin-top:32px;">Prescriptions</h2>
     <div id="prescriptionList"><p style="color:var(--ink-500);">None issued yet — your GP will add one here after your consultation if needed.</p></div>
@@ -310,6 +324,13 @@ async function loadBooking() {
   document.getElementById('joinAudioLink').style.display = (!isCompleted && callStarted) ? 'inline-block' : 'none';
   document.getElementById('callWaitingNotice').style.display = (!isCompleted && !callStarted) ? 'block' : 'none';
   document.getElementById('callClosedNotice').style.display = isCompleted ? 'block' : 'none';
+  // GP has started the call: say so plainly at the top of the page, highlighted, so the Join button is the first thing seen.
+  const live = !isCompleted && callStarted;
+  document.getElementById('joinCard').classList.toggle('is-live', live);
+  document.getElementById('callHeading').textContent = live ? 'Your GP is ready — join now' : 'Your consultation';
+  if (live) document.getElementById('callIntro').textContent = audioOnly
+    ? 'Tap the button below to join your phone (audio-only) consultation, and allow your microphone when asked.'
+    : 'Choose how to join: video if you would like the GP to see you, or audio for a phone-style call. Allow your camera and microphone when asked.';
 
   if (!isCompleted && callStarted && !callStartNotified) {
     callStartNotified = true;
