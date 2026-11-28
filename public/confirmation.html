@@ -375,7 +375,7 @@ async function loadBooking() {
         <p><strong>${esc(p.medication)}</strong> — ${esc(p.dose)}</p>
         <p>${esc(p.instructions)}</p>
         <p style="color:var(--ink-500);font-size:0.85rem;">Quantity: ${esc(p.quantity)} • Issued ${new Date(p.issued_at).toLocaleString('en-IE')}</p>
-        ${data.booking.is_rx ? '<p style="color:var(--teal-700);font-size:0.9rem;margin:0;"><strong>Sent to your pharmacy</strong> by our team via Healthlink.</p>' : `<a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${bookingId}&token=${token}">View / Print</a>`}
+        <p style="color:var(--teal-700);font-size:0.9rem;margin:0;"><strong>Sent to your pharmacy</strong> by our team via Healthlink.</p>
       </div>
     `).join('');
   }

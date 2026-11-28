@@ -857,6 +857,7 @@ async function openBooking(id, listKey, keepTab) {
   document.getElementById('joinAudioCallBtn').style.display = (walk || b.is_rx) ? 'none' : '';
   document.getElementById('rxDeclineBtn').hidden = !b.is_rx || b.status === 'completed';
   if (!b.is_rx) toggleRxDecline(false);
+  showRxRefund(b);
   document.getElementById('joinAudioCallBtn').textContent = b.audio_only ? 'Join Phone Call (audio only)' : 'Join Audio Call';
   document.getElementById('joinAudioCallBtn').className = b.audio_only ? 'btn btn-primary' : 'btn btn-secondary';
   document.getElementById('chartTabBtn_messages').style.display = walk ? 'none' : '';
@@ -1362,5 +1363,33 @@ async function sendRxDecline() {
   if (!res.ok) { err.textContent = data.error || 'Could not send.'; return; }
   document.getElementById('rxDeclineMsg').value = '';
   toggleRxDecline(false);
+  openBooking(currentBookingId);
+}
+
+// --- Declined prescription requests: optional refund (never automatic) ---
+function showRxRefund(b) {
+  const box = document.getElementById('rxRefundBox');
+  if (!box) return;
+  const refunded = b.is_rx && b.refunded_at;
+  box.hidden = !(b.refundable || refunded);
+  document.getElementById('rxRefundBtn').hidden = !b.refundable;
+  document.getElementById('rxRefundConfirm').hidden = true;
+  const msg = document.getElementById('rxRefundMsg');
+  msg.style.color = 'var(--teal-700)';
+  msg.textContent = refunded ? `Refunded €${(Number(b.refund_cents || 0) / 100).toFixed(2)}${b.refunded_by ? ' by ' + b.refunded_by : ''} on ${new Date(b.refunded_at).toLocaleDateString('en-IE')}.` : '';
+  document.getElementById('rxRefundQ').textContent = `Refund €${(Number(b.amount_cents || 0) / 100).toFixed(2)} to the patient?`;
+}
+function askRxRefund(show) {
+  const on = show !== false;
+  document.getElementById('rxRefundConfirm').hidden = !on;
+  document.getElementById('rxRefundBtn').hidden = on;
+}
+async function sendRxRefund() {
+  const msg = document.getElementById('rxRefundMsg');
+  msg.style.color = 'var(--ink-500)';
+  msg.textContent = 'Refunding…';
+  const res = await doctorFetch(`/api/doctor/bookings/${currentBookingId}/refund`, { method: 'POST' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { askRxRefund(false); msg.style.color = '#c0392b'; msg.textContent = data.error || 'Refund failed.'; return; }
   openBooking(currentBookingId);
 }

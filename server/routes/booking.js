@@ -460,13 +460,10 @@ router.get('/bookings/:id/account-status', requirePatientToken, async (req, res)
 
 // Patient-side read access to a single prescription/document for printing — proven by the
 // same booking token used for the confirmation page, so no separate login is required.
-router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, async (req, res) => {
-  // Prescription requests: the prescription goes to the pharmacy (via the practice team), never to the patient.
-  if (isRxService(req.booking.service_type)) return res.status(403).json({ error: 'This prescription is sent directly to your pharmacy, so it isn\'t available to download.' });
-  const rx = await db.get('SELECT * FROM prescriptions WHERE id = ? AND booking_id = ?', [req.params.rxId, req.params.id]);
-  if (!rx) return res.status(404).json({ error: 'Not found' });
-  const { patient_token, ...safeBooking } = await enrichBooking(req.booking);
-  res.json({ prescription: { ...rx, signature_image: await signatures.dataUrl(rx.signature_id) }, booking: safeBooking, practice: await getPractice() });
+// Every prescription goes to the pharmacy (via the practice team / Healthlink), never to the patient, so patients can't
+// open or print one. Letters and certificates (below) stay available to them.
+router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, (req, res) => {
+  res.status(403).json({ error: 'Your prescription is sent directly to your pharmacy, so it isn\'t available to download.' });
 });
 
 router.get('/bookings/:id/documents/:docId', requirePatientToken, async (req, res) => {

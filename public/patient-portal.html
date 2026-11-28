@@ -255,7 +255,7 @@ async function load() {
         <div class="card" style="margin-bottom:10px;">
           <p><strong>${esc(p.medication)}</strong></p>
           <p style="color:var(--ink-500);font-size:0.85rem;">Issued ${new Date(p.created_at).toLocaleString('en-IE')} • ${p.service_type === 'walk_in' ? 'walk-in' : p.service_type.replace('_', ' ')} consultation</p>
-          ${p.to_pharmacy ? '<p style="color:var(--teal-700);font-size:0.9rem;margin:0;"><strong>Sent to your pharmacy</strong> by our team via Healthlink.</p>' : `<a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${p.booking_id}&token=${p.token}">View / Print</a>`}
+          <p style="color:var(--teal-700);font-size:0.9rem;margin:0;"><strong>Sent to your pharmacy</strong> by our team via Healthlink.</p>
         </div>
       `).join('')
     : '<p style="color:var(--ink-500);">None yet.</p>';

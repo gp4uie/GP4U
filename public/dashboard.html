@@ -317,6 +317,17 @@
             </div>
             <p id="rxDeclineErr" style="color:#c0392b;margin:8px 0 0;"></p>
           </div>
+          <div class="card" id="rxRefundBox" hidden style="margin-top:12px;">
+            <h4 style="margin-top:0;">Refund this request?</h4>
+            <p style="color:var(--ink-500);font-size:0.9rem;margin-bottom:10px;">The request was declined. Refunds are never automatic — only refund if the patient won't be getting a prescription (not while you're waiting for their reply).</p>
+            <button class="btn btn-secondary" id="rxRefundBtn" onclick="askRxRefund()">Refund payment</button>
+            <span id="rxRefundConfirm" hidden>
+              <strong id="rxRefundQ"></strong>
+              <button class="btn btn-primary" onclick="sendRxRefund()">Yes, refund</button>
+              <button class="btn btn-secondary" onclick="askRxRefund(false)">No</button>
+            </span>
+            <p id="rxRefundMsg" style="margin:8px 0 0;"></p>
+          </div>
           <h3 style="margin-top:24px;">Patient Attachments</h3>
           <div id="attachmentsList"><p style="color:var(--ink-500);">None uploaded.</p></div>
         </div>
@@ -470,7 +481,7 @@
 
 <script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
-<script src="/js/dashboard.js?v=a1f2bc7a"></script>
+<script src="/js/dashboard.js?v=5631e3b5"></script>
 <script src="/js/dashboard-clinic.js?v=95aa72a1"></script>
 <script src="/js/dashboard-signature.js?v=076d5397"></script>
 <script src="/api/site-settings.js"></script>

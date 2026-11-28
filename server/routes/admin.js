@@ -302,13 +302,13 @@ router.get('/analytics', requireAdmin, async (req, res) => {
   // Revenue is counted from the moment payment succeeds (status paid or completed), attributed
   // to when the booking was made (created_at) rather than the future appointment date.
   const revenueToday = await db.get(
-    "SELECT COALESCE(SUM(amount_cents), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND DATE(created_at) = CURDATE()"
+    "SELECT COALESCE(SUM(amount_cents - COALESCE(refund_cents, 0)), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND DATE(created_at) = CURDATE()"
   );
   const revenueWeek = await db.get(
-    "SELECT COALESCE(SUM(amount_cents), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)"
+    "SELECT COALESCE(SUM(amount_cents - COALESCE(refund_cents, 0)), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)"
   );
   const revenueMonth = await db.get(
-    "SELECT COALESCE(SUM(amount_cents), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())"
+    "SELECT COALESCE(SUM(amount_cents - COALESCE(refund_cents, 0)), 0) AS cents FROM bookings WHERE status IN ('paid', 'completed') AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())"
   );
 
   // Per doctor: how many distinct consultations each doctor has a clinical note on — the most
@@ -334,7 +334,7 @@ router.get('/analytics', requireAdmin, async (req, res) => {
 
   // Which consultation types are actually booked, and how much revenue each brings in.
   const serviceBreakdown = await db.all(`
-    SELECT service_type, COUNT(*) AS n, COALESCE(SUM(amount_cents), 0) AS cents
+    SELECT service_type, COUNT(*) AS n, COALESCE(SUM(amount_cents - COALESCE(refund_cents, 0)), 0) AS cents
     FROM bookings WHERE status IN ('paid', 'completed')
     GROUP BY service_type ORDER BY n DESC
   `);

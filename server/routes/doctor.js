@@ -91,9 +91,9 @@ function notifyPatientDocumentReady(booking, label) {
     [`Your GP has issued a <strong>${esc(label.toLowerCase())}</strong> for you. For your privacy the details aren't in this email. You can view, download and print it here:`],
     'View my document');
 }
-function notifyPatientRxIssued(booking) {
+function notifyPatientRxIssued(booking, isRequest) {
   return sendPatientNotice(booking, 'Your prescription has been issued',
-    [`Good news — your GP has approved your prescription request.`,
+    [isRequest ? `Good news — your GP has approved your prescription request.` : 'Your GP has issued a prescription for you.',
       `Our team is sending the prescription directly to your pharmacy${booking.pharmacy_name ? `, <strong>${esc(booking.pharmacy_name)}</strong>,` : ''} through Healthlink. You don't need to collect anything from us — please contact your pharmacy before collecting your medication.`],
     'View my request');
 }
@@ -457,6 +457,8 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   const claim = { by: booking.claimed_by || null, byName: claimer ? claimer.name : null, mine: booking.claimed_by === req.session.doctorId };
   safeBooking.audio_only = await require('../services').bookingIsAudioOnly(booking);
   safeBooking.is_rx = require('../rxServices').isRxService(booking.service_type);
+  safeBooking.refundable = safeBooking.is_rx && booking.rx_status === 'declined' && !booking.refunded_at
+    && Number(booking.amount_cents) > 0 && (booking.status === 'paid' || booking.status === 'completed');
   res.json({ claim, booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile, patientSummary });
 });
 
@@ -486,6 +488,22 @@ router.post('/bookings/:id/rx-decline', requireDoctor, async (req, res) => {
       'Please read it and reply on your request page:'],
     'Read the message');
   res.json({ ok: true });
+});
+
+// Refund a declined prescription request — only when the doctor presses "Refund payment"; never automatic.
+router.post('/bookings/:id/refund', requireDoctor, async (req, res) => {
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Not found' });
+  if (!require('../rxServices').isRxService(booking.service_type) || booking.rx_status !== 'declined') {
+    return res.status(400).json({ error: 'Refunds here are for declined prescription requests only.' });
+  }
+  const doctor = await getCurrentDoctor(req);
+  const result = await require('../refunds').refundBooking(booking, doctor.name);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  await sendPatientNotice(booking, 'Your payment has been refunded',
+    [`We have refunded your payment of <strong>€${(result.amount / 100).toFixed(2)}</strong> for your prescription request. It usually reaches your card within 5–10 working days.`],
+    'View my request');
+  res.json({ ok: true, amount_cents: result.amount });
 });
 
 router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
@@ -810,9 +828,10 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
     // told it is on its way to their pharmacy — they never receive the prescription itself.
     await claims.claimBooking(req.params.id, doctor.id).catch(() => {});
     await db.run("UPDATE bookings SET rx_status = 'issued' WHERE id = ?", [req.params.id]);
-    notifyPatientRxIssued(booking);
-  } else {
-    notifyPatientDocumentReady(booking, 'Prescription');
+    notifyPatientRxIssued(booking, true);
+  } else if (booking.service_type !== 'walk_in') {
+    // Every prescription goes to the pharmacy (admin forwards it via Healthlink) — the patient never gets a copy.
+    notifyPatientRxIssued(booking, false);
   }
   res.json({ ok: true, id: info.lastInsertRowid });
 });
@@ -844,6 +863,9 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ?', [req.params.rxId]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
   const booking = await enrichBooking(await db.get('SELECT * FROM bookings WHERE id = ?', [rx.booking_id]));
+  if (String(toEmail).toLowerCase().trim() === String(booking.patient_email || '').toLowerCase().trim()) {
+    return res.status(400).json({ error: 'Prescriptions go to the pharmacy only, not to the patient. Please enter the pharmacy email address.' });
+  }
 
   try {
     const practice = await getPractice();
@@ -860,9 +882,9 @@ router.post('/prescriptions/:rxId/send', requireDoctor, async (req, res) => {
       attachments: [{ filename: `Prescription-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
     });
     await db.run("UPDATE prescriptions SET sent_to_email = ?, sent_at = NOW() WHERE id = ?", [toEmail, req.params.rxId]);
-    if (String(toEmail).toLowerCase().trim() !== String(booking.patient_email || '').toLowerCase().trim()) {
-      notifyPatientSentOn(booking, 'Prescription', toEmail);
-    }
+    sendPatientNotice(booking, 'Your prescription has been sent to your pharmacy',
+      [`Your GP has sent your prescription to <strong>${esc(toEmail)}</strong>. Please contact your pharmacy before collecting your medication.`],
+      'View my consultation');
     // Sending it counts as the associated task being done, whether or not the doctor also
     // ticks it off manually.
     await db.run(

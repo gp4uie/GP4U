@@ -317,6 +317,11 @@ async function initSchema() {
   await ensureColumn('bookings', 'stripe_payment_intent', 'VARCHAR(255) NULL');
   // Prescription requests: requested -> issued (sent to the pharmacy by the team) or declined (doctor messaged the patient).
   await ensureColumn('bookings', 'rx_status', 'VARCHAR(16) NULL');
+  // Manual refunds (button after declining a prescription request) — see server/refunds.js.
+  await ensureColumn('bookings', 'refunded_at', 'DATETIME NULL');
+  await ensureColumn('bookings', 'refund_cents', 'INT NULL');
+  await ensureColumn('bookings', 'refund_id', 'VARCHAR(255) NULL');
+  await ensureColumn('bookings', 'refunded_by', 'VARCHAR(255) NULL');
   await ensureColumn('prescriptions', 'signature_id', 'INT NULL');
   await ensureColumn('documents', 'signature_id', 'INT NULL');
 
