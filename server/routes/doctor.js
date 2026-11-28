@@ -92,7 +92,7 @@ function notifyPatientDocumentReady(booking, label) {
     'View my document');
 }
 function notifyPatientRxIssued(booking, isRequest) {
-  return sendPatientNotice(booking, 'Your prescription has been issued',
+  return sendPatientNotice(booking, 'Your prescription has been issued and sent to your pharmacy',
     [isRequest ? `Good news — your GP has approved your prescription request.` : 'Your GP has issued a prescription for you.',
       `Our team is sending the prescription directly to your pharmacy${booking.pharmacy_name ? `, <strong>${esc(booking.pharmacy_name)}</strong>,` : ''} through Healthlink. You don't need to collect anything from us — please contact your pharmacy before collecting your medication.`],
     'View my request');
