@@ -896,3 +896,24 @@ footer.site-footer .hours-table th { padding-right: 18px; white-space: nowrap; }
 
 /* Home "Find us": one location card (the opening hours are shown at the top of the page) */
 .loc.loc-single { grid-template-columns: 1fr; max-width: 760px; margin-left: auto; margin-right: auto; }
+
+/* Booking: one day at a time, compact times */
+.day-picker { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.day-nav { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff; font-size: 1.6rem; line-height: 1; color: var(--teal-700); cursor: pointer; display: grid; place-items: center; padding: 0 0 3px; }
+.day-nav:hover:not([disabled]) { border-color: var(--teal-700); background: #eef7f5; }
+.day-nav[disabled] { opacity: 0.35; cursor: default; }
+.day-current { flex: 1; text-align: center; line-height: 1.3; }
+.day-current strong { display: block; font-size: 1.05rem; }
+.day-current span { font-size: 0.85rem; color: var(--ink-500); }
+.day-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; margin-bottom: 6px; scrollbar-width: thin; }
+.day-chip { flex: none; width: 58px; padding: 6px 0; border-radius: 12px; border: 1.5px solid var(--line); background: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.15; font: inherit; color: inherit; }
+.day-chip .dc-wd, .day-chip .dc-m { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-500); }
+.day-chip .dc-d { font-size: 1.15rem; font-weight: 800; }
+.day-chip.active { background: var(--teal-700); border-color: var(--teal-700); color: #fff; }
+.day-chip.active .dc-wd, .day-chip.active .dc-m { color: rgba(255, 255, 255, 0.85); }
+.slot-part { margin-top: 8px; }
+.slot-part-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-500); margin: 4px 0 6px; }
+.slot-grid.compact { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; max-height: none; overflow: visible; padding: 0; }
+.slot-grid.compact .slot-btn { padding: 9px 4px; text-align: center; font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+.day-chips { scrollbar-width: none; }
+.day-chips::-webkit-scrollbar { display: none; }

@@ -498,20 +498,63 @@ async function loadSlots() {
     container.innerHTML = '<p>No slots available right now — please check back soon.</p>';
     return;
   }
-  const byDay = {};
+  // Group by Irish calendar day (irish-time.js makes every date display Irish time, whatever the device is set to).
+  const keyFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Dublin', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const days = [];
   slots.forEach((s) => {
     const d = new Date(s.start);
-    const dayKey = d.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
-    byDay[dayKey] = byDay[dayKey] || [];
-    byDay[dayKey].push(s);
+    const key = keyFmt.format(d);
+    let day = days.find((x) => x.key === key);
+    if (!day) { day = { key, first: d, slots: [] }; days.push(day); }
+    day.slots.push(s);
   });
-  container.innerHTML = Object.entries(byDay).map(([day, daySlots]) => `
-    <div class="slot-day-label" style="grid-column:1/-1;">${day}</div>
-    ${daySlots.map((s) => {
-      const t = new Date(s.start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
-      return `<div class="slot-btn" data-start="${s.start}" data-end="${s.end}" onclick="pickSlot(this)">${t}</div>`;
-    }).join('')}
-  `).join('');
+  slotDays = days;
+  const keep = selectedSlot ? days.findIndex((x) => x.slots.some((s) => s.start === selectedSlot.start)) : -1;
+  slotDayIndex = keep >= 0 ? keep : 0;
+  renderSlotDay();
+}
+
+// One day at a time: arrows and a row of day buttons at the top, that day's times underneath (Morning / Afternoon / Evening).
+let slotDays = [];
+let slotDayIndex = 0;
+function renderSlotDay() {
+  const container = document.getElementById('slotContainer');
+  const day = slotDays[slotDayIndex];
+  if (!day) return;
+  const hourOf = (d) => (window.irishHour ? window.irishHour(d) : new Date(d).getHours());
+  const parts = [['Morning', (h) => h < 12], ['Afternoon', (h) => h >= 12 && h < 17], ['Evening', (h) => h >= 17]];
+  const chip = (x, i) => {
+    const d = x.first;
+    return `<button type="button" class="day-chip${i === slotDayIndex ? ' active' : ''}" onclick="showSlotDay(${i})" aria-pressed="${i === slotDayIndex}">
+      <span class="dc-wd">${d.toLocaleDateString('en-IE', { weekday: 'short' })}</span>
+      <span class="dc-d">${d.toLocaleDateString('en-IE', { day: 'numeric' })}</span>
+      <span class="dc-m">${d.toLocaleDateString('en-IE', { month: 'short' })}</span></button>`;
+  };
+  container.innerHTML = `
+    <div class="day-picker">
+      <button type="button" class="day-nav" onclick="showSlotDay(${slotDayIndex - 1})" ${slotDayIndex === 0 ? 'disabled' : ''} aria-label="Previous day">&#8249;</button>
+      <div class="day-current" aria-live="polite"><strong>${day.first.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
+        <span>${day.slots.length} time${day.slots.length === 1 ? '' : 's'} available</span></div>
+      <button type="button" class="day-nav" onclick="showSlotDay(${slotDayIndex + 1})" ${slotDayIndex >= slotDays.length - 1 ? 'disabled' : ''} aria-label="Next day">&#8250;</button>
+    </div>
+    <div class="day-chips" role="group" aria-label="Choose a day">${slotDays.map(chip).join('')}</div>
+    ${parts.map(([label, test]) => {
+      const list = day.slots.filter((s) => test(hourOf(s.start)));
+      if (!list.length) return '';
+      return `<div class="slot-part"><div class="slot-part-label">${label}</div><div class="slot-grid compact">${list.map((s) => {
+        const t = new Date(s.start).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+        const sel = selectedSlot && selectedSlot.start === s.start ? ' selected' : '';
+        return `<button type="button" class="slot-btn${sel}" data-start="${s.start}" data-end="${s.end}" onclick="pickSlot(this)">${t}</button>`;
+      }).join('')}</div></div>`;
+    }).join('')}`;
+  const active = container.querySelector('.day-chip.active');
+  const row = container.querySelector('.day-chips');
+  if (active && row) row.scrollLeft = active.offsetLeft - row.clientWidth / 2 + active.clientWidth / 2;
+}
+function showSlotDay(i) {
+  if (i < 0 || i >= slotDays.length) return;
+  slotDayIndex = i;
+  renderSlotDay();
 }
 
 function pickSlot(el) {
