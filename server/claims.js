@@ -46,7 +46,11 @@ async function notifyDoctorsOfBooking(booking, serviceLabel) {
   const already = await db.get('SELECT 1 AS x FROM booking_claim_links WHERE booking_id = ? LIMIT 1', [booking.id]);
   if (already) return;
   const practice = await getPractice();
-  const { doctors, scheduled } = await scheduledDoctors(booking);
+  // Prescription requests have no appointment time, so every active doctor is told straight away.
+  const rx = require('./rxServices').isRxService(booking.service_type);
+  const { doctors, scheduled } = rx
+    ? { doctors: await db.all('SELECT id, name, email FROM doctors WHERE active = 1'), scheduled: false }
+    : await scheduledDoctors(booking);
   const notified = new Set();
   for (const d of doctors) {
     const token = crypto.randomBytes(24).toString('hex');
@@ -57,12 +61,12 @@ async function notifyDoctorsOfBooking(booking, serviceLabel) {
     try {
       await mailer.sendMail({
         to: d.email,
-        subject: `New online booking: ${booking.patient_name} — ${whenText(booking.slot_start)}`,
+        subject: rx ? `New prescription request: ${booking.patient_name} — ${serviceLabel}` : `New online booking: ${booking.patient_name} — ${whenText(booking.slot_start)}`,
         html: `
           ${emailHeader(practice)}
           <p>Hi ${esc(d.name)},</p>
-          <p>A new online booking needs a doctor${scheduled ? ' (you are scheduled at this time)' : ''}:</p>
-          <p><strong>${esc(booking.patient_name)}</strong> — ${esc(serviceLabel)}<br>${esc(whenText(booking.slot_start))}</p>
+          <p>${rx ? 'A new prescription request needs a doctor to review it (issue it, or decline and message the patient):' : `A new online booking needs a doctor${scheduled ? ' (you are scheduled at this time)' : ''}:`}</p>
+          <p><strong>${esc(booking.patient_name)}</strong> — ${esc(serviceLabel)}<br>${rx ? 'Sent ' : ''}${esc(whenText(booking.slot_start))}</p>
           <p><a href="${link}" style="display:inline-block;background:#0a4d4d;color:#ffffff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold;">Claim this case</a></p>
           <p style="color:#555;font-size:13px;">The first doctor to claim it takes the case, and the link then stops working for everyone else. You will be asked to sign in first. Link: ${link}</p>
         `,

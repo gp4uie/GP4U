@@ -439,8 +439,12 @@ function goToStep3FromForm() {
     showRedFlagPanel(result);
     return;
   }
+  // Prescription requests aren't appointments: no time to choose, straight to review.
+  if (isRxRequest(selectedService)) { selectedSlot = null; goToStep(4); return; }
   goToStep(3);
 }
+function isRxRequest(key) { return key === 'repeat_rx' || isRxConditionKey(key); }
+function stepBackFromReview() { goToStep(isRxRequest(selectedService) ? 2 : 3); }
 
 function showRedFlagPanel(result) {
   document.getElementById('patientDetailsFields').style.display = 'none';
@@ -567,10 +571,12 @@ function pickSlot(el) {
 const bookEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function renderReview() {
   const s = SERVICES[selectedService];
-  const start = new Date(selectedSlot.start);
+  const when = selectedSlot
+    ? `<p><strong>When:</strong> ${new Date(selectedSlot.start).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} (Irish time)</p>`
+    : `<p><strong>How it works:</strong> a GP reviews your request. If approved, the prescription is sent directly to your pharmacy${intakeData.pharmacyName ? ` (${bookEsc(intakeData.pharmacyName)})` : ''} — no call needed.</p>`;
   document.getElementById('reviewCard').innerHTML = `
     <h3>${s.label}</h3>
-    <p><strong>When:</strong> ${start.toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} (Irish time)</p>
+    ${when}
     <p><strong>Patient:</strong> ${bookEsc(intakeData.patientName)}</p>
     <p><strong>Reason:</strong> ${bookEsc(intakeData.reason)}</p>
     <div id="reviewTotal"></div>
@@ -636,8 +642,8 @@ async function submitBooking() {
       body: JSON.stringify({
         serviceType: selectedService,
         ...intakeData,
-        slotStart: selectedSlot.start,
-        slotEnd: selectedSlot.end,
+        slotStart: selectedSlot ? selectedSlot.start : '',
+        slotEnd: selectedSlot ? selectedSlot.end : '',
         voucherCode: appliedVoucher ? appliedVoucher.code : '',
       }),
     });

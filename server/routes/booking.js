@@ -28,17 +28,7 @@ const upload = multer({
 // No spaces, quotes, angle brackets or other characters that could turn an address into HTML or script.
 const EMAIL_RE = /^[^\s@<>"`()\\,;:]+@[^\s@<>"'`()\\,;:]+\.[^\s@<>"'`()\\,;:]+$/;
 
-// Mirrors PRESCRIPTION_SERVICE_KEYS in public/js/questionnaires.js — kept as a separate list here
-// since that file is browser-only. Update both if a condition-specific prescription page is
-// added or removed.
-const PRESCRIPTION_SERVICE_KEYS = [
-  'contraception', 'period_delay', 'uti', 'ed', 'hair_loss', 'acne', 'asthma',
-  'migraine', 'hypothyroidism', 'stop_smoking', 'hay_fever', 'cold_sores',
-  'eczema_psoriasis',
-];
-function isRxService(serviceType) {
-  return serviceType === 'repeat_rx' || PRESCRIPTION_SERVICE_KEYS.includes(serviceType);
-}
+const { isRxService } = require('../rxServices');
 
 // Plausibility check, not an identity check — just rejects the obviously-impossible dates a typo
 // or placeholder value produces (e.g. a test record with DOB "1111-11-11"). Mirrors the
@@ -67,6 +57,27 @@ async function notifyBookingPaid(booking) {
   `, [booking.id, `New booking: ${booking.patient_name} — ${serviceLabel}`]);
 
   const link = `${siteUrl()}/confirmation.html?id=${booking.id}&token=${booking.patient_token}`;
+  if (isRxService(booking.service_type)) {
+    // A prescription request: no appointment time, nothing to join.
+    try {
+      const practice = await getPractice();
+      await mailer.sendMail({
+        to: booking.patient_email,
+        subject: `We've received your prescription request — ${practice.name}`,
+        html: `
+          ${emailHeader(practice)}
+          <p>Hi ${esc(booking.patient_name)},</p>
+          <p>Thank you — your <strong>${esc(serviceLabel)}</strong> request has been sent to our GPs.<br>Reference: <strong>${esc(booking.id)}</strong></p>
+          <p>A GP will review it. If it is approved, our team sends the prescription directly to your pharmacy (${esc(booking.pharmacy_name || 'the pharmacy you named')}) — you don't need to collect anything from us. If the GP needs more information, they will message you and we'll email you.</p>
+          ${emailButton(link, 'View my request')}
+          <p>Keep this email safe — this link is your private access to your request. Please don't forward it.</p>
+          ${emailFooter(practice)}
+        `,
+      });
+    } catch (err) { console.log('Prescription request confirmation email not sent:', err.message); }
+    try { await notifyDoctorsOfBooking(booking, serviceLabel); } catch (err) { console.log('Doctor notification not sent:', err.message); }
+    return;
+  }
   try {
     const practice = await getPractice();
     await mailer.sendMail({
@@ -176,8 +187,9 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
     if (!service) return res.status(400).json({ error: 'Unknown service type' });
     const pharmacyRequired = isRxService(serviceType);
     const addressRequired = serviceType === 'sick_cert';
+    const rxRequest = isRxService(serviceType);
     if (
-      !patientName || !patientPhone || !patientEmail || !reason || !patientDob || !slotStart || !slotEnd
+      !patientName || !patientPhone || !patientEmail || !reason || !patientDob || (!rxRequest && (!slotStart || !slotEnd))
       || (pharmacyRequired && !pharmacyName)
       || (addressRequired && !patientAddress)
     ) {
@@ -204,15 +216,17 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
     }
     const amountCents = voucher ? voucher.finalCents : service.priceCents;
 
-    const slotStartSql = db.toMySQLDateTime(slotStart);
-    const slotEndSql = db.toMySQLDateTime(slotEnd);
+    // A prescription request has no appointment time: it is filed at the moment it is sent (and doesn't use a slot).
+    const rxNow = new Date();
+    const slotStartSql = db.toMySQLDateTime(rxRequest ? rxNow.toISOString() : slotStart);
+    const slotEndSql = db.toMySQLDateTime(rxRequest ? new Date(rxNow.getTime() + service.durationMins * 60000).toISOString() : slotEnd);
 
-    // Re-check the slot is still free (someone else may have taken it just now) — by the same rule the time list
-    // uses: free while fewer bookings overlap it than there are doctors working then. (The old check refused any
-    // slot with one booking, so with two doctors on, the list offered times that could then never be booked.)
-    const wanted = new Date(slotStart).getTime();
-    const stillFree = (await getAvailableSlots(serviceType)).some((s) => new Date(s.start).getTime() === wanted);
-    if (!stillFree) return res.status(409).json({ error: 'That slot was just booked by someone else. Please pick another.' });
+    if (!rxRequest) {
+      // Re-check the slot is still free (someone else may have taken it just now) — by the same rule the time list uses.
+      const wanted = new Date(slotStart).getTime();
+      const stillFree = (await getAvailableSlots(serviceType)).some((s) => new Date(s.start).getTime() === wanted);
+      if (!stillFree) return res.status(409).json({ error: 'That slot was just booked by someone else. Please pick another.' });
+    }
 
     const id = newId('GP4U');
     const patientToken = crypto.randomBytes(16).toString('hex');
@@ -220,12 +234,12 @@ router.post('/bookings', formLimiter.limit('booking', 30), async (req, res) => {
     await db.run(`
       INSERT INTO bookings (id, patient_token, service_type, patient_name, patient_dob, patient_phone,
         patient_email, patient_address, pharmacy_name, reason, symptoms_duration, current_medications, allergies, extra_details,
-        safety_answers, slot_start, slot_end, amount_cents, voucher_code, discount_cents, status)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
+        safety_answers, slot_start, slot_end, amount_cents, voucher_code, discount_cents, rx_status, status)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending_payment')
     `, [id, patientToken, serviceType, patientName, patientDob, patientPhone, patientEmail, db.encrypt(patientAddress || ''), pharmacyName,
       db.encrypt(reason), db.encrypt(symptomsDuration || ''), db.encrypt(currentMedications || ''), db.encrypt(allergies || ''), db.encrypt(extraDetails || ''),
       db.encrypt(safetyAnswers),
-      slotStartSql, slotEndSql, amountCents, voucher ? voucher.code : null, voucher ? voucher.discountCents : 0]);
+      slotStartSql, slotEndSql, amountCents, voucher ? voucher.code : null, voucher ? voucher.discountCents : 0, rxRequest ? 'requested' : null]);
 
     await upsertPatient({ email: patientEmail, name: patientName, dob: patientDob, phone: patientPhone, address: patientAddress || '' });
 
@@ -345,6 +359,7 @@ router.get('/bookings/:id', requirePatientToken, async (req, res) => {
   const attachments = await db.all('SELECT id, original_name, mime_type, created_at FROM attachments WHERE booking_id = ?', [req.params.id]);
   const { patient_token, ...safeBooking } = req.booking;
   safeBooking.audio_only = await require('../services').bookingIsAudioOnly(req.booking);
+  safeBooking.is_rx = isRxService(req.booking.service_type);
   // Opening the booking counts as "viewed" for the unread badge shown in the patient portal.
   await db.run('UPDATE bookings SET patient_last_viewed_at = NOW() WHERE id = ?', [req.params.id]);
   res.json({ booking: safeBooking, messages, prescriptions, documents, attachments });
@@ -446,6 +461,8 @@ router.get('/bookings/:id/account-status', requirePatientToken, async (req, res)
 // Patient-side read access to a single prescription/document for printing — proven by the
 // same booking token used for the confirmation page, so no separate login is required.
 router.get('/bookings/:id/prescriptions/:rxId', requirePatientToken, async (req, res) => {
+  // Prescription requests: the prescription goes to the pharmacy (via the practice team), never to the patient.
+  if (isRxService(req.booking.service_type)) return res.status(403).json({ error: 'This prescription is sent directly to your pharmacy, so it isn\'t available to download.' });
   const rx = await db.get('SELECT * FROM prescriptions WHERE id = ? AND booking_id = ?', [req.params.rxId, req.params.id]);
   if (!rx) return res.status(404).json({ error: 'Not found' });
   const { patient_token, ...safeBooking } = await enrichBooking(req.booking);

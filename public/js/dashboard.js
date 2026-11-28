@@ -852,9 +852,11 @@ async function openBooking(id, listKey, keepTab) {
     ${b.safety_answers ? `<p><strong>Safety questionnaire:</strong><br>${esc(b.safety_answers).replace(/\n/g, '<br>')}</p>` : ''}`;
 
   // Video / audio calls and patient messaging only make sense for online consultations.
-  // A phone consultation was paid for as audio only: just the phone-call button.
-  document.getElementById('joinCallBtn').style.display = (walk || b.audio_only) ? 'none' : '';
-  document.getElementById('joinAudioCallBtn').style.display = walk ? 'none' : '';
+  // A phone consultation was paid for as audio only: just the phone-call button. Prescription requests have no call.
+  document.getElementById('joinCallBtn').style.display = (walk || b.audio_only || b.is_rx) ? 'none' : '';
+  document.getElementById('joinAudioCallBtn').style.display = (walk || b.is_rx) ? 'none' : '';
+  document.getElementById('rxDeclineBtn').hidden = !b.is_rx || b.status === 'completed';
+  if (!b.is_rx) toggleRxDecline(false);
   document.getElementById('joinAudioCallBtn').textContent = b.audio_only ? 'Join Phone Call (audio only)' : 'Join Audio Call';
   document.getElementById('joinAudioCallBtn').className = b.audio_only ? 'btn btn-primary' : 'btn btn-secondary';
   document.getElementById('chartTabBtn_messages').style.display = walk ? 'none' : '';
@@ -1340,3 +1342,25 @@ async function sendDoctorMessage() {
 }
 
 checkSession();
+
+// --- Prescription requests: decline with a message to the patient ---
+function toggleRxDecline(show) {
+  const box = document.getElementById('rxDeclineBox');
+  if (!box) return;
+  box.hidden = show === undefined ? !box.hidden : !show;
+  document.getElementById('rxDeclineErr').textContent = '';
+  if (!box.hidden) document.getElementById('rxDeclineMsg').focus();
+}
+async function sendRxDecline() {
+  const message = document.getElementById('rxDeclineMsg').value.trim();
+  const err = document.getElementById('rxDeclineErr');
+  if (!message) { err.textContent = 'Please write a message to the patient.'; return; }
+  const res = await doctorFetch(`/api/doctor/bookings/${currentBookingId}/rx-decline`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { err.textContent = data.error || 'Could not send.'; return; }
+  document.getElementById('rxDeclineMsg').value = '';
+  toggleRxDecline(false);
+  openBooking(currentBookingId);
+}

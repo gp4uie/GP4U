@@ -305,6 +305,17 @@
             <a id="joinCallBtn" class="btn btn-primary">Join Video Call</a>
             <a id="joinAudioCallBtn" class="btn btn-secondary">Join Audio Call</a>
             <button class="btn btn-primary" id="markCompleteBtn" onclick="markComplete()">Mark Complete</button>
+            <button class="btn btn-secondary" id="rxDeclineBtn" onclick="toggleRxDecline()" hidden>Decline / ask patient</button>
+          </div>
+          <div class="card" id="rxDeclineBox" hidden style="margin-top:12px;">
+            <h4 style="margin-top:0;">Decline this prescription request</h4>
+            <p style="color:var(--ink-500);font-size:0.9rem;">Write to the patient: why it can't be issued, or what you need from them (e.g. confirm the dose). They are emailed that there's a message, and their reply is emailed to you.</p>
+            <textarea id="rxDeclineMsg" maxlength="5000" style="min-height:90px;" placeholder="e.g. Please confirm the dose you currently take and when you last had a blood pressure check."></textarea>
+            <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="sendRxDecline()">Send message &amp; decline</button>
+              <button class="btn btn-secondary" onclick="toggleRxDecline(false)">Cancel</button>
+            </div>
+            <p id="rxDeclineErr" style="color:#c0392b;margin:8px 0 0;"></p>
           </div>
           <h3 style="margin-top:24px;">Patient Attachments</h3>
           <div id="attachmentsList"><p style="color:var(--ink-500);">None uploaded.</p></div>
@@ -459,7 +470,7 @@
 
 <script src="/js/irish-time.js?v=f54854e8"></script>
 <script src="/js/net-retry.js?v=aa6cd5eb"></script>
-<script src="/js/dashboard.js?v=4a1c3f20"></script>
+<script src="/js/dashboard.js?v=a1f2bc7a"></script>
 <script src="/js/dashboard-clinic.js?v=95aa72a1"></script>
 <script src="/js/dashboard-signature.js?v=076d5397"></script>
 <script src="/api/site-settings.js"></script>

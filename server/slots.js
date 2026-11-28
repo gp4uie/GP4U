@@ -55,7 +55,8 @@ async function getAvailableSlots(serviceKey) {
   // so a patient who abandons payment doesn't block that slot for everyone else.
   // Counted: confirmed and completed consultations (a consultation finished early still keeps its slot), plus ones
   // at the payment step in the last 35 minutes. Walk-ins at the clinic are not online appointments, so they don't count.
-  const existing = await db.all("SELECT slot_start FROM bookings WHERE service_type <> 'walk_in' AND (status IN ('paid', 'completed') OR (status = 'pending_payment' AND created_at > DATE_SUB(NOW(), INTERVAL 35 MINUTE)))");
+  const { RX_REQUEST_KEYS } = require('./rxServices'); // prescription requests aren't appointments either
+  const existing = await db.all(`SELECT slot_start FROM bookings WHERE service_type <> 'walk_in' AND service_type NOT IN (${RX_REQUEST_KEYS.map(() => '?').join(',')}) AND (status IN ('paid', 'completed') OR (status = 'pending_payment' AND created_at > DATE_SUB(NOW(), INTERVAL 35 MINUTE)))`, RX_REQUEST_KEYS);
   const perSlot = new Map(); // slot start (ms, rounded down to the 15-minute grid) -> bookings in it
   const STEP_MS = SLOT_STEP_MINS * 60 * 1000;
   for (const b of existing) {

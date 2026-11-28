@@ -91,6 +91,12 @@ function notifyPatientDocumentReady(booking, label) {
     [`Your GP has issued a <strong>${esc(label.toLowerCase())}</strong> for you. For your privacy the details aren't in this email. You can view, download and print it here:`],
     'View my document');
 }
+function notifyPatientRxIssued(booking) {
+  return sendPatientNotice(booking, 'Your prescription has been issued',
+    [`Good news — your GP has approved your prescription request.`,
+      `Our team is sending the prescription directly to your pharmacy${booking.pharmacy_name ? `, <strong>${esc(booking.pharmacy_name)}</strong>,` : ''} through Healthlink. You don't need to collect anything from us — please contact your pharmacy before collecting your medication.`],
+    'View my request');
+}
 function notifyPatientSentOn(booking, label, toEmail) {
   return sendPatientNotice(booking, `Your ${label.toLowerCase()} has been sent`,
     [`Your GP has sent your <strong>${esc(label.toLowerCase())}</strong> to <strong>${esc(toEmail)}</strong>.`, 'You can see a copy here:'],
@@ -450,6 +456,7 @@ router.get('/bookings/:id', requireDoctor, async (req, res) => {
   const claimer = booking.claimed_by ? await db.get('SELECT name FROM doctors WHERE id = ?', [booking.claimed_by]) : null;
   const claim = { by: booking.claimed_by || null, byName: claimer ? claimer.name : null, mine: booking.claimed_by === req.session.doctorId };
   safeBooking.audio_only = await require('../services').bookingIsAudioOnly(booking);
+  safeBooking.is_rx = require('../rxServices').isRxService(booking.service_type);
   res.json({ claim, booking: safeBooking, messages, prescriptions, notes, documents, attachments, previousConsultations, patientProfile, patientSummary });
 });
 
@@ -457,6 +464,28 @@ router.get('/attachments/:attId', requireDoctor, async (req, res) => {
   const att = await db.get('SELECT * FROM attachments WHERE id = ?', [req.params.attId]);
   if (!att) return res.status(404).json({ error: 'Not found' });
   sendUpload(res, att);
+});
+
+// Decline a prescription request: the doctor must tell the patient why or what they need (e.g. to clarify the dose).
+// The message goes into the consultation's messages; the patient is emailed that there's a message; their reply emails
+// this doctor (see POST /bookings/:id/messages in routes/booking.js).
+router.post('/bookings/:id/rx-decline', requireDoctor, async (req, res) => {
+  const message = String((req.body && req.body.message) || '').trim();
+  if (!message) return res.status(400).json({ error: 'Please write a message to the patient explaining why, or what you need from them.' });
+  if (message.length > 5000) return res.status(400).json({ error: 'That message is too long (5,000 characters at most).' });
+  const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Not found' });
+  if (!require('../rxServices').isRxService(booking.service_type)) return res.status(400).json({ error: 'This is not a prescription request.' });
+  const doctor = await getCurrentDoctor(req);
+  const taken = await claims.claimBooking(req.params.id, doctor.id);
+  if (!taken.ok) return res.status(409).json({ error: `${taken.claimedByName || 'Another doctor'} has claimed this case.` });
+  await db.run("UPDATE bookings SET rx_status = 'declined' WHERE id = ?", [req.params.id]);
+  await db.run("INSERT INTO messages (booking_id, sender, body) VALUES (?, 'doctor', ?)", [req.params.id, message]);
+  await sendPatientNotice(booking, 'About your prescription request',
+    ['Your GP has reviewed your prescription request and has sent you a message — they could not issue it yet. For your privacy the message is not included in this email.',
+      'Please read it and reply on your request page:'],
+    'Read the message');
+  res.json({ ok: true });
 });
 
 router.post('/bookings/:id/messages', requireDoctor, async (req, res) => {
@@ -766,7 +795,7 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
           ${emailHeader(practice)}
           <p>A new prescription was issued for <strong>${esc(booking.patient_name)}</strong> (${booking.service_type === 'walk_in' ? 'walk-in visit' : 'online consultation'}).</p>
           <p><strong>Pharmacy:</strong> ${esc(booking.pharmacy_name || 'Not given — check with the patient')}</p>
-          <p>Please find the prescription attached as a PDF to forward on.</p>
+          <p>Please find the prescription attached as a PDF to forward to the pharmacy via Healthlink.</p>
           <p>Prescribed by ${esc(doctor.name)} (${esc(doctor.reg_number)})</p>
         `,
         attachments: [{ filename: `Prescription-${fileSafe(booking.patient_name)}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
@@ -776,7 +805,15 @@ router.post('/bookings/:id/prescriptions', requireDoctor, async (req, res) => {
     console.log('Prescription copy to admin not sent:', err.message);
   }
 
-  notifyPatientDocumentReady(booking, 'Prescription');
+  if (require('../rxServices').isRxService(booking.service_type)) {
+    // Prescription request: the doctor who issues it takes the case (so patient replies reach them), and the patient is
+    // told it is on its way to their pharmacy — they never receive the prescription itself.
+    await claims.claimBooking(req.params.id, doctor.id).catch(() => {});
+    await db.run("UPDATE bookings SET rx_status = 'issued' WHERE id = ?", [req.params.id]);
+    notifyPatientRxIssued(booking);
+  } else {
+    notifyPatientDocumentReady(booking, 'Prescription');
+  }
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 

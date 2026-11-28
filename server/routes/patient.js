@@ -167,6 +167,8 @@ router.get('/documents', requirePatient, async (req, res) => {
     WHERE bookings.patient_email = ?
     ORDER BY prescriptions.issued_at DESC
   `, [req.session.patientEmail]);
+  const { isRxService } = require('../rxServices');
+  prescriptions.forEach((p) => { p.to_pharmacy = isRxService(p.service_type); });
   res.json({ documents, prescriptions });
 });
 

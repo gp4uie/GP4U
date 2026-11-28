@@ -87,6 +87,11 @@
     </div>
     </section>
 
+    <section class="card join-card" id="rxCard" hidden aria-labelledby="rxHeading">
+      <h2 style="margin:0 0 6px;" id="rxHeading">Your prescription request</h2>
+      <p id="rxText"></p>
+    </section>
+
     <div class="card" id="bookingDetails"></div>
 
     <div class="notice" id="emailNotice">
@@ -309,6 +314,21 @@ async function loadBooking() {
   joinAudioLink.onclick = openCall(audioCallUrl, 'gp4u-audio-call', 'width=480,height=640');
 
   const isCompleted = b.status === 'completed';
+  // Prescription request: no call to join — show where the request is instead.
+  if (b.is_rx) {
+    document.getElementById('joinCard').hidden = true;
+    const rxCard = document.getElementById('rxCard');
+    rxCard.hidden = false;
+    const pharmacy = b.pharmacy_name ? `<strong>${esc(b.pharmacy_name)}</strong>` : 'your pharmacy';
+    const state = b.rx_status || 'requested';
+    rxCard.classList.toggle('is-live', state === 'issued');
+    document.getElementById('rxHeading').textContent = state === 'issued' ? 'Your prescription has been issued' : state === 'declined' ? 'Your GP needs to talk to you' : 'Your prescription request has been sent';
+    document.getElementById('rxText').innerHTML = state === 'issued'
+      ? `Your GP approved your request. Our team is sending the prescription directly to ${pharmacy} through Healthlink — you don't need to collect anything from us. Please contact your pharmacy before collecting your medication.`
+      : state === 'declined'
+        ? 'Your GP could not issue this prescription yet and has sent you a message. Please read it in <a href="#messageThread">Message your GP</a> below and reply there.'
+        : `A GP will review your request. If it is approved, the prescription is sent directly to ${pharmacy} — we'll email you either way. If the GP needs more information they will message you here.`;
+  }
   document.getElementById('messageComposer').style.display = isCompleted ? 'none' : 'block';
   document.getElementById('messageClosedNotice').style.display = isCompleted ? 'block' : 'none';
 
@@ -355,7 +375,7 @@ async function loadBooking() {
         <p><strong>${esc(p.medication)}</strong> — ${esc(p.dose)}</p>
         <p>${esc(p.instructions)}</p>
         <p style="color:var(--ink-500);font-size:0.85rem;">Quantity: ${esc(p.quantity)} • Issued ${new Date(p.issued_at).toLocaleString('en-IE')}</p>
-        <a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${bookingId}&token=${token}">View / Print</a>
+        ${data.booking.is_rx ? '<p style="color:var(--teal-700);font-size:0.9rem;margin:0;"><strong>Sent to your pharmacy</strong> by our team via Healthlink.</p>' : `<a class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" target="_blank" href="/print-rx.html?rxId=${p.id}&bookingId=${bookingId}&token=${token}">View / Print</a>`}
       </div>
     `).join('');
   }
